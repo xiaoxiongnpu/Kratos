@@ -4,8 +4,8 @@
 //   _|\_\_|  \__,_|\__|\___/ ____/
 //                   Multi-Physics
 //
-//  License:		 BSD License
-//					 Kratos default license: kratos/license.txt
+//  License:         BSD License
+//                     Kratos default license: kratos/license.txt
 //
 //  Main authors:    Ignasi de Pouplana
 //                   Vicente Mataix
@@ -14,26 +14,47 @@
 #if !defined(KRATOS_RESIDUALBASED_RAMM_ARC_LENGTH_STRATEGY)
 #define KRATOS_RESIDUALBASED_RAMM_ARC_LENGTH_STRATEGY
 
+// System includes
+
+// External includes
+
 // Project includes
 #include "includes/define.h"
 #include "includes/model_part.h"
 #include "includes/kratos_parameters.h"
 #include "solving_strategies/strategies/residualbased_newton_raphson_strategy.h"
 
-// Application includes
-
 namespace Kratos
 {
+///@name Kratos Globals
+///@{
 
-template<class TSparseSpace,class TDenseSpace,class TLinearSolver>
-
-class ResidualBasedRammArcLengthStrategy : public ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>
-{
-
-public:
-
-    KRATOS_CLASS_POINTER_DEFINITION(ResidualBasedRammArcLengthStrategy);
+///@}
+///@name Type Definitions
+///@{
     
+///@}
+///@name  Enum's
+///@{
+    
+///@}
+///@name  Functions
+///@{
+
+///@}
+///@name Kratos Classes
+///@{
+/** \brief This is a Arc-Length strategy based on Ramm algorithm
+ * @details The Arc-Length method is a very efficient method in solving non-linear systems of equations when the problem under consideration exhibits one or more critical points. In terms of a simple mechanical loading-unloading problem, a critical point could be interpreted as the point at which the loaded body cannot support an increase of the external forces and an instability occurs.
+ */
+template<class TSparseSpace,class TDenseSpace,class TLinearSolver>
+class ResidualBasedRammArcLengthStrategy 
+    : public ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>
+{
+public:
+    ///@name Type Definitions
+    ///@{
+
     typedef SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver> BaseType;
     typedef ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver> MotherType;
     typedef ConvergenceCriteria<TSparseSpace, TDenseSpace> TConvergenceCriteriaType;
@@ -57,9 +78,14 @@ public:
     using MotherType::mInitializeWasPerformed;
     using MotherType::mSubModelPartList;
     using MotherType::mVariableNames;
+    
+    /// Pointer definition of TreeContactSearch
+    KRATOS_CLASS_POINTER_DEFINITION(ResidualBasedRammArcLengthStrategy);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    ///@}
+    ///@name Life Cycle
+    ///@{
+    
     ///Constructor
     ResidualBasedRammArcLengthStrategy(
         ModelPart& rModelPart,
@@ -108,24 +134,30 @@ public:
             mMinRadiusFactor = rParameters["min_radius_factor"].GetDouble();
         }
 
-    //------------------------------------------------------------------------------------
-
     ///Destructor
     virtual ~ResidualBasedRammArcLengthStrategy() {}
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ///@}
+    ///@name Operators
+    ///@{
 
+    ///@}
+    ///@name Operations
+    ///@{
+    
+    /**
+     * @brief Initialization of member variables and prior operations
+     */
+        
     void Initialize() override
     {
         KRATOS_TRY
 
-        if (mInitializeWasPerformed == false)
-		{
+        if (mInitializeWasPerformed == false) {
             MotherType::Initialize();
             
             //set up the system
-            if (mpBuilderAndSolver->GetDofSetIsInitializedFlag() == false)
-            {
+            if (mpBuilderAndSolver->GetDofSetIsInitializedFlag() == false) {
                 //setting up the list of the DOFs to be solved
                 mpBuilderAndSolver->SetUpDofSet(mpScheme, BaseType::GetModelPart());
 
@@ -170,12 +202,17 @@ public:
         KRATOS_CATCH( "" )
     }
 
+    /**
+     * @brief Performs all the required operations that should be done (for each step) 
+     * before solving the solution step.
+     * @details A member variable should be used as a flag to make sure this function is called only once per step.
+     */
+    
     void InitializeSolutionStep() override
     {
         KRATOS_TRY
 
-		if (mSolutionStepIsInitialized == false)
-		{
+        if (mSolutionStepIsInitialized == false) {
             MotherType::InitializeSolutionStep();
             
             this->SaveInitializeSystemVector(mpf);
@@ -188,14 +225,19 @@ public:
         KRATOS_CATCH( "" )
     }
 
-	bool SolveSolutionStep() override
-	{
+    /**
+     * @brief Solves the current step. 
+     * @details This function returns true if a solution has been found, false otherwise.
+     */
+        
+    bool SolveSolutionStep() override
+    {
         // ********** Prediction phase **********
         if (BaseType::mEchoLevel > 0) 
             std::cout << "ARC-LENGTH RADIUS: " << mRadius/mRadius_0 << " X initial radius" << std::endl;
         
         // Initialize variables
-		DofsArrayType& rDofSet = mpBuilderAndSolver->GetDofSet();
+        DofsArrayType& rDofSet = mpBuilderAndSolver->GetDofSet();
         TSystemMatrixType& mA = *mpA;
         TSystemVectorType& mDx = *mpDx;
         TSystemVectorType& mb = *mpb;
@@ -316,14 +358,17 @@ public:
             mpBuilderAndSolver->CalculateReactions(mpScheme, BaseType::GetModelPart(), mA, mDx, mb);
         }
         
-		return is_converged;
+        return is_converged;
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-	void FinalizeSolutionStep() override
-	{
-		KRATOS_TRY
+    /**
+     * @brief Performs all the required operations that should be done (for each step) 
+     * after solving the solution step.
+     */
+    
+    void FinalizeSolutionStep() override
+    {
+        KRATOS_TRY
         
         unsigned int iteration_number = BaseType::GetModelPart().GetProcessInfo()[NL_ITERATION_NUMBER];
         
@@ -379,11 +424,13 @@ public:
             this->ClearStep();
         }
 
-		KRATOS_CATCH("")
-	}
+        KRATOS_CATCH("")
+    }
     
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    /**
+     * @brief Clears the internal storage
+     */
+    
     void Clear() override
     {
         KRATOS_TRY
@@ -411,8 +458,10 @@ public:
         KRATOS_CATCH( "" )
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    /**
+    * @brief This method updates the external loads and the lambda factors
+    */
+    
     virtual void UpdateLoads()
     {
         KRATOS_TRY
@@ -426,11 +475,49 @@ public:
         KRATOS_CATCH("")
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    ///@}
+    ///@name Access
+    ///@{
 
+    ///@}
+    ///@name Inquiry
+    ///@{
+
+    ///@}
+    ///@name Input and output
+    ///@{
+
+    /************************************ GET INFO *************************************/
+    /***********************************************************************************/
+    
+    virtual std::string Info() const
+    {
+        return "ResidualBasedRammArcLengthStrategy";
+    }
+
+    /************************************ PRINT INFO ***********************************/
+    /***********************************************************************************/
+    
+    virtual void PrintInfo(std::ostream& rOStream) const
+    {
+        rOStream << Info();
+    }
+
+    ///@}
+    ///@name Friends
+    ///@{
+
+    ///@}
+    
 protected:
+    
+    ///@name Protected static Member Variables
+    ///@{
 
-    /// Member Variables
+    ///@}
+    ///@name Protected member Variables
+    ///@{
+
     Parameters* mpParameters;
     std::vector<ModelPart*> mSubModelPartList; /// List of every SubModelPart associated to an external load
     std::vector<std::string> mVariableNames; /// Name of the nodal variable associated to every SubModelPart
@@ -449,8 +536,19 @@ protected:
     double mNormxEquilibrium; /// Norm of the solution vector in equilibrium
     double mDLambdaStep; /// Delta lambda of the current step
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    ///@}
+    ///@name Protected Operators
+    ///@{
+    
+    ///@}
+    ///@name Protected Operations
+    ///@{
+    
+    /**
+     * @brief Function to perform expensive checks.
+     * @details It is designed to be called ONCE to verify that the input is correct.
+     */
+     the
     int Check() override
     {
         KRATOS_TRY
@@ -458,6 +556,7 @@ protected:
         int ierr = MotherType::Check();
         if(ierr != 0) return ierr;
         
+        // TODO: replace by the macros from checks.h
         KRATOS_ERROR_IF((ARC_LENGTH_LAMBDA.Key() == 0)) << "ARC_LENGTH_LAMBDA Key is 0. Check if all applications were correctly registered." << std::endl;
         KRATOS_ERROR_IF((ARC_LENGTH_RADIUS_FACTOR.Key() == 0)) <<"ARC_LENGTH_RADIUS_FACTOR Key is 0. Check if all applications were correctly registered." << std::endl;
         
@@ -466,41 +565,54 @@ protected:
         KRATOS_CATCH( "" )
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    void InitializeSystemVector(TSystemVectorPointerType& pv)
+    /**
+     * @brief This method initializes the system 
+     * @param rSystemVectorPointer The pointer that contains the system of equations
+     */
+    
+    void InitializeSystemVector(TSystemVectorPointerType& rSystemVectorPointer)
     {
-        if (pv == NULL)
-        {
+        if (rSystemVectorPointer == nullptr) {
             TSystemVectorPointerType pNewv = TSystemVectorPointerType(new TSystemVectorType(0));
-            pv.swap(pNewv);
+            rSystemVectorPointer.swap(pNewv);
         }
 
-        TSystemVectorType& v = *pv;
+        TSystemVectorType& v = *rSystemVectorPointer;
 
         if (v.size() != mpBuilderAndSolver->GetEquationSystemSize())
             v.resize(mpBuilderAndSolver->GetEquationSystemSize(), false);
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    void SaveInitializeSystemVector(TSystemVectorPointerType& pv)
+    /**
+     * @brief This method saves the initialized system 
+     * @param rSystemVectorPointer The pointer that contains the system of equations
+     */
+    
+    void SaveInitializeSystemVector(TSystemVectorPointerType& rSystemVectorPointer)
     {
-        if (pv == NULL)
-        {
+        if (rSystemVectorPointer == nullptr) {
             TSystemVectorPointerType pNewv = TSystemVectorPointerType(new TSystemVectorType(0));
-            pv.swap(pNewv);
+            rSystemVectorPointer.swap(pNewv);
         }
 
-        TSystemVectorType& v = *pv;
+        TSystemVectorType& v = *rSystemVectorPointer;
 
         if (v.size() != mpBuilderAndSolver->GetEquationSystemSize())
             v.resize(mpBuilderAndSolver->GetEquationSystemSize(), true);
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    void BuildWithDirichlet(TSystemMatrixType& mA, TSystemVectorType& mDx, TSystemVectorType& mb)
+    /**
+    * @brief This method applies the boundary conditions of the system
+    * @param mA The LHS of the system
+    * @param mDx The increment of solution 
+    * @param mb The RHS of the system
+    */
+    
+    void BuildWithDirichlet( the
+        TSystemMatrixType& mA, 
+        TSystemVectorType& mDx, 
+        TSystemVectorType& mb
+        )
     {
         KRATOS_TRY
 
@@ -510,9 +622,20 @@ protected:
         KRATOS_CATCH( "" )
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    /**
+     * @brief This method calll the update from the scheme and updates the external loads
+     * @param rDofSet The set of degrees of freedom to consider
+     * @param mA The LHS of the system
+     * @param mDx The increment of solution 
+     * @param mb The RHS of the system
+     */
     
-    virtual void Update(DofsArrayType& rDofSet, TSystemMatrixType& mA, TSystemVectorType& mDx, TSystemVectorType& mb)
+    virtual void Update(
+        DofsArrayType& rDofSet, 
+        TSystemMatrixType& mA, 
+        TSystemVectorType& mDx, 
+        TSystemVectorType& mb
+        )
     {
         KRATOS_TRY
         
@@ -525,8 +648,10 @@ protected:
         KRATOS_CATCH( "" )
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    /**
+     * @brief This method clears partially the solution step
+     */
+    
     void ClearStep()
     {
         KRATOS_TRY
@@ -540,7 +665,7 @@ protected:
         TSystemVectorType& mDxb = *mpDxb;
         TSystemVectorType& mDxPred = *mpDxPred;
         TSystemVectorType& mDxStep = *mpDxStep;
-
+ the
         SparseSpaceType::Resize(mDxf, 0);
         SparseSpaceType::Resize(mDxb, 0);
         SparseSpaceType::Resize(mDxPred, 0);
@@ -551,18 +676,18 @@ protected:
         KRATOS_CATCH("");
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    /**
+    * @brief This method updates the external loads multipliying by the lambda coefficient
+    */
+    
     void UpdateExternalLoads()
     {
         // Update External Loads
-        for(unsigned int i = 0; i < mVariableNames.size(); i++)
-        {
+        for(unsigned int i = 0; i < mVariableNames.size(); i++) {
             ModelPart& rSubModelPart = *(mSubModelPartList[i]);
             const std::string& VariableName = mVariableNames[i];
             
-            if( KratosComponents< Variable<double> >::Has( VariableName ) )
-            {
+            if( KratosComponents< Variable<double> >::Has( VariableName ) ) {
                 Variable<double> var = KratosComponents< Variable<double> >::Get( VariableName );
                 
                 #pragma omp parallel
@@ -571,19 +696,14 @@ protected:
                     ModelPart::NodeIterator NodesEnd;
                     OpenMPUtils::PartitionedIterators(rSubModelPart.Nodes(),NodesBegin,NodesEnd);
                     
-                    for (ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode)
-                    {
+                    for (ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode) {
                         double& rvalue = itNode->FastGetSolutionStepValue(var);
                         rvalue *= (mLambda/mLambda_old);
                     }
                 }
             }
-            else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) )
-            {
-                typedef VariableComponent< VectorComponentAdaptor<array_1d<double, 3> > > component_type;
-                component_type varx = KratosComponents< component_type >::Get(VariableName+std::string("_X"));
-                component_type vary = KratosComponents< component_type >::Get(VariableName+std::string("_Y"));
-                component_type varz = KratosComponents< component_type >::Get(VariableName+std::string("_Z"));
+            else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) ) {
+                Variable<array_1d<double,3>> var = KratosComponents< Variable<array_1d<double,3>> >::Get( VariableName );                
                 
                 #pragma omp parallel
                 {
@@ -591,20 +711,14 @@ protected:
                     ModelPart::NodeIterator NodesEnd;
                     OpenMPUtils::PartitionedIterators(rSubModelPart.Nodes(),NodesBegin,NodesEnd);
                     
-                    for (ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode)
-                    {
-                        double& rvaluex = itNode->FastGetSolutionStepValue(varx);
-                        rvaluex *= (mLambda/mLambda_old);
-                        double& rvaluey = itNode->FastGetSolutionStepValue(vary);
-                        rvaluey *= (mLambda/mLambda_old);
-                        double& rvaluez = itNode->FastGetSolutionStepValue(varz);
-                        rvaluez *= (mLambda/mLambda_old);
+                    for (ModelPart::NodeIterator it_node = NodesBegin; it_node != NodesEnd; ++it_node) {
+                        array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(var);
+                        rvalue *= (mLambda/mLambda_old);
                     }
                 }
             }
-            else
-            {
-                KRATOS_THROW_ERROR( std::logic_error, "One variable of the applied loads has a non supported type. Variable: ", VariableName )
+            else {
+                KARTOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << VariableName << std::endl;
             }
         }
         
@@ -612,37 +726,107 @@ protected:
         mLambda_old = mLambda;
     }
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    /**
+    * @brief This method computes the norm of reference
+    * @param rDofSet The set of degrees of freedom to compute
+    * @return The reference norm of the DoF studied 
+    */
+    
     double CalculateReferenceDofsNorm(DofsArrayType& rDofSet)
     {
-        double ReferenceDofsNorm = 0.0;
+        double reference_dofs_norm = 0.0;
 
         int NumThreads = OpenMPUtils::GetNumThreads();
         OpenMPUtils::PartitionVector DofSetPartition;
         OpenMPUtils::DivideInPartitions(rDofSet.size(), NumThreads, DofSetPartition);
 
-        #pragma omp parallel reduction(+:ReferenceDofsNorm)
+        #pragma omp parallel reduction(+:reference_dofs_norm)
         {
             int k = OpenMPUtils::ThisThread();
 
             typename DofsArrayType::iterator DofsBegin = rDofSet.begin() + DofSetPartition[k];
             typename DofsArrayType::iterator DofsEnd = rDofSet.begin() + DofSetPartition[k+1];
             
-            for (typename DofsArrayType::iterator itDof = DofsBegin; itDof != DofsEnd; ++itDof)
-            {                    
-                if (itDof->IsFree())
-                {
-                    const double& temp = itDof->GetSolutionStepValue();
-                    ReferenceDofsNorm += temp*temp;
+            for (typename DofsArrayType::iterator it_dof = DofsBegin; it_dof != DofsEnd; ++it_dof) {                    
+                if (it_dof->IsFree()) {
+                    const double& temp = it_dof->GetSolutionStepValue();
+                    reference_dofs_norm += temp*temp;
                 }
             }
         }
                 
-        return sqrt(ReferenceDofsNorm);
+        return std::sqrt(reference_dofs_norm);
     }
+    
+    ///@}
+    ///@name Protected  Access
+    ///@{
 
+    ///@}
+    ///@name Protected Inquiry
+    ///@{
+
+    ///@}
+    ///@name Protected LifeCycle
+    ///@{
+
+    ///@}
+private:
+    ///@name Static Member Variables
+    ///@{
+
+    ///@}
+    ///@name Member Variables
+    ///@{
+    
+    ///@}
+    ///@name Private Operators
+    ///@{
+
+    ///@}
+    ///@name Private Operations
+    ///@{
+    
+    ///@}
+    ///@name Private  Access
+    ///@{
+
+    ///@}
+    ///@name Private Inquiry
+    ///@{
+
+    ///@}
+    ///@name Un accessible methods
+    ///@{
+
+    ///@}
 }; // Class ResidualBasedRammArcLengthStrategy
+///@}
+
+///@name Type Definitions
+///@{
+
+
+///@}
+///@name Input and output
+///@{
+
+// /****************************** INPUT STREAM FUNCTION ******************************/
+// /***********************************************************************************/
+// 
+// template<class TPointType, class TPointerType>
+// inline std::istream& operator >> (std::istream& rIStream,
+//                                   ResidualBasedRammArcLengthStrategy& rThis);
+// 
+// /***************************** OUTPUT STREAM FUNCTION ******************************/
+// /***********************************************************************************/
+// 
+// template<class TPointType, class TPointerType>
+// inline std::ostream& operator << (std::ostream& rOStream,
+//                                   const ResidualBasedRammArcLengthStrategy& rThis)
+// {
+//     return rOStream;
+// }
 
 } // namespace Kratos
 
