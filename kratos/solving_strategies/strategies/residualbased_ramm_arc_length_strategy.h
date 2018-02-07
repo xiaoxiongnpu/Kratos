@@ -44,10 +44,18 @@ namespace Kratos
 ///@}
 ///@name Kratos Classes
 ///@{
-/** \brief This is a Arc-Length strategy based on Ramm algorithm
+/** 
+ * @class ResidualBasedRammArcLengthStrategy
+ * @ingroup KratosCore
+ * @brief This is a Arc-Length strategy based on Ramm algorithm
  * @details The Arc-Length method is a very efficient method in solving non-linear systems of equations when the problem under consideration exhibits one or more critical points. In terms of a simple mechanical loading-unloading problem, a critical point could be interpreted as the point at which the loaded body cannot support an increase of the external forces and an instability occurs.
+ * @author Ignasi de Pouplana
+ * @author Vicente Mataix Ferrandiz
  */
-template<class TSparseSpace,class TDenseSpace,class TLinearSolver>
+template<class TSparseSpace,
+         class TDenseSpace, // = DenseSpace<double>,
+         class TLinearSolver //= LinearSolver<TSparseSpace,TDenseSpace>
+         >
 class ResidualBasedRammArcLengthStrategy 
     : public ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>
 {
@@ -79,6 +87,36 @@ public:
     using MotherType::mSubModelPartList;
     using MotherType::mVariableNames;
     
+//     typedef SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>            StrategyBaseType;
+//     
+//     typedef ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver> BaseType;
+//     
+//     typedef typename BaseType::TBuilderAndSolverType                        TBuilderAndSolverType;
+// 
+//     typedef typename BaseType::TDataType                                                TDataType;
+// 
+//     typedef TSparseSpace                                                          SparseSpaceType;
+// 
+//     typedef typename BaseType::TSchemeType                                            TSchemeType;
+// 
+//     typedef typename BaseType::DofsArrayType                                        DofsArrayType;
+// 
+//     typedef typename BaseType::TSystemMatrixType                                TSystemMatrixType;
+// 
+//     typedef typename BaseType::TSystemVectorType                                TSystemVectorType;
+// 
+//     typedef typename BaseType::LocalSystemVectorType                        LocalSystemVectorType;
+// 
+//     typedef typename BaseType::LocalSystemMatrixType                        LocalSystemMatrixType;
+// 
+//     typedef typename BaseType::TSystemMatrixPointerType                  TSystemMatrixPointerType;
+//     
+//     typedef typename BaseType::TSystemVectorPointerType                  TSystemVectorPointerType;
+//     
+//     typedef ModelPart::NodesContainerType                                          NodesArrayType;
+//     
+//     typedef ModelPart::ConditionsContainerType                                ConditionsArrayType;
+    
     /// Pointer definition of TreeContactSearch
     KRATOS_CLASS_POINTER_DEFINITION(ResidualBasedRammArcLengthStrategy);
 
@@ -86,7 +124,19 @@ public:
     ///@name Life Cycle
     ///@{
     
-    ///Constructor
+    /**
+     * Default constructor 
+     * @param rModelPart The model part of the problem
+     * @param pScheme The time integration scheme
+     * @param pNewLinearSolver The linear solver employed
+     * @param pNewConvergenceCriteria The convergence criteria employed
+     * @param pNewBuilderAndSolver The builder and solver employed
+     * @param rParameters The configuration parameters
+     * @param MaxIterationNumber The maximum number of iterations
+     * @param CalculateReactions: The flag for the reaction calculation
+     * @param ReformDofSetAtEachStep: The flag that allows to compute the modification of the DOF
+     * @param MoveMeshFlag: The flag that allows to move the mesh
+     */
     ResidualBasedRammArcLengthStrategy(
         ModelPart& rModelPart,
         typename TSchemeType::Pointer pScheme,
@@ -94,12 +144,12 @@ public:
         typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
         typename TBuilderAndSolverType::Pointer pNewBuilderAndSolver,
         Parameters& rParameters,
-        int MaxIterations = 30,
+        int MaxIterationNumber = 30,
         bool CalculateReactions = false,
         bool ReformDofSetAtEachStep = false,
         bool MoveMeshFlag = false
         ) : ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(rModelPart, pScheme, pNewLinearSolver,
-                pNewConvergenceCriteria, pNewBuilderAndSolver, MaxIterations, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag)
+                pNewConvergenceCriteria, pNewBuilderAndSolver, MaxIterationNumber, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag)
         {
             //only include validation with c++11 since raw_literals do not exist in c++03
             Parameters default_parameters( R"(
@@ -132,10 +182,69 @@ public:
             mDesiredIterations = rParameters["desired_iterations"].GetInt();
             mMaxRadiusFactor = rParameters["max_radius_factor"].GetDouble();
             mMinRadiusFactor = rParameters["min_radius_factor"].GetDouble();
-        }
+    }
+    
+    /**
+     * Default constructor 
+     * @param rModelPart The model part of the problem
+     * @param pScheme The time integration scheme
+     * @param pNewLinearSolver The linear solver employed
+     * @param pNewConvergenceCriteria The convergence criteria employed
+     * @param rParameters The configuration parameters
+     * @param MaxIterationNumber The maximum number of iterations
+     * @param CalculateReactions: The flag for the reaction calculation
+     * @param ReformDofSetAtEachStep: The flag that allows to compute the modification of the DOF
+     * @param MoveMeshFlag: The flag that allows to move the mesh
+     */
+    ResidualBasedRammArcLengthStrategy(
+        ModelPart& rModelPart,
+        typename TSchemeType::Pointer pScheme,
+        typename TLinearSolver::Pointer pNewLinearSolver,
+        typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
+        Parameters& rParameters,
+        int MaxIterationNumber = 30,
+        bool CalculateReactions = false,
+        bool ReformDofSetAtEachStep = false,
+        bool MoveMeshFlag = false
+        ) : ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(rModelPart, pScheme, pNewLinearSolver,
+                pNewConvergenceCriteria, MaxIterationNumber, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag)
+        {
+//             //only include validation with c++11 since raw_literals do not exist in c++03
+//             Parameters default_parameters( R"(
+//             {
+//                 "desired_iterations": 4,
+//                 "max_radius_factor": 20.0,
+//                 "min_radius_factor": 0.5,
+//                 "loads_sub_model_part_list": [],
+//                 "loads_variable_list" : []
+//             }  )" );
+//             
+//             // Validate agains defaults -- this also ensures no type mismatch
+//             rParameters.ValidateAndAssignDefaults(default_parameters);
+//             
+//             mpParameters = &rParameters;
+//             
+//             // Set Load SubModelParts and Variable names
+//             if(rParameters["loads_sub_model_part_list"].size() > 0) {
+//                 mSubModelPartList.resize(rParameters["loads_sub_model_part_list"].size());
+//                 mVariableNames.resize(rParameters["loads_variable_list"].size());
+// 
+//                 KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal Variable" << std::endl;
+// 
+//                 for(unsigned int i = 0; i < mVariableNames.size(); i++) {
+//                     mSubModelPartList[i] = &( rModelPart.GetSubModelPart(rParameters["loads_sub_model_part_list"][i].GetString()) );
+//                     mVariableNames[i] = rParameters["loads_variable_list"][i].GetString();
+//                 }
+//             }
+// 
+//             mDesiredIterations = rParameters["desired_iterations"].GetInt();
+//             mMaxRadiusFactor = rParameters["max_radius_factor"].GetDouble();
+//             mMinRadiusFactor = rParameters["min_radius_factor"].GetDouble();
+    }
 
     ///Destructor
-    virtual ~ResidualBasedRammArcLengthStrategy() {}
+    ~ResidualBasedRammArcLengthStrategy() {} override
+    = default;
 
     ///@}
     ///@name Operators

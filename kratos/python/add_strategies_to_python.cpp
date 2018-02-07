@@ -30,6 +30,7 @@
 #include "solving_strategies/strategies/residualbased_linear_strategy.h"
 #include "solving_strategies/strategies/residualbased_newton_raphson_strategy.h"
 #include "solving_strategies/strategies/adaptive_residualbased_newton_raphson_strategy.h"
+#include "solving_strategies/strategies/residualbased_ramm_arc_length_strategy.h.h"
 #include "solving_strategies/strategies/line_search_strategy.h"
 #include "solving_strategies/strategies/explicit_strategy.h"
 //#include "solving_strategies/strategies/residualbased_arc_lenght_strategy.h"
@@ -270,10 +271,19 @@ namespace Kratos
                     .def("GetSystemMatrix", &ResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::GetSystemMatrix, return_internal_reference<>())
                     ;
 
-            class_< AdaptiveResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >, bases< BaseSolvingStrategyType >, boost::noncopyable >
+            typedef AdaptiveResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > AdaptiveResidualBasedNewtonRaphsonStrategyType;
+                    
+            class_< AdaptiveResidualBasedNewtonRaphsonStrategyType, bases< BaseSolvingStrategyType >, boost::noncopyable >
                     ("AdaptiveResidualBasedNewtonRaphsonStrategy",
                     init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, TConvergenceCriteriaType::Pointer, int, int, bool, bool, bool, double, double, int
                     >())
+                    ;
+                  
+            typedef ResidualBasedRammArcLengthStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > ResidualBasedRammArcLengthStrategyType;
+                    
+            class_< ResidualBasedRammArcLengthStrategyType, bases< BaseSolvingStrategyType >, boost::noncopyable >
+                    ("ResidualBasedRammArcLengthStrategy", init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, TConvergenceCriteriaType::Pointer, Parameters&, int, bool, bool, bool >())
+                    .def(init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, TConvergenceCriteriaType::Pointer, BuilderAndSolverType::Pointer, Parameters&, int, bool, bool, bool >())
                     ;
 
             class_< LineSearchStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >, bases< ResidualBasedNewtonRaphsonStrategyType >, boost::noncopyable >
