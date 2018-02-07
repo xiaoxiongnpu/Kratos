@@ -30,7 +30,7 @@
 #include "solving_strategies/strategies/residualbased_linear_strategy.h"
 #include "solving_strategies/strategies/residualbased_newton_raphson_strategy.h"
 #include "solving_strategies/strategies/adaptive_residualbased_newton_raphson_strategy.h"
-#include "solving_strategies/strategies/residualbased_ramm_arc_length_strategy.h.h"
+#include "solving_strategies/strategies/residualbased_ramm_arc_length_strategy.h"
 #include "solving_strategies/strategies/line_search_strategy.h"
 #include "solving_strategies/strategies/explicit_strategy.h"
 //#include "solving_strategies/strategies/residualbased_arc_lenght_strategy.h"
