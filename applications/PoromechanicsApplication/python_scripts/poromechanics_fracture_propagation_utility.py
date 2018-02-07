@@ -266,8 +266,8 @@ class FracturePropagationUtility:
         
         # set ARC_LENGTH_LAMBDA and ARC_LENGTH_RADIUS_FACTOR and update loads
         if ProjectParameters["solver_settings"]["strategy_type"].GetString() == "Arc-Length":
-            main_model_part.ProcessInfo.SetValue(KratosPoro.ARC_LENGTH_LAMBDA, main_model_part_old.ProcessInfo[KratosPoro.ARC_LENGTH_LAMBDA])
-            main_model_part.ProcessInfo.SetValue(KratosPoro.ARC_LENGTH_RADIUS_FACTOR, main_model_part_old.ProcessInfo[KratosPoro.ARC_LENGTH_RADIUS_FACTOR])
+            main_model_part.ProcessInfo.SetValue(KratosMultiphysics.ARC_LENGTH_LAMBDA, main_model_part_old.ProcessInfo[KratosMultiphysics.ARC_LENGTH_LAMBDA])
+            main_model_part.ProcessInfo.SetValue(KratosMultiphysics.ARC_LENGTH_RADIUS_FACTOR, main_model_part_old.ProcessInfo[KratosMultiphysics.ARC_LENGTH_RADIUS_FACTOR])
             solver._UpdateLoads()
         
         # delete auxiliary model_part
