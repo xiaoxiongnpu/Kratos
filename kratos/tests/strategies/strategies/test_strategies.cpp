@@ -32,55 +32,55 @@ namespace Kratos
     {
         /// Tests
        
-        typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
-        typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
-        typedef LinearSolver<SparseSpaceType,LocalSpaceType> SolverType;
+//         typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
+//         typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
+//         typedef LinearSolver<SparseSpaceType,LocalSpaceType> SolverType;
+//         
+//         typedef Scheme< SparseSpaceType, LocalSpaceType >  SchemeType;
+//         typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, SolverType >  SolvingStrategyType;
+//         typedef PointerVectorSet<Dof<double>, SetIdentityFunction<Dof<double>>, std::less<SetIdentityFunction<Dof<double>>::result_type>, std::equal_to<SetIdentityFunction<Dof<double>>::result_type>, Dof<double>* > DofsArrayType;
         
-        typedef Scheme< SparseSpaceType, LocalSpaceType >  SchemeType;
-        typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, SolverType >  SolvingStrategyType;
-        typedef PointerVectorSet<Dof<double>, SetIdentityFunction<Dof<double>>, std::less<SetIdentityFunction<Dof<double>>::result_type>, std::equal_to<SetIdentityFunction<Dof<double>>::result_type>, Dof<double>* > DofsArrayType;
-        
-        static inline DofsArrayType BasicTestStrategyDisplacement(
-            ModelPart& ModelPart,
-            SolvingStrategyType::Pointer pStrategy,
-            std::vector< Dof<double>::Pointer >& DoF
-            )
-        {
-            ModelPart.SetBufferSize(3);
-            
-            ModelPart.AddNodalSolutionStepVariable(DISPLACEMENT);
-            
-            auto pnode = ModelPart.CreateNewNode(1, 0.0, 0.0, 0.0);
-            
-            pnode->AddDof(DISPLACEMENT_X);
-            pnode->AddDof(DISPLACEMENT_Y);
-            pnode->AddDof(DISPLACEMENT_Z);
-            
-            DoF.reserve(3);
-            DoF.push_back(pnode->pGetDof(DISPLACEMENT_X));
-            DoF.push_back(pnode->pGetDof(DISPLACEMENT_Y));
-            DoF.push_back(pnode->pGetDof(DISPLACEMENT_Z));
-            
-            // Set initial solution
-            const array_1d<double, 3> zero_vector = ZeroVector(3);
-            pnode->FastGetSolutionStepValue(DISPLACEMENT) = zero_vector;
-            pnode->FastGetSolutionStepValue(DISPLACEMENT, 1) = zero_vector;
-            pnode->FastGetSolutionStepValue(DISPLACEMENT, 2) = zero_vector;
-            
-            DofsArrayType Doftemp;
-            Doftemp.reserve(DoF.size());
-            for (auto it= DoF.begin(); it!= DoF.end(); it++)
-                Doftemp.push_back( it->get() );
-            Doftemp.Sort();
-            
-            CompressedMatrix A = ZeroMatrix(3, 3);
-            Vector Dx = ZeroVector(3);
-            Vector b = ZeroVector(3);
-            
-            pStrategy->Initialize();
-            
-            return Doftemp;
-        }
+//         static inline DofsArrayType BasicTestStrategyDisplacement(
+//             ModelPart& ModelPart,
+//             SolvingStrategyType::Pointer pStrategy,
+//             std::vector< Dof<double>::Pointer >& DoF
+//             )
+//         {
+//             ModelPart.SetBufferSize(3);
+//             
+//             ModelPart.AddNodalSolutionStepVariable(DISPLACEMENT);
+//             
+//             auto pnode = ModelPart.CreateNewNode(1, 0.0, 0.0, 0.0);
+//             
+//             pnode->AddDof(DISPLACEMENT_X);
+//             pnode->AddDof(DISPLACEMENT_Y);
+//             pnode->AddDof(DISPLACEMENT_Z);
+//             
+//             DoF.reserve(3);
+//             DoF.push_back(pnode->pGetDof(DISPLACEMENT_X));
+//             DoF.push_back(pnode->pGetDof(DISPLACEMENT_Y));
+//             DoF.push_back(pnode->pGetDof(DISPLACEMENT_Z));
+//             
+//             // Set initial solution
+//             const array_1d<double, 3> zero_vector = ZeroVector(3);
+//             pnode->FastGetSolutionStepValue(DISPLACEMENT) = zero_vector;
+//             pnode->FastGetSolutionStepValue(DISPLACEMENT, 1) = zero_vector;
+//             pnode->FastGetSolutionStepValue(DISPLACEMENT, 2) = zero_vector;
+//             
+//             DofsArrayType Doftemp;
+//             Doftemp.reserve(DoF.size());
+//             for (auto it= DoF.begin(); it!= DoF.end(); it++)
+//                 Doftemp.push_back( it->get() );
+//             Doftemp.Sort();
+//             
+//             CompressedMatrix A = ZeroMatrix(3, 3);
+//             Vector Dx = ZeroVector(3);
+//             Vector b = ZeroVector(3);
+//             
+//             pStrategy->Initialize();
+//             
+//             return Doftemp;
+//         }
      
 //         /** 
 //          * Checks if the Newton Rapshon sstrategy performs correctly the resolution of the system

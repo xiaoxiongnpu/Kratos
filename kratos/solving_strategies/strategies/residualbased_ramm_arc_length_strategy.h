@@ -69,6 +69,8 @@ public:
     typedef ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver> BaseType;
     
     typedef typename BaseType::TBuilderAndSolverType                        TBuilderAndSolverType;
+    
+    typedef ConvergenceCriteria<TSparseSpace, TDenseSpace>               TConvergenceCriteriaType;
 
     typedef typename BaseType::TDataType                                                TDataType;
 
@@ -110,7 +112,7 @@ public:
      * @param pNewLinearSolver The linear solver employed
      * @param pNewConvergenceCriteria The convergence criteria employed
      * @param pNewBuilderAndSolver The builder and solver employed
-     * @param Parameters The configuration parameters
+     * @param ThisParameters The configuration parameters
      * @param MaxIterationNumber The maximum number of iterations
      * @param CalculateReactions The flag for the reaction calculation
      * @param ReformDofSetAtEachStep The flag that allows to compute the modification of the DOF
@@ -122,14 +124,14 @@ public:
         typename TLinearSolver::Pointer pNewLinearSolver,
         typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
         typename TBuilderAndSolverType::Pointer pNewBuilderAndSolver,
-        Parameters& Parameters,
+        Parameters ThisParameters = Parameters(R"({})"),
         int MaxIterationNumber = 30,
         bool CalculateReactions = false,
         bool ReformDofSetAtEachStep = false,
         bool MoveMeshFlag = false
         ) : ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(rModelPart, pScheme, pNewLinearSolver,
                 pNewConvergenceCriteria, pNewBuilderAndSolver, MaxIterationNumber, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag),
-            mParameters(Parameters)
+            mParameters(ThisParameters)
     {
         // Validate agains defaults -- this also ensures no type mismatch
         Parameters default_parameters = GetDefaultParameters();
@@ -145,7 +147,7 @@ public:
      * @param pScheme The time integration scheme
      * @param pNewLinearSolver The linear solver employed
      * @param pNewConvergenceCriteria The convergence criteria employed
-     * @param Parameters The configuration parameters
+     * @param ThisParameters The configuration parameters
      * @param MaxIterationNumber The maximum number of iterations
      * @param CalculateReactions The flag for the reaction calculation
      * @param ReformDofSetAtEachStep The flag that allows to compute the modification of the DOF
@@ -156,14 +158,14 @@ public:
         typename TSchemeType::Pointer pScheme,
         typename TLinearSolver::Pointer pNewLinearSolver,
         typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
-        Parameters Parameters = Parameters(R"({})"),
+        Parameters ThisParameters = Parameters(R"({})"),
         int MaxIterationNumber = 30,
         bool CalculateReactions = false,
         bool ReformDofSetAtEachStep = false,
         bool MoveMeshFlag = false
         ) : ResidualBasedNewtonRaphsonStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(rModelPart, pScheme, pNewLinearSolver,
                 pNewConvergenceCriteria, MaxIterationNumber, CalculateReactions, ReformDofSetAtEachStep, MoveMeshFlag),
-            mParameters(Parameters)
+            mParameters(ThisParameters)
     {
         // Validate agains defaults -- this also ensures no type mismatch
         Parameters default_parameters = GetDefaultParameters();
@@ -174,7 +176,7 @@ public:
     }
 
     ///Destructor
-    ~ResidualBasedRammArcLengthStrategy() {} override
+    ~ResidualBasedRammArcLengthStrategy() override
     = default;
 
     ///@}
@@ -193,7 +195,7 @@ public:
     {
         KRATOS_TRY
 
-        if (mInitializeWasPerformed == false) {
+        if (BaseType::mInitializeWasPerformed == false) {
             BaseType::Initialize();
             
             typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
@@ -254,7 +256,7 @@ public:
     {
         KRATOS_TRY
 
-        if (mSolutionStepIsInitialized == false) {
+        if (BaseType::mSolutionStepIsInitialized == false) {
             BaseType::InitializeSolutionStep();
             
             this->SaveInitializeSystemVector(mpf);
@@ -274,9 +276,11 @@ public:
         
     bool SolveSolutionStep() override
     {
-        // ********** Prediction phase **********
+        /* Prediction phase */
         if (StrategyBaseType::mEchoLevel > 0) 
             std::cout << "ARC-LENGTH RADIUS: " << mRadius/mRadius0 << " X initial radius" << std::endl;
+        
+        ModelPart& this_model_part = StrategyBaseType::GetModelPart();
         
         typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
         typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
@@ -292,7 +296,7 @@ public:
         TSystemVectorType& mDxPred = *mpDxPred;
         TSystemVectorType& mDxStep = *mpDxStep;
         
-        pScheme->InitializeNonLinIteration(StrategyBaseType::GetModelPart(), mA, mDx, mb);
+        pScheme->InitializeNonLinIteration(this_model_part, mA, mDx, mb);
                 
         TSparseSpace::SetToZero(mA);
         TSparseSpace::SetToZero(mb);
@@ -303,38 +307,35 @@ public:
         noalias(mb) = mf;
         pBuilderAndSolver->SystemSolve(mA, mDxf, mb);
 
-        //update results
-        double DLambda = mRadius/TSparseSpace::TwoNorm(mDxf);
-        mDLambdaStep = DLambda;
-        mLambda += DLambda;
-        noalias(mDxPred) = DLambda*mDxf;
+        // Update results
+        double delta_lambda = mRadius/TSparseSpace::TwoNorm(mDxf);
+        mDeltaLamdaStep = delta_lambda;
+        mLambda += delta_lambda;
+        noalias(mDxPred) = delta_lambda * mDxf;
         noalias(mDxStep) = mDxPred;
-        this->Update(rDofSet, mA, mDxPred, mb);
-
-        //move the mesh if needed
-        if(StrategyBaseType::MoveMeshFlag() == true)
-            StrategyBaseType::MoveMesh();
         
-        // ********** Correction phase (iteration cicle) **********
+        UpdateDatabase(mA, mDxPred, mb, StrategyBaseType::MoveMeshFlag());
+        
+        /* Correction phase (iteration cicle) */
 
-        //initializing the parameters of the iteration loop
+        // Initializing the parameters of the iteration loop
         bool is_converged = false;
-        mpConvergenceCriteria->InitializeSolutionStep(StrategyBaseType::GetModelPart(), rDofSet, mA, mDxf, mb);
-        if (mpConvergenceCriteria->GetActualizeRHSflag() == true) {
+        BaseType::mpConvergenceCriteria->InitializeSolutionStep(this_model_part, rDofSet, mA, mDxf, mb);
+        if (BaseType::mpConvergenceCriteria->GetActualizeRHSflag() == true) {
             TSparseSpace::SetToZero(mb);
-            pBuilderAndSolver->BuildRHS(pScheme, StrategyBaseType::GetModelPart(), mb);
+            pBuilderAndSolver->BuildRHS(pScheme, this_model_part, mb);
         }
-        is_converged = mpConvergenceCriteria->PostCriteria(StrategyBaseType::GetModelPart(), rDofSet, mA, mDxf, mb);
+        is_converged = BaseType::mpConvergenceCriteria->PostCriteria(this_model_part, rDofSet, mA, mDxf, mb);
 
         unsigned int iteration_number = 0;
-        double NormDx;
+        double norm_dx;
         
-        while (is_converged == false && iteration_number < mMaxIterationNumber) {
+        while (is_converged == false && iteration_number < BaseType::mMaxIterationNumber) {
             // Setting the number of iteration
             iteration_number += 1;
-            StrategyBaseType::GetModelPart().GetProcessInfo()[NL_ITERATION_NUMBER] = iteration_number;
+            this_model_part.GetProcessInfo()[NL_ITERATION_NUMBER] = iteration_number;
             
-            pScheme->InitializeNonLinIteration(StrategyBaseType::GetModelPart(), mA, mDx, mb);
+            pScheme->InitializeNonLinIteration(this_model_part, mA, mDx, mb);
 
             TSparseSpace::SetToZero(mA);
             TSparseSpace::SetToZero(mb);
@@ -349,56 +350,52 @@ public:
             TSparseSpace::SetToZero(mb);
             TSparseSpace::SetToZero(mDxb);
             
-            pBuilderAndSolver->BuildAndSolve(pScheme, StrategyBaseType::GetModelPart(), mA, mDxb, mb);
+            pBuilderAndSolver->BuildAndSolve(pScheme, this_model_part, mA, mDxb, mb);
             
-            DLambda = -TSparseSpace::Dot(mDxPred, mDxb)/TSparseSpace::Dot(mDxPred, mDxf);
+            delta_lambda = -TSparseSpace::Dot(mDxPred, mDxb)/TSparseSpace::Dot(mDxPred, mDxf);
             
-            noalias(mDx) = mDxb + DLambda*mDxf;
+            noalias(mDx) = mDxb + delta_lambda*mDxf;
             
-            //Check solution before update
+            // Check solution before update
             const double tolerance = 1.0e-10;
             const double max_ratio = 1.0e3;
             if( mNormxEquilibrium > tolerance ) {
-                NormDx = TSparseSpace::TwoNorm(mDx);
+                norm_dx = TSparseSpace::TwoNorm(mDx);
                 
-                if( (NormDx/mNormxEquilibrium) > max_ratio || (std::abs(DLambda)/std::abs(mLambda-mDLambdaStep)) > max_ratio ) {
+                if( (norm_dx/mNormxEquilibrium) > max_ratio || (std::abs(delta_lambda)/std::abs(mLambda-mDeltaLamdaStep)) > max_ratio ) {
                     is_converged = false;
                     break;
                 }
             }
             
-            //update results
-            mDLambdaStep += DLambda;
-            mLambda += DLambda;
+            // Update results
+            mDeltaLamdaStep += delta_lambda;
+            mLambda += delta_lambda;
             noalias(mDxStep) += mDx;
-            this->Update(rDofSet, mA, mDx, mb);
-
-            //move the mesh if needed
-            if(StrategyBaseType::MoveMeshFlag() == true) StrategyBaseType::MoveMesh();
+            UpdateDatabase(mA, mDx, mb, StrategyBaseType::MoveMeshFlag());
             
-            pScheme->FinalizeNonLinIteration(StrategyBaseType::GetModelPart(), mA, mDx, mb);
+            pScheme->FinalizeNonLinIteration(this_model_part, mA, mDx, mb);
             
-            // *** Check Convergence ***
-            
-            if (mpConvergenceCriteria->GetActualizeRHSflag() == true) {
+            // Check convergence
+            if (BaseType::mpConvergenceCriteria->GetActualizeRHSflag() == true) {
                 TSparseSpace::SetToZero(mb);
-                pBuilderAndSolver->BuildRHS(pScheme, StrategyBaseType::GetModelPart(), mb);
+                pBuilderAndSolver->BuildRHS(pScheme, this_model_part, mb);
             }
-            is_converged = mpConvergenceCriteria->PostCriteria(StrategyBaseType::GetModelPart(), rDofSet, mA, mDx, mb);
+            is_converged = BaseType::mpConvergenceCriteria->PostCriteria(this_model_part, rDofSet, mA, mDx, mb);
         }//While
         
         // Check iteration_number 
-        if (iteration_number >= mMaxIterationNumber) {
+        if (iteration_number >= BaseType::mMaxIterationNumber) {
             is_converged = true;
             //plots a warning if the maximum number of iterations is exceeded
-            if(StrategyBaseType::GetModelPart().GetCommunicator().MyPID() == 0) {
+            if(this_model_part.GetCommunicator().MyPID() == 0) {
                 this->MaxIterationsExceeded();
             }
         }
         
-        // calculate reactions if required
-        if (mCalculateReactionsFlag == true)
-            pBuilderAndSolver->CalculateReactions(pScheme, StrategyBaseType::GetModelPart(), mA, mDx, mb);
+        // Calculate reactions if required
+        if (BaseType::mCalculateReactionsFlag == true)
+            pBuilderAndSolver->CalculateReactions(pScheme, this_model_part, mA, mDx, mb);
         
         return is_converged;
     }
@@ -442,17 +439,14 @@ public:
             mNormxEquilibrium = CalculateReferenceDofsNorm(rDofSet);
         } else {
             if (StrategyBaseType::mEchoLevel > 0)
-               std::cout << "************ NO CONVERGENCE: restoring equilibrium path ************" << std::endl;
+               std::cout << "WARNING:: NO CONVERGENCE ACHIEVED: Restoring equilibrium path" << std::endl;
             
             TSystemVectorType& mDxStep = *mpDxStep;
             
             //update results
-            mLambda -= mDLambdaStep;
+            mLambda -= mDeltaLamdaStep;
             noalias(mDx) = -mDxStep;
-            this->Update(rDofSet, mA, mDx, mb);
-
-            //move the mesh if needed
-            if(StrategyBaseType::MoveMeshFlag() == true) StrategyBaseType::MoveMesh();
+            UpdateDatabase(mA, mDx, mb, StrategyBaseType::MoveMeshFlag());
         }
 
         this_process_info[ARC_LENGTH_LAMBDA] = mLambda;
@@ -467,9 +461,9 @@ public:
         pScheme->Clean();
 
         // Reset flags for next step
-        mSolutionStepIsInitialized = false;
+        BaseType::mSolutionStepIsInitialized = false;
 
-        if (mReformDofSetAtEachStep == true) //deallocate the systemvectors
+        if (BaseType::mReformDofSetAtEachStep == true) //deallocate the systemvectors
             this->ClearStep();
 
         KRATOS_CATCH("")
@@ -580,7 +574,7 @@ protected:
     double mRadius, mRadius0; /// Radius of the arc length strategy
     double mLambda, mLambdaOld; /// Loading factor
     double mNormxEquilibrium; /// Norm of the solution vector in equilibrium
-    double mDLambdaStep; /// Delta lambda of the current step
+    double mDeltaLamdaStep; /// Delta lambda of the current step
 
     ///@}
     ///@name Protected Operators
@@ -665,6 +659,7 @@ protected:
         KRATOS_TRY
 
         typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
+        typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
         
         pBuilderAndSolver->Build(pScheme, StrategyBaseType::GetModelPart(), mA, mb);
         pBuilderAndSolver->ApplyDirichletConditions(pScheme, StrategyBaseType::GetModelPart(), mA, mDx, mb);
@@ -674,28 +669,27 @@ protected:
 
     /**
      * @brief This method calll the update from the scheme and updates the external loads
-     * @param rDofSet The set of degrees of freedom to consider
-     * @param mA The LHS of the system
-     * @param mDx The increment of solution 
-     * @param mb The RHS of the system
+     * @param A The LHS of the system
+     * @param Dx The increment of solution 
+     * @param b The RHS of the system
+     * @param MoveMesh The flag that indicates if the mesh is moved or not
      */
-    
-    virtual void Update(
-        DofsArrayType& rDofSet, 
-        TSystemMatrixType& mA, 
-        TSystemVectorType& mDx, 
-        TSystemVectorType& mb
-        )
+
+    void UpdateDatabase(
+        TSystemMatrixType &A,
+        TSystemVectorType &Dx,
+        TSystemVectorType &b,
+        const bool MoveMesh
+        ) override
     {
         KRATOS_TRY
         
-        // Update scheme
-        typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
-        pScheme->Update(StrategyBaseType::GetModelPart(), rDofSet, mA, mDx, mb);
+        // We call the base class update database
+        BaseType::UpdateDatabase(A, Dx, b, MoveMesh);
         
         // Update External Loads
         this->UpdateExternalLoads();
-
+        
         KRATOS_CATCH( "" )
     }
 
@@ -733,43 +727,38 @@ protected:
     
     void UpdateExternalLoads()
     {
+        // The ratio between the current and previous lambda
+        const double lambda_ratio = mLambda/mLambdaOld;
+        
         // Update External Loads
         for(unsigned int i = 0; i < mVariableNames.size(); i++) {
-            ModelPart& rSubModelPart = *(mSubModelPartList[i]);
+            ModelPart& rsub_model_part = *(mSubModelPartList[i]);
             const std::string& VariableName = mVariableNames[i];
+            
+            auto& nodes_array = rsub_model_part.Nodes(); 
+//             auto& conditions_array = rsub_model_part.Conditions();  // TODO 
             
             if( KratosComponents< Variable<double> >::Has( VariableName ) ) {
                 Variable<double> var = KratosComponents< Variable<double> >::Get( VariableName );
                 
-                #pragma omp parallel
-                {
-                    ModelPart::NodeIterator NodesBegin;
-                    ModelPart::NodeIterator NodesEnd;
-                    OpenMPUtils::PartitionedIterators(rSubModelPart.Nodes(),NodesBegin,NodesEnd);
-                    
-                    for (ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode) {
-                        double& rvalue = itNode->FastGetSolutionStepValue(var);
-                        rvalue *= (mLambda/mLambdaOld);
-                    }
+                #pragma omp parallel for
+                for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) { 
+                    auto it_node = nodes_array.begin() + i;
+                    double& rvalue = it_node->FastGetSolutionStepValue(var);
+                    rvalue *= lambda_ratio;
                 }
             }
             else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) ) {
                 Variable<array_1d<double,3>> var = KratosComponents< Variable<array_1d<double,3>> >::Get( VariableName );                
                 
-                #pragma omp parallel
-                {
-                    ModelPart::NodeIterator NodesBegin;
-                    ModelPart::NodeIterator NodesEnd;
-                    OpenMPUtils::PartitionedIterators(rSubModelPart.Nodes(),NodesBegin,NodesEnd);
-                    
-                    for (ModelPart::NodeIterator it_node = NodesBegin; it_node != NodesEnd; ++it_node) {
-                        array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(var);
-                        rvalue *= (mLambda/mLambdaOld);
-                    }
+                #pragma omp parallel for
+                for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) { 
+                    auto it_node = nodes_array.begin() + i;
+                    array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(var);
+                    rvalue *= lambda_ratio;
                 }
-            }
-            else {
-                KARTOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << VariableName << std::endl;
+            } else {
+                KRATOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << VariableName << std::endl;
             }
         }
         
@@ -787,22 +776,12 @@ protected:
     {
         double reference_dofs_norm = 0.0;
 
-        int NumThreads = OpenMPUtils::GetNumThreads();
-        OpenMPUtils::PartitionVector DofSetPartition;
-        OpenMPUtils::DivideInPartitions(rDofSet.size(), NumThreads, DofSetPartition);
-
-        #pragma omp parallel reduction(+:reference_dofs_norm)
-        {
-            int k = OpenMPUtils::ThisThread();
-
-            typename DofsArrayType::iterator DofsBegin = rDofSet.begin() + DofSetPartition[k];
-            typename DofsArrayType::iterator DofsEnd = rDofSet.begin() + DofSetPartition[k+1];
-            
-            for (typename DofsArrayType::iterator it_dof = DofsBegin; it_dof != DofsEnd; ++it_dof) {                    
-                if (it_dof->IsFree()) {
-                    const double& temp = it_dof->GetSolutionStepValue();
-                    reference_dofs_norm += temp*temp;
-                }
+        #pragma omp parallel for reduction(+:reference_dofs_norm)
+        for (int i = 0; i < static_cast<int>(rDofSet.size()); i++) { 
+            auto it_dof = rDofSet.begin() + i;
+            if (it_dof->IsFree()) {
+                const double temp = it_dof->GetSolutionStepValue();
+                reference_dofs_norm += std::pow(temp, 2);
             }
         }
                 
@@ -861,6 +840,8 @@ private:
      */
     void GenerateSubmodelpartList()
     {
+        ModelPart& this_model_part = BaseType::GetModelPart();
+        
         // Set Load SubModelParts and Variable names
         if(mParameters["loads_sub_model_part_list"].size() > 0) {
             mSubModelPartList.resize(mParameters["loads_sub_model_part_list"].size());
@@ -869,7 +850,7 @@ private:
             KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal Variable" << std::endl;
 
             for(unsigned int i = 0; i < mVariableNames.size(); i++) {
-                mSubModelPartList[i] = &( rModelPart.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString()) );
+                mSubModelPartList[i] = &( this_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString()) );
                 mVariableNames[i] = mParameters["loads_variable_list"][i].GetString();
             }
         } else {
