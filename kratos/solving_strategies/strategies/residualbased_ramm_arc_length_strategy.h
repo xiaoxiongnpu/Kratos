@@ -389,7 +389,7 @@ public:
         // Check iteration_number 
         if (iteration_number >= BaseType::mMaxIterationNumber) {
             is_converged = true;
-            //plots a warning if the maximum number of iterations is exceeded
+            // Plots a warning if the maximum number of iterations is exceeded
             if(this_model_part.GetCommunicator().MyPID() == 0) {
                 this->MaxIterationsExceeded();
             }
@@ -564,6 +564,7 @@ protected:
     ///@{
 
     Parameters& mParameters; /// The configuration parameters
+    ModelPart mExternalForcesModelPart; /// This model part contains the conditions where to compute the external forces
     std::vector<ModelPart*> mSubModelPartList; /// List of every SubModelPart associated to an external load
     std::vector<std::string> mVariableNames; /// Name of the nodal variable associated to every SubModelPart
 
@@ -613,8 +614,8 @@ protected:
     void InitializeSystemVector(TSystemVectorPointerType& rSystemVectorPointer)
     {
         if (rSystemVectorPointer == nullptr) {
-            TSystemVectorPointerType pNewv = TSystemVectorPointerType(new TSystemVectorType(0));
-            rSystemVectorPointer.swap(pNewv);
+            TSystemVectorPointerType pnew_v = TSystemVectorPointerType(new TSystemVectorType(0));
+            rSystemVectorPointer.swap(pnew_v);
         }
 
         TSystemVectorType& v = *rSystemVectorPointer;
@@ -633,8 +634,8 @@ protected:
     void SaveInitializeSystemVector(TSystemVectorPointerType& rSystemVectorPointer)
     {
         if (rSystemVectorPointer == nullptr) {
-            TSystemVectorPointerType pNewv = TSystemVectorPointerType(new TSystemVectorType(0));
-            rSystemVectorPointer.swap(pNewv);
+            TSystemVectorPointerType pnew_v = TSystemVectorPointerType(new TSystemVectorType(0));
+            rSystemVectorPointer.swap(pnew_v);
         }
 
         TSystemVectorType& v = *rSystemVectorPointer;
@@ -647,15 +648,15 @@ protected:
 
     /**
     * @brief This method applies the boundary conditions of the system
-    * @param mA The LHS of the system
-    * @param mDx The increment of solution 
-    * @param mb The RHS of the system
+    * @param rA The LHS of the system
+    * @param rDx The increment of solution 
+    * @param rb The RHS of the system
     */
     
     void BuildWithDirichlet(
-        TSystemMatrixType& mA, 
-        TSystemVectorType& mDx, 
-        TSystemVectorType& mb
+        TSystemMatrixType& rA, 
+        TSystemVectorType& rDx, 
+        TSystemVectorType& rb
         )
     {
         KRATOS_TRY
@@ -663,34 +664,34 @@ protected:
         typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
         typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
         
-        pBuilderAndSolver->Build(pScheme, StrategyBaseType::GetModelPart(), mA, mb);
-        pBuilderAndSolver->ApplyDirichletConditions(pScheme, StrategyBaseType::GetModelPart(), mA, mDx, mb);
+        pBuilderAndSolver->Build(pScheme, StrategyBaseType::GetModelPart(), rA, rb);
+        pBuilderAndSolver->ApplyDirichletConditions(pScheme, StrategyBaseType::GetModelPart(), rA, rDx, rb);
 
         KRATOS_CATCH( "" )
     }
 
     /**
      * @brief This method calll the update from the scheme and updates the external loads
-     * @param A The LHS of the system
-     * @param Dx The increment of solution 
-     * @param b The RHS of the system
+     * @param rA The LHS of the system
+     * @param rDx The increment of solution 
+     * @param rb The RHS of the system
      * @param MoveMesh The flag that indicates if the mesh is moved or not
      */
 
     void UpdateDatabase(
-        TSystemMatrixType &A,
-        TSystemVectorType &Dx,
-        TSystemVectorType &b,
+        TSystemMatrixType& rA,
+        TSystemVectorType& rDx,
+        TSystemVectorType& rb,
         const bool MoveMesh
         ) override
     {
         KRATOS_TRY
         
         // We call the base class update database
-        BaseType::UpdateDatabase(A, Dx, b, MoveMesh);
+        BaseType::UpdateDatabase(rA, rDx, rb, MoveMesh);
         
         // Update External Loads
-        this->UpdateExternalLoads();
+        UpdateExternalLoads();
         
         KRATOS_CATCH( "" )
     }
@@ -843,7 +844,6 @@ private:
      */
     Parameters GetDefaultParameters()
     {
-        // Only include validation with c++11 since raw_literals do not exist in c++03
         Parameters default_parameters( R"(
         {
             "desired_iterations": 4,
@@ -868,11 +868,16 @@ private:
             mSubModelPartList.resize(mParameters["loads_sub_model_part_list"].size());
             mVariableNames.resize(mParameters["loads_variable_list"].size());
 
-            KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal Variable" << std::endl;
+            KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal or conditional Variable" << std::endl;
 
             for(unsigned int i = 0; i < mVariableNames.size(); i++) {
-                mSubModelPartList[i] = &( this_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString()) );
+                ModelPart& sub_model_part = this_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString());
+                mSubModelPartList[i] = &sub_model_part;
                 mVariableNames[i] = mParameters["loads_variable_list"][i].GetString();
+                
+                // We add the conditions to our external forces model part
+                auto& conditions_array = sub_model_part.Conditions();
+                mExternalForcesModelPart.AddConditions(conditions_array.begin(), conditions_array.end());
             }
         } else {
             KRATOS_ERROR << "Not submodelparts defined for apply the arc length" << std::endl;
