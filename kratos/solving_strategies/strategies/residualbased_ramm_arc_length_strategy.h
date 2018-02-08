@@ -198,21 +198,28 @@ public:
         if (BaseType::mInitializeWasPerformed == false) {
             BaseType::Initialize();
             
+            ModelPart& r_model_part = StrategyBaseType::GetModelPart();
             typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
             typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
             
             // Set up the system
             if (pBuilderAndSolver->GetDofSetIsInitializedFlag() == false) {
                 // Setting up the list of the DOFs to be solved
-                pBuilderAndSolver->SetUpDofSet(pScheme, StrategyBaseType::GetModelPart());
+                pBuilderAndSolver->SetUpDofSet(pScheme, r_model_part);
 
                 // Shaping correctly the system
-                pBuilderAndSolver->SetUpSystem(StrategyBaseType::GetModelPart());
+                pBuilderAndSolver->SetUpSystem(r_model_part);
             }
             
             // Compute initial radius (mRadius0)
-            pBuilderAndSolver->ResizeAndInitializeVectors(pScheme, BaseType::mpA, BaseType::mpDx, BaseType::mpb, StrategyBaseType::GetModelPart().Elements(),
-                                                            StrategyBaseType::GetModelPart().Conditions(), StrategyBaseType::GetModelPart().GetProcessInfo());
+            pBuilderAndSolver->ResizeAndInitializeVectors(pScheme, 
+                                                          BaseType::mpA, 
+                                                          BaseType::mpDx, 
+                                                          BaseType::mpb, 
+                                                          r_model_part.Elements(),
+                                                          r_model_part.Conditions(), 
+                                                          r_model_part.GetProcessInfo()
+                                                          );
             TSystemMatrixType& mA = *BaseType::mpA;
             TSystemVectorType& mDx = *BaseType::mpDx;
             TSystemVectorType& mb = *BaseType::mpb;
@@ -220,19 +227,19 @@ public:
             TSparseSpace::SetToZero(mDx);
             TSparseSpace::SetToZero(mb);
 
-            pBuilderAndSolver->BuildAndSolve(pScheme, StrategyBaseType::GetModelPart(), mA, mDx, mb);
+            pBuilderAndSolver->BuildAndSolve(pScheme, r_model_part, mA, mDx, mb);
             
             mRadius0 = TSparseSpace::TwoNorm(mDx);
             mRadius = mRadius0;
 
             // Compute vector of reference external force (mf)
-            this->InitializeSystemVector(mpf);
+            InitializeSystemVector(mpf);
             TSystemVectorType& mf = *mpf;
             TSparseSpace::SetToZero(mf);
 
-            pBuilderAndSolver->BuildRHS(pScheme, StrategyBaseType::GetModelPart(), mf);
+            pBuilderAndSolver->BuildRHS(pScheme, mExternalForcesModelPart, mf);
             
-            //Initialize the loading factor Lambda
+            // Initialize the loading factor Lambda
             mLambda = 0.0;
             mLambdaOld = 1.0;
             
@@ -259,11 +266,11 @@ public:
         if (BaseType::mSolutionStepIsInitialized == false) {
             BaseType::InitializeSolutionStep();
             
-            this->SaveInitializeSystemVector(mpf);
-            this->InitializeSystemVector(mpDxf);
-            this->InitializeSystemVector(mpDxb);
-            this->InitializeSystemVector(mpDxPred);
-            this->InitializeSystemVector(mpDxStep);
+            SaveInitializeSystemVector(mpf);
+            InitializeSystemVector(mpDxf);
+            InitializeSystemVector(mpDxb);
+            InitializeSystemVector(mpDxPred);
+            InitializeSystemVector(mpDxStep);
         }
         
         KRATOS_CATCH( "" )
@@ -277,10 +284,10 @@ public:
     bool SolveSolutionStep() override
     {
         /* Prediction phase */
-        if (StrategyBaseType::mEchoLevel > 0) 
+        if (StrategyBaseType::mEchoLevel > 0) // TODO: Replace for the new Kratos log when available
             std::cout << "ARC-LENGTH RADIUS: " << mRadius/mRadius0 << " X initial radius" << std::endl;
         
-        ModelPart& this_model_part = StrategyBaseType::GetModelPart();
+        ModelPart& r_model_part = StrategyBaseType::GetModelPart();
         
         typename TBuilderAndSolverType::Pointer pBuilderAndSolver = BaseType::GetBuilderAndSolver();
         typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
@@ -296,23 +303,22 @@ public:
         TSystemVectorType& mDxPred = *mpDxPred;
         TSystemVectorType& mDxStep = *mpDxStep;
         
-        pScheme->InitializeNonLinIteration(this_model_part, mA, mDx, mb);
+        pScheme->InitializeNonLinIteration(r_model_part, mA, mDx, mb);
                 
         TSparseSpace::SetToZero(mA);
         TSparseSpace::SetToZero(mb);
         TSparseSpace::SetToZero(mDxf);
         
-        // Note: This is not so efficient, but I want to solve mA*mDxf=mf without losing mf
+        // We solve mA*mDxf=mf
         BuildWithDirichlet(mA, mDxf, mb);
-        TSparseSpace::UnaliasedAdd(mb, 1.0, mf); // TODO: Compute mf using just external forces
-        pBuilderAndSolver->SystemSolve(mA, mDxf, mb);
+        pBuilderAndSolver->SystemSolve(mA, mDxf, mf);
 
         // Update results
         double delta_lambda = mRadius/TSparseSpace::TwoNorm(mDxf);
         mDeltaLamdaStep = delta_lambda;
         mLambda += delta_lambda;
-        TSparseSpace::UnaliasedAdd(mDxPred, delta_lambda, mDxf);
-        TSparseSpace::UnaliasedAdd(mDxStep, 1.0, mDxPred);
+        TSparseSpace::Assign(mDxPred, delta_lambda, mDxf);
+        TSparseSpace::Assign(mDxStep, 1.0, mDxPred);
         
         UpdateDatabase(mA, mDxPred, mb, StrategyBaseType::MoveMeshFlag());
         
@@ -320,12 +326,12 @@ public:
 
         // Initializing the parameters of the iteration loop
         bool is_converged = false;
-        BaseType::mpConvergenceCriteria->InitializeSolutionStep(this_model_part, rDofSet, mA, mDxf, mb);
+        BaseType::mpConvergenceCriteria->InitializeSolutionStep(r_model_part, rDofSet, mA, mDxf, mb);
         if (BaseType::mpConvergenceCriteria->GetActualizeRHSflag() == true) {
             TSparseSpace::SetToZero(mb);
-            pBuilderAndSolver->BuildRHS(pScheme, this_model_part, mb);
+            pBuilderAndSolver->BuildRHS(pScheme, r_model_part, mb);
         }
-        is_converged = BaseType::mpConvergenceCriteria->PostCriteria(this_model_part, rDofSet, mA, mDxf, mb);
+        is_converged = BaseType::mpConvergenceCriteria->PostCriteria(r_model_part, rDofSet, mA, mDxf, mb);
 
         unsigned int iteration_number = 0;
         double norm_dx;
@@ -333,24 +339,23 @@ public:
         while (is_converged == false && iteration_number < BaseType::mMaxIterationNumber) {
             // Setting the number of iteration
             iteration_number += 1;
-            this_model_part.GetProcessInfo()[NL_ITERATION_NUMBER] = iteration_number;
+            r_model_part.GetProcessInfo()[NL_ITERATION_NUMBER] = iteration_number;
             
-            pScheme->InitializeNonLinIteration(this_model_part, mA, mDx, mb);
+            pScheme->InitializeNonLinIteration(r_model_part, mA, mDx, mb);
 
             TSparseSpace::SetToZero(mA);
             TSparseSpace::SetToZero(mb);
             TSparseSpace::SetToZero(mDxf);
             
-            // Note: This is not so efficient, but I want to solve mA*mDxf=mf without losing mf
+            // We solve mA*mDxf=mf
             BuildWithDirichlet(mA, mDxf, mb);
-            TSparseSpace::UnaliasedAdd(mb, 1.0, mf); // TODO: Compute mf using just external forces
-            pBuilderAndSolver->SystemSolve(mA, mDxf, mb);
+            pBuilderAndSolver->SystemSolve(mA, mDxf, mf);
 
             TSparseSpace::SetToZero(mA);
             TSparseSpace::SetToZero(mb);
             TSparseSpace::SetToZero(mDxb);
             
-            pBuilderAndSolver->BuildAndSolve(pScheme, this_model_part, mA, mDxb, mb);
+            pBuilderAndSolver->BuildAndSolve(pScheme, r_model_part, mA, mDxb, mb);
             
             delta_lambda = -TSparseSpace::Dot(mDxPred, mDxb)/TSparseSpace::Dot(mDxPred, mDxf);
             
@@ -364,7 +369,8 @@ public:
             if( mNormxEquilibrium > tolerance ) {
                 norm_dx = TSparseSpace::TwoNorm(mDx);
                 
-                if( (norm_dx/mNormxEquilibrium) > max_ratio || (std::abs(delta_lambda)/std::abs(mLambda-mDeltaLamdaStep)) > max_ratio ) {
+                if( (norm_dx/mNormxEquilibrium) > max_ratio || 
+                    (std::abs(delta_lambda)/std::abs(mLambda - mDeltaLamdaStep)) > max_ratio ) {
                     is_converged = false;
                     break;
                 }
@@ -373,31 +379,30 @@ public:
             // Update results
             mDeltaLamdaStep += delta_lambda;
             mLambda += delta_lambda;
-            noalias(mDxStep) += mDx;
+            TSparseSpace::UnaliasedAdd(mDxStep, 1.0, mDx);
             UpdateDatabase(mA, mDx, mb, StrategyBaseType::MoveMeshFlag());
             
-            pScheme->FinalizeNonLinIteration(this_model_part, mA, mDx, mb);
+            pScheme->FinalizeNonLinIteration(r_model_part, mA, mDx, mb);
             
             // Check convergence
             if (BaseType::mpConvergenceCriteria->GetActualizeRHSflag() == true) {
                 TSparseSpace::SetToZero(mb);
-                pBuilderAndSolver->BuildRHS(pScheme, this_model_part, mb);
+                pBuilderAndSolver->BuildRHS(pScheme, r_model_part, mb);
             }
-            is_converged = BaseType::mpConvergenceCriteria->PostCriteria(this_model_part, rDofSet, mA, mDx, mb);
+            is_converged = BaseType::mpConvergenceCriteria->PostCriteria(r_model_part, rDofSet, mA, mDx, mb);
         }//While
         
         // Check iteration_number 
         if (iteration_number >= BaseType::mMaxIterationNumber) {
             is_converged = true;
             // Plots a warning if the maximum number of iterations is exceeded
-            if(this_model_part.GetCommunicator().MyPID() == 0) {
-                this->MaxIterationsExceeded();
-            }
+            if(r_model_part.GetCommunicator().MyPID() == 0)
+                BaseType::MaxIterationsExceeded();
         }
         
         // Calculate reactions if required
         if (BaseType::mCalculateReactionsFlag == true)
-            pBuilderAndSolver->CalculateReactions(pScheme, this_model_part, mA, mDx, mb);
+            pBuilderAndSolver->CalculateReactions(pScheme, r_model_part, mA, mDx, mb);
         
         return is_converged;
     }
@@ -411,10 +416,10 @@ public:
     {
         KRATOS_TRY
         
-        ModelPart& this_model_part = StrategyBaseType::GetModelPart();
-        ProcessInfo& this_process_info = this_model_part.GetProcessInfo();
+        ModelPart& r_model_part = StrategyBaseType::GetModelPart();
+        ProcessInfo& r_process_info = r_model_part.GetProcessInfo();
         
-        const double iteration_number = static_cast<double>(this_process_info[NL_ITERATION_NUMBER]);
+        const double iteration_number = static_cast<double>(r_process_info[NL_ITERATION_NUMBER]);
         
         // This is used to calculate the radius of the next step
         const double desired_iterations = static_cast<double>(mParameters["desired_iterations"].GetInt());
@@ -427,7 +432,7 @@ public:
         TSystemVectorType& mDx = *BaseType::mpDx;
         TSystemVectorType& mb = *BaseType::mpb;
 
-        if (this_process_info[IS_CONVERGED] == true) {
+        if (r_process_info[IS_CONVERGED] == true) {
             // Used to limit the radius of the arc length strategy
             const double max_radius_factor = mParameters["max_radius_factor"].GetDouble();
             const double min_radius_factor = mParameters["min_radius_factor"].GetDouble();
@@ -440,24 +445,24 @@ public:
             // Update Norm of x
             mNormxEquilibrium = CalculateReferenceDofsNorm(rDofSet);
         } else {
-            if (StrategyBaseType::mEchoLevel > 0)
+            if (StrategyBaseType::mEchoLevel > 0) // TODO: Replace for the Kratos log when available
                std::cout << "WARNING:: NO CONVERGENCE ACHIEVED: Restoring equilibrium path" << std::endl;
             
             TSystemVectorType& mDxStep = *mpDxStep;
             
-            //update results
+            // Update results
             mLambda -= mDeltaLamdaStep;
-            noalias(mDx) = -mDxStep;
+            TSparseSpace::Assign(mDx, -1.0, mDxStep);
             UpdateDatabase(mA, mDx, mb, StrategyBaseType::MoveMeshFlag());
         }
 
-        this_process_info[ARC_LENGTH_LAMBDA] = mLambda;
-        this_process_info[ARC_LENGTH_RADIUS_FACTOR] = mRadius/mRadius0;
+        r_process_info[ARC_LENGTH_LAMBDA] = mLambda;
+        r_process_info[ARC_LENGTH_RADIUS_FACTOR] = mRadius/mRadius0;
 
         typename TSchemeType::Pointer pScheme = BaseType::GetScheme();
         
-        pScheme->FinalizeSolutionStep(this_model_part, mA, mDx, mb);
-        pBuilderAndSolver->FinalizeSolutionStep(this_model_part, mA, mDx, mb);
+        pScheme->FinalizeSolutionStep(r_model_part, mA, mDx, mb);
+        pBuilderAndSolver->FinalizeSolutionStep(r_model_part, mA, mDx, mb);
 
         // Cleaning memory after the solution
         pScheme->Clean();
@@ -510,9 +515,9 @@ public:
     {
         KRATOS_TRY
         
-        const ProcessInfo& this_process_info = StrategyBaseType::GetModelPart().GetProcessInfo();
-        mLambda = this_process_info[ARC_LENGTH_LAMBDA];
-        mRadius = this_process_info[ARC_LENGTH_RADIUS_FACTOR] * mRadius0;
+        const ProcessInfo& r_process_info = StrategyBaseType::GetModelPart().GetProcessInfo();
+        mLambda = r_process_info[ARC_LENGTH_LAMBDA];
+        mRadius = r_process_info[ARC_LENGTH_RADIUS_FACTOR] * mRadius0;
         
         // Update External Loads        
         this->UpdateExternalLoads();
@@ -861,7 +866,7 @@ private:
      */
     void GenerateSubmodelpartList()
     {
-        ModelPart& this_model_part = BaseType::GetModelPart();
+        ModelPart& r_model_part = BaseType::GetModelPart();
         
         // Set Load SubModelParts and Variable names
         if(mParameters["loads_sub_model_part_list"].size() > 0) {
@@ -871,7 +876,7 @@ private:
             KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal or conditional Variable" << std::endl;
 
             for(unsigned int i = 0; i < mVariableNames.size(); i++) {
-                ModelPart& sub_model_part = this_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString());
+                ModelPart& sub_model_part = r_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString());
                 mSubModelPartList[i] = &sub_model_part;
                 mVariableNames[i] = mParameters["loads_variable_list"][i].GetString();
                 
