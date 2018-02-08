@@ -755,7 +755,7 @@ protected:
                 #pragma omp parallel for
                 for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) { 
                     auto it_cond = conditions_array.begin() + i;
-                    if (it_cond->GetValue(var)) {
+                    if (it_cond->Has(var)) {
                         double& rvalue = it_cond->GetValue(var);
                         rvalue *= lambda_ratio;
                     }
@@ -774,7 +774,7 @@ protected:
                 #pragma omp parallel for
                 for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) { 
                     auto it_cond = conditions_array.begin() + i;
-                    if (it_cond->GetValue(var)) {
+                    if (it_cond->Has(var)) {
                         array_1d<double, 3>& rvalue = it_cond->GetValue(var);
                         rvalue *= lambda_ratio;
                     }
