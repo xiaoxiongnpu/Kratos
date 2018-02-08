@@ -221,7 +221,7 @@ class MPIUPwSolver(poromechanics_U_Pw_solver.UPwSolver):
         move_mesh_flag = self.settings["move_mesh_flag"].GetBool()
                 
         if strategy_type == "Newton-Raphson":
-            self.main_model_part.ProcessInfo.SetValue(KratosPoro.IS_CONVERGED, True)
+            self.main_model_part.ProcessInfo.SetValue(KratosMultiphysics.IS_CONVERGED, True)
             solver = TrilinosApplication.TrilinosNewtonRaphsonStrategy(self.main_model_part,
                                                                        scheme,
                                                                        self.linear_solver,
