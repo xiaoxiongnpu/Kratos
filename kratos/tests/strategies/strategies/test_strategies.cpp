@@ -13,17 +13,33 @@
 // System includes
 #include <limits>
 
-// External includes
+/* External includes */
 
-
-// Project includes
+/* Project includes */
 #include "testing/testing.h"
 
-// Utility includes
+/* Utility includes */
 #include "includes/define.h"
 #include "includes/model_part.h"
 #include "spaces/ublas_space.h"
+
+// Linear solvers
+#include "linear_solvers/reorderer.h"
+#include "linear_solvers/direct_solver.h"
+#include "linear_solvers/linear_solver.h"
+#include "linear_solvers/skyline_lu_factorization_solver.h"
+
+// The most basic scheme (static)
 #include "solving_strategies/schemes/residualbased_incrementalupdate_static_scheme.h"
+
+// The most extended criteria (residual criteria)
+#include "solving_strategies/convergencecriterias/residual_criteria.h"
+
+// The most builder and solver (the block builder and solver)
+#include "solving_strategies/convergencecriterias/residual_criteria.h"
+
+// The strategies to test
+#include "solving_strategies/strategies/residualbased_linear_strategy.h"
 #include "solving_strategies/strategies/residualbased_newton_raphson_strategy.h"
 
 namespace Kratos 
@@ -31,14 +47,36 @@ namespace Kratos
     namespace Testing 
     {
         /// Tests
-       
-//         typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
-//         typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
-//         typedef LinearSolver<SparseSpaceType,LocalSpaceType> SolverType;
-//         
-//         typedef Scheme< SparseSpaceType, LocalSpaceType >  SchemeType;
-//         typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, SolverType >  SolvingStrategyType;
-//         typedef PointerVectorSet<Dof<double>, SetIdentityFunction<Dof<double>>, std::less<SetIdentityFunction<Dof<double>>::result_type>, std::equal_to<SetIdentityFunction<Dof<double>>::result_type>, Dof<double>* > DofsArrayType;
+        // NOTE: The strategies test many things simulataneously
+        // TODO: Create test for the other components
+        typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
+        typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
+        
+        // The direct solver
+        typedef Reorderer<SpaceType,  LocalSpaceType > ReordererType;
+        typedef DirectSolver<SpaceType,  LocalSpaceType, ReordererType > DirectSolverType;
+        typedef LinearSolver<SparseSpaceType,LocalSpaceType> LinearSolverType;
+        typedef SkylineLUFactorizationSolver<SpaceType,  LocalSpaceType, ReordererType > SkylineLUFactorizationSolverType;
+        
+        // The convergence criteria type
+        typedef ConvergenceCriteria< SparseSpaceType, LocalSpaceType > ConvergenceCriteriaType;
+        typedef ResidualCriteria< SparseSpaceType, LocalSpaceType > ResidualCriteriaType;
+        
+        // The builder ans solver type
+        typedef BuilderAndSolver< SparseSpaceType, LocalSpaceType, LinearSolverType > BuilderAndSolverType;
+        typedef ResidualBasedBlockBuilderAndSolver< SparseSpaceType, LocalSpaceType, LinearSolverType > ResidualBasedBlockBuilderAndSolverType;
+        
+        // The time scheme
+        typedef Scheme< SparseSpaceType, LocalSpaceType >  SchemeType;
+        typedef ResidualBasedIncrementalUpdateStaticScheme< SparseSpaceType, LocalSpaceType> ResidualBasedIncrementalUpdateStaticSchemeType;
+        
+        // The strategies
+        typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, SolverType >  SolvingStrategyType;
+        typedef ResidualBasedLinearStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > ResidualBasedLinearStrategyType;
+        typedef ResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > ResidualBasedNewtonRaphsonStrategyType;
+        
+        // Dof arrays
+        typedef PointerVectorSet<Dof<double>, SetIdentityFunction<Dof<double>>, std::less<SetIdentityFunction<Dof<double>>::result_type>, std::equal_to<SetIdentityFunction<Dof<double>>::result_type>, Dof<double>* > DofsArrayType;
         
 //         static inline DofsArrayType BasicTestStrategyDisplacement(
 //             ModelPart& ModelPart,
