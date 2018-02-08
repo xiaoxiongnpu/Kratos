@@ -124,7 +124,7 @@ public:
         typename TLinearSolver::Pointer pNewLinearSolver,
         typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
         typename TBuilderAndSolverType::Pointer pNewBuilderAndSolver,
-        Parameters ThisParameters = Parameters(R"({})"),
+        Parameters& ThisParameters,
         int MaxIterationNumber = 30,
         bool CalculateReactions = false,
         bool ReformDofSetAtEachStep = false,
@@ -158,7 +158,7 @@ public:
         typename TSchemeType::Pointer pScheme,
         typename TLinearSolver::Pointer pNewLinearSolver,
         typename TConvergenceCriteriaType::Pointer pNewConvergenceCriteria,
-        Parameters ThisParameters = Parameters(R"({})"),
+        Parameters& ThisParameters,
         int MaxIterationNumber = 30,
         bool CalculateReactions = false,
         bool ReformDofSetAtEachStep = false,
@@ -304,15 +304,15 @@ public:
         
         // Note: This is not so efficient, but I want to solve mA*mDxf=mf without losing mf
         BuildWithDirichlet(mA, mDxf, mb);
-        noalias(mb) = mf;
+        TSparseSpace::UnaliasedAdd(mb, 1.0, mf); // TODO: Compute mf using just external forces
         pBuilderAndSolver->SystemSolve(mA, mDxf, mb);
 
         // Update results
         double delta_lambda = mRadius/TSparseSpace::TwoNorm(mDxf);
         mDeltaLamdaStep = delta_lambda;
         mLambda += delta_lambda;
-        noalias(mDxPred) = delta_lambda * mDxf;
-        noalias(mDxStep) = mDxPred;
+        TSparseSpace::UnaliasedAdd(mDxPred, delta_lambda, mDxf);
+        TSparseSpace::UnaliasedAdd(mDxStep, 1.0, mDxPred);
         
         UpdateDatabase(mA, mDxPred, mb, StrategyBaseType::MoveMeshFlag());
         
@@ -343,7 +343,7 @@ public:
             
             // Note: This is not so efficient, but I want to solve mA*mDxf=mf without losing mf
             BuildWithDirichlet(mA, mDxf, mb);
-            noalias(mb) = mf;
+            TSparseSpace::UnaliasedAdd(mb, 1.0, mf); // TODO: Compute mf using just external forces
             pBuilderAndSolver->SystemSolve(mA, mDxf, mb);
 
             TSparseSpace::SetToZero(mA);
@@ -354,7 +354,9 @@ public:
             
             delta_lambda = -TSparseSpace::Dot(mDxPred, mDxb)/TSparseSpace::Dot(mDxPred, mDxf);
             
-            noalias(mDx) = mDxb + delta_lambda*mDxf;
+            // Doing mDx = mDxb + delta_lambda * mDxf using spaces
+            TSparseSpace::Assign(mDx, delta_lambda, mDxf);
+            TSparseSpace::UnaliasedAdd(mDx, 1.0, mDxb);
             
             // Check solution before update
             const double tolerance = 1.0e-10;
@@ -561,7 +563,7 @@ protected:
     ///@name Protected member Variables
     ///@{
 
-    Parameters& mParameters;
+    Parameters& mParameters; /// The configuration parameters
     std::vector<ModelPart*> mSubModelPartList; /// List of every SubModelPart associated to an external load
     std::vector<std::string> mVariableNames; /// Name of the nodal variable associated to every SubModelPart
 
