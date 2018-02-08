@@ -738,26 +738,45 @@ protected:
             const std::string& VariableName = mVariableNames[i];
             
             auto& nodes_array = rsub_model_part.Nodes(); 
-//             auto& conditions_array = rsub_model_part.Conditions();  // TODO 
+            auto& conditions_array = rsub_model_part.Conditions();
             
             if( KratosComponents< Variable<double> >::Has( VariableName ) ) {
                 Variable<double> var = KratosComponents< Variable<double> >::Get( VariableName );
                 
+                // Nodes
                 #pragma omp parallel for
                 for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) { 
                     auto it_node = nodes_array.begin() + i;
                     double& rvalue = it_node->FastGetSolutionStepValue(var);
                     rvalue *= lambda_ratio;
                 }
-            }
-            else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) ) {
+                // Conditions
+                #pragma omp parallel for
+                for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) { 
+                    auto it_cond = conditions_array.begin() + i;
+                    if (it_cond->GetValue(var)) {
+                        double& rvalue = it_cond->GetValue(var);
+                        rvalue *= lambda_ratio;
+                    }
+                }
+            } else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) ) {
                 Variable<array_1d<double,3>> var = KratosComponents< Variable<array_1d<double,3>> >::Get( VariableName );                
                 
+                // Nodes
                 #pragma omp parallel for
                 for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) { 
                     auto it_node = nodes_array.begin() + i;
                     array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(var);
                     rvalue *= lambda_ratio;
+                }
+                // Conditions
+                #pragma omp parallel for
+                for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) { 
+                    auto it_cond = conditions_array.begin() + i;
+                    if (it_cond->GetValue(var)) {
+                        array_1d<double, 3>& rvalue = it_cond->GetValue(var);
+                        rvalue *= lambda_ratio;
+                    }
                 }
             } else {
                 KRATOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << VariableName << std::endl;
