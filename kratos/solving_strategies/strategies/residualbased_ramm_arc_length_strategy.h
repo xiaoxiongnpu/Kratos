@@ -247,7 +247,7 @@ public:
             mNormxEquilibrium = 0.0;
             
             if (StrategyBaseType::mEchoLevel > 0)
-              std::cout << "Ramm's Arc Length Strategy Initialized" << std::endl;
+              KRATOS_INFO("Ramm's Arc Length Strategy ") << "Initialized" << std::endl;
         }
 
         KRATOS_CATCH( "" )
@@ -285,7 +285,7 @@ public:
     {
         /* Prediction phase */
         if (StrategyBaseType::mEchoLevel > 0) // TODO: Replace for the new Kratos log when available
-            std::cout << "ARC-LENGTH RADIUS: " << mRadius/mRadius0 << " X initial radius" << std::endl;
+            KRATOS_INFO("ARC-LENGTH RADIUS: ") << mRadius/mRadius0 << " X initial radius" << std::endl;
         
         ModelPart& r_model_part = StrategyBaseType::GetModelPart();
         
@@ -445,8 +445,8 @@ public:
             // Update Norm of x
             mNormxEquilibrium = CalculateReferenceDofsNorm(rDofSet);
         } else {
-            if (StrategyBaseType::mEchoLevel > 0) // TODO: Replace for the Kratos log when available
-               std::cout << "WARNING:: NO CONVERGENCE ACHIEVED: Restoring equilibrium path" << std::endl;
+            if (StrategyBaseType::mEchoLevel > 0)
+               KRATOS_WARNING("NO CONVERGENCE ACHIEVED: ") << "Restoring equilibrium path" << std::endl;
             
             TSystemVectorType& mDxStep = *mpDxStep;
             
