@@ -297,7 +297,7 @@ namespace Kratos
                 this_table.PushBack(0.960983884648007, 0.9466467173803182);
                 
                 for ( unsigned int j = 0; j < dimension; ++j )
-                    rRightHandSideVector[j] -= this_table.TableGetNearestValue(current_displacement[j]);
+                    rRightHandSideVector[j] -= this_table.GetNearestValue(current_displacement[j]);
                 break;
             default:
                 KRATOS_ERROR << "NOT IMPLEMENTED" << std::endl;
