@@ -46,7 +46,7 @@ namespace Kratos
     /**
     * @class TestCondition
     * @ingroup KratosCore
-    * @brief This is simple test element
+    * @brief This is simple test condition
     * @details It is designed to create a simple LHS and RHS in order to test strategies, processes. etc.... This way the common interface of the elements/conditions can be used to minimize the difference between the actual implementation and the test
     * @author Vicente Mataix Ferrandiz
     */
@@ -109,26 +109,26 @@ namespace Kratos
         ///@{
 
         /**
-        * @brief Creates a new total lagrangian updated element pointer
-        * @param NewId the ID of the new element
-        * @param ThisNodes the nodes of the new element
-        * @param pProperties the properties assigned to the new element
-        * @return a Pointer to the new element
+        * @brief Creates a new total lagrangian updated condition pointer
+        * @param NewId the ID of the new condition
+        * @param ThisNodes the nodes of the new condition
+        * @param pProperties the properties assigned to the new condition
+        * @return a Pointer to the new condition
         */
         Condition::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const override;
 
         /**
-        * @brief Clones the selected element variables, creating a new one
-        * @param NewId the ID of the new element
-        * @param ThisNodes the nodes of the new element
-        * @return a Pointer to the new element
+        * @brief Clones the selected condition variables, creating a new one
+        * @param NewId the ID of the new condition
+        * @param ThisNodes the nodes of the new condition
+        * @return a Pointer to the new condition
         */
         Condition::Pointer Clone(IndexType NewId, NodesArrayType const& ThisNodes) const override;
 
         //************* GETTING METHODS
 
         /**
-        * @brief Sets on rConditionalDofList the degrees of freedom of the considered element geometry
+        * @brief Sets on rConditionalDofList the degrees of freedom of the considered condition geometry
         * @param rConditionalDofList The vector containing the list of the DoFs 
         * @param rCurrentProcessInfo The current process info instance
         */
@@ -138,7 +138,7 @@ namespace Kratos
             ) override;
 
         /**
-        * @brief Sets on rResult the ID's of the element degrees of freedom
+        * @brief Sets on rResult the ID's of the condition degrees of freedom
         * @param rResult The vector containing the ids of the DoFs 
         * @param rCurrentProcessInfo The current process info instance
         */
@@ -171,9 +171,9 @@ namespace Kratos
         //************* COMPUTING  METHODS
 
         /**
-        * @brief This is called during the assembling process in order to calculate all elemental contributions to the global system matrix and the right hand side
-        * @param rLeftHandSideMatrix The elemental left hand side matrix
-        * @param rRightHandSideVector The elemental right hand side
+        * @brief This is called during the assembling process in order to calculate all conditional contributions to the global system matrix and the right hand side
+        * @param rLeftHandSideMatrix The conditional left hand side matrix
+        * @param rRightHandSideVector The conditional right hand side
         * @param rCurrentProcessInfo The current process info instance
         */
 
@@ -185,8 +185,8 @@ namespace Kratos
 
         /**
         * @brief This calculates just the RHS
-        * @param rLeftHandSideMatrix The elemental left hand side matrix
-        * @param rRightHandSideVector The elemental right hand side
+        * @param rLeftHandSideMatrix The conditional left hand side matrix
+        * @param rRightHandSideVector The conditional right hand side
         * @param rCurrentProcessInfo The current process info instance
         */
 
@@ -197,8 +197,8 @@ namespace Kratos
 
         /**
         * @brief This calculates just the LHS
-        * @param rLeftHandSideMatrix The elemental left hand side matrix
-        * @param rRightHandSideVector The elemental right hand side
+        * @param rLeftHandSideMatrix The conditional left hand side matrix
+        * @param rRightHandSideVector The conditional right hand side
         * @param rCurrentProcessInfo The current process info instance
         */
 
@@ -208,8 +208,8 @@ namespace Kratos
             ) override;
 
         /**
-        * @brief This is called during the assembling process in order to calculate the elemental mass matrix
-        * @param rMassMatrix the elemental mass matrix
+        * @brief This is called during the assembling process in order to calculate the conditional mass matrix
+        * @param rMassMatrix the conditional mass matrix
         * @param rCurrentProcessInfo the current process info instance
         */
         void CalculateMassMatrix(
@@ -219,8 +219,8 @@ namespace Kratos
 
         /**
         * @brief This is called during the assembling process in order
-        * to calculate the elemental damping matrix
-        * @param rDampingMatrix The elemental damping matrix
+        * to calculate the conditional damping matrix
+        * @param rDampingMatrix The conditional damping matrix
         * @param rCurrentProcessInfo The current process info instance
         */
         void CalculateDampingMatrix(
@@ -262,9 +262,9 @@ namespace Kratos
         ///@name Protected Operators
         ///@{
         
-        TestCondition() : Condition()
-        {
-        }
+//         TestCondition() : Condition()
+//         {
+//         }
 
         ///@}
         ///@name Protected Operations
