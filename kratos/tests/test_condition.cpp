@@ -248,6 +248,77 @@ namespace Kratos
         const array_1d<double, 3 >& previous_displacement = GetGeometry()[0].FastGetSolutionStepValue(DISPLACEMENT, 1);
         const array_1d<double, 3 >& delta_displacement = current_displacement - previous_displacement;
         
+        Matrix table_content(2, 34); 
+        table_content(0, 0) = 0.0;
+        table_content(1, 0) = 0.0;
+        table_content(0, 1) = 0.01187446988973706;
+        table_content(1, 1) = 0.05863918000028767;
+        table_content(0, 2) = 0.02968617472434265;
+        table_content(1, 2) = 0.130300687940745;
+        table_content(0, 3) = 0.05089058524173028;
+        table_content(1, 3) = 0.20586469208541935;
+        table_content(0, 4) = 0.0729431721798134;
+        table_content(1, 4) = 0.29446429420552855;
+        table_content(0, 5) = 0.0916030534351145;
+        table_content(1, 5) = 0.36221224757904813;
+        table_content(0, 6) = 0.11959287531806619;
+        table_content(1, 6) = 0.4338472154489751;
+        table_content(0, 7) = 0.1407972858354538;
+        table_content(1, 7) = 0.4924620670512766;
+        table_content(0, 8) = 0.16539440203562344;
+        table_content(1, 8) = 0.5510680719634014;
+        table_content(0, 9) = 0.1874469889737066;
+        table_content(1, 9) = 0.5992504641747753;
+        table_content(0, 10) = 0.21798134011874476;
+        table_content(1, 10) = 0.6513220825551012;
+        table_content(0, 11) = 0.26293469041560646;
+        table_content(1, 11) = 0.7137863502205593;
+        table_content(0, 12) = 0.3121289228159458;
+        table_content(1, 12) = 0.7592904069809234;
+        table_content(0, 13) = 0.351145038167939;
+        table_content(1, 13) = 0.7670113558326783;
+        table_content(0, 14) = 0.39355385920271424;
+        table_content(1, 14) = 0.765596991240671;
+        table_content(0, 15) = 0.43172179813401196;
+        table_content(1, 15) = 0.7420294086098201;
+        table_content(0, 16) = 0.4724342663273962;
+        table_content(1, 16) = 0.7067211622781555;
+        table_content(0, 17) = 0.49109414758269726;
+        table_content(1, 17) = 0.6675590765382461;
+        table_content(0, 18) = 0.5190839694656489;
+        table_content(1, 18) = 0.6088159479283818;
+        table_content(0, 19) = 0.5453774385072095;
+        table_content(1, 19) = 0.5578999284523933;
+        table_content(0, 20) = 0.5776081424936388;
+        table_content(1, 20) = 0.49262683665581863;
+        table_content(0, 21) = 0.6098388464800679;
+        table_content(1, 21) = 0.4521255831904042;
+        table_content(0, 22) = 0.6412213740458016;
+        table_content(1, 22) = 0.4181454462215235;
+        table_content(0, 23) = 0.6768447837150129;
+        table_content(1, 23) = 0.397192060537901;
+        table_content(0, 24) = 0.7251908396946566;
+        table_content(1, 24) = 0.40749624292126574;
+        table_content(0, 25) = 0.7752332485156914;
+        table_content(1, 25) = 0.45560564993868147;
+        table_content(0, 26) = 0.8176420695504667;
+        table_content(1, 26) = 0.5102538668329846;
+        table_content(0, 27) = 0.8481764206955048;
+        table_content(1, 27) = 0.5571103613541187;
+        table_content(0, 28) = 0.888888888888889;
+        table_content(1, 28) = 0.6352310589598726;
+        table_content(0, 29) = 0.9151823579304497;
+        table_content(1, 29) = 0.7081742311396861;
+        table_content(0, 30) = 0.9372349448685329;
+        table_content(1, 30) = 0.8176343286965619;
+        table_content(0, 31) = 0.9491094147582697;
+        table_content(1, 31) = 0.8853999754504349;
+        table_content(0, 32) = 0.960983884648007;
+        table_content(1, 32) = 0.9466467173803182;
+        table_content(0, 33) = 1.0;
+        table_content(1, 33) = 1.0;
+        Table<double, double> this_table(table_content);
+        
         switch ( mResidualType )
         {
             case ResidualType::LINEAR:
@@ -259,45 +330,8 @@ namespace Kratos
                     rRightHandSideVector[j] -= 0.0;
                 break;
             case ResidualType::ARC_LENGTH:
-                
-                typedef Table<double,double> DoubleTableType;
-                DoubleTableType this_table;
-                this_table.PushBack(0.0, 0.0);
-                this_table.PushBack(0.01187446988973706, 0.05863918000028767);
-                this_table.PushBack(0.02968617472434265, 0.130300687940745);
-                this_table.PushBack(0.05089058524173028, 0.20586469208541935);
-                this_table.PushBack(0.0729431721798134, 0.29446429420552855);
-                this_table.PushBack(0.0916030534351145, 0.36221224757904813);
-                this_table.PushBack(0.11959287531806619, 0.4338472154489751);
-                this_table.PushBack(0.1407972858354538, 0.4924620670512766);
-                this_table.PushBack(0.16539440203562344, 0.5510680719634014);
-                this_table.PushBack(0.1874469889737066, 0.5992504641747753);
-                this_table.PushBack(0.21798134011874476, 0.6513220825551012);
-                this_table.PushBack(0.26293469041560646, 0.7137863502205593);
-                this_table.PushBack(0.3121289228159458, 0.7592904069809234);
-                this_table.PushBack(0.351145038167939, 0.7670113558326783);
-                this_table.PushBack(0.39355385920271424, 0.765596991240671);
-                this_table.PushBack(0.43172179813401196, 0.7420294086098201);
-                this_table.PushBack(0.4724342663273962, 0.7067211622781555);
-                this_table.PushBack(0.49109414758269726, 0.6675590765382461);
-                this_table.PushBack(0.5190839694656489, 0.6088159479283818);
-                this_table.PushBack(0.5453774385072095, 0.5578999284523933);
-                this_table.PushBack(0.5776081424936388, 0.49262683665581863);
-                this_table.PushBack(0.6098388464800679, 0.4521255831904042);
-                this_table.PushBack(0.6412213740458016, 0.4181454462215235);
-                this_table.PushBack(0.6768447837150129, 0.397192060537901);
-                this_table.PushBack(0.7251908396946566, 0.40749624292126574);
-                this_table.PushBack(0.7752332485156914, 0.45560564993868147);
-                this_table.PushBack(0.8176420695504667, 0.5102538668329846);
-                this_table.PushBack(0.8481764206955048, 0.5571103613541187);
-                this_table.PushBack(0.888888888888889, 0.6352310589598726);
-                this_table.PushBack(0.9151823579304497, 0.7081742311396861);
-                this_table.PushBack(0.9372349448685329, 0.8176343286965619);
-                this_table.PushBack(0.9491094147582697, 0.8853999754504349);
-                this_table.PushBack(0.960983884648007, 0.9466467173803182);
-                
                 for ( unsigned int j = 0; j < dimension; ++j )
-                    rRightHandSideVector[j] -= this_table.GetNearestValue(current_displacement[j]);
+                    rRightHandSideVector[j] -= this_table.GetNearestValue(current_displacement[j]) - 1.0;
                 break;
             default:
                 KRATOS_ERROR << "NOT IMPLEMENTED" << std::endl;

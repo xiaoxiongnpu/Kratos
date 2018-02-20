@@ -257,7 +257,7 @@ namespace Kratos
                 break;
             case ResidualType::ARC_LENGTH:
                 for ( unsigned int j = 0; j < dimension; ++j )
-                    rRightHandSideVector[j] -= std::pow(delta_displacement[j], 2) - 1.0;
+                    rRightHandSideVector[j] -= 0.0;
                 break;
             default:
                 KRATOS_ERROR << "NOT IMPLEMENTED" << std::endl;
