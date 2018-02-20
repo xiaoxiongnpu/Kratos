@@ -237,6 +237,7 @@ public:
             TSystemVectorType& mf = *mpf;
             TSparseSpace::SetToZero(mf);
 
+//             pBuilderAndSolver->BuildRHS(pScheme, StrategyBaseType::GetModelPart(), mf);
             pBuilderAndSolver->BuildRHS(pScheme, mExternalForcesModelPart, mf);
             
             // Initialize the loading factor Lambda
@@ -311,8 +312,9 @@ public:
         
         // We solve mA*mDxf=mf
         BuildWithDirichlet(mA, mDxf, mb);
+//         TSparseSpace::Assign(mb, 1.0, mf); // TODO: Remove this
         pBuilderAndSolver->SystemSolve(mA, mDxf, mf);
-
+        
         // Update results
         double delta_lambda = mRadius/TSparseSpace::TwoNorm(mDxf);
         mDeltaLamdaStep = delta_lambda;
@@ -349,8 +351,9 @@ public:
             
             // We solve mA*mDxf=mf
             BuildWithDirichlet(mA, mDxf, mb);
+//             TSparseSpace::Assign(mb, 1.0, mf); // TODO: Remove this
             pBuilderAndSolver->SystemSolve(mA, mDxf, mf);
-
+            
             TSparseSpace::SetToZero(mA);
             TSparseSpace::SetToZero(mb);
             TSparseSpace::SetToZero(mDxb);
@@ -358,6 +361,9 @@ public:
             pBuilderAndSolver->BuildAndSolve(pScheme, r_model_part, mA, mDxb, mb);
             
             delta_lambda = -TSparseSpace::Dot(mDxPred, mDxb)/TSparseSpace::Dot(mDxPred, mDxf);
+            
+            if (std::abs(delta_lambda) < std::numeric_limits<double>::epsilon())
+                KRATOS_WARNING("Zero Delta Lambda: ") << delta_lambda << std::endl;
             
             // Doing mDx = mDxb + delta_lambda * mDxf using spaces
             TSparseSpace::Assign(mDx, delta_lambda, mDxf);
@@ -456,6 +462,9 @@ public:
             UpdateDatabase(mA, mDx, mb, StrategyBaseType::MoveMeshFlag());
         }
 
+        if (StrategyBaseType::mEchoLevel > 0)
+            KRATOS_INFO("Arc length param:") << "\tARC_LENGTH_LAMBDA " << mLambda << "\tARC_LENGTH_RADIUS_FACTOR " << mRadius/mRadius0 << std::endl;
+        
         r_process_info[ARC_LENGTH_LAMBDA] = mLambda;
         r_process_info[ARC_LENGTH_RADIUS_FACTOR] = mRadius/mRadius0;
 
