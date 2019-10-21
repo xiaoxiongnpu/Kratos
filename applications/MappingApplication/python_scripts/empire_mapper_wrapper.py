@@ -78,7 +78,31 @@ class EmpireMapperWrapper(PythonMapper):
 
 
     def Map(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
-        raise NotImplementedError('"Map" was not implemented for "{}"'.format(self._ClassName()))
+        if not type() # check variables are matching
+
+        var_dim = GetVariableDimension(variable_origin)
+
+        origin_data_size = len(self.origin_model_part.Nodes)*var_dim
+        destination_data_size = len(self.destination_model_part.Nodes)*var_dim
+
+        c_origin_array = self.__KratosFieldToCArray(var_dim, self.origin_model_part, origin_variable)
+        c_destination_array = (ctp.c_double * destination_data_size)(0.0)
+
+        self.mapper_library.doConsistentMapping(
+            ctp.c_char_p(self.name),
+            ctp.c_int(var_dim),
+            ctp.c_int(origin_data_size),
+            c_origin_array,
+            ctp.c_int(destination_data_size),
+            c_destination_array
+            )
+
+        self.__CArrayToKratosField(
+            var_dim,
+            c_destination_array,
+            destination_data_size,
+            self.destination_model_part,
+            destination_variable)
 
     def InverseMap(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
         # TODO check if using transpose => conservative
@@ -113,6 +137,38 @@ class EmpireMapperWrapper(PythonMapper):
             #  delete everything to make sure nothing is left
             EmpireMapperWrapper.mapper_lib.deleteAllMeshes()
             EmpireMapperWrapper.mapper_lib.deleteAllMappers()
+
+
+    def __MakeEmpireFEMesh(self, mesh_name, model_part):
+
+        c_mesh_name       = ctp.c_char_p(mesh_name)
+        c_num_nodes       = ctp.c_int(len(model_part.Nodes))
+        c_num_elems       = ctp.c_int(len(model_part.Conditions))
+        c_node_ids        = (ctp.c_int * c_num_nodes.value) (0)
+        c_node_coords     = (ctp.c_double * (3 * c_num_nodes.value))(0.0)
+        c_num_nodes_per_elem = (ctp.c_int * c_num_elems.value) (0)
+
+        for i_node, node in enumerate(model_part.Nodes):
+            c_node_ids[i_node] = node.Id
+            c_node_coords[i_node*3]   = node.X
+            c_node_coords[i_node*3+1] = node.Y
+            c_node_coords[i_node*3+2] = node.Z
+
+        elem_node_ctr = 0
+        for elem_ctr, elem in enumerate(model_part.Conditions):
+            c_num_nodes_per_elem[elem_ctr] = len(elem.GetNodes())
+            elem_node_ctr += c_num_nodes_per_elem[elem_ctr]
+
+        elem_index = 0
+        c_elems = (ctp.c_int * elem_node_ctr) (0)
+        for elem_ctr, elem in enumerate(model_part.Conditions):
+            for elem_node_ctr, elem_node in enumerate(elem.GetNodes()):
+                c_elems[elem_index + elem_node_ctr] = elem_node.Id
+            elem_index += len(elem.GetNodes())
+
+        self.mapper_library.initFEMesh(c_mesh_name, c_num_nodes, c_num_elems, False)
+        self.mapper_library.setNodesToFEMesh(c_mesh_name, c_node_ids, c_node_coords)
+        self.mapper_library.setElementsToFEMesh(c_mesh_name, c_num_nodes_per_elem, c_elems)
 
     @classmethod
     def _GetDefaultSettings(cls):
@@ -175,3 +231,39 @@ class EmpireMortarMapper(EmpireMapperWrapper):
         }""")
         this_defaults.AddMissingParameters(super(EmpireMapperWrapper, cls)._GetDefaultSettings())
         return this_defaults
+
+
+
+def KratosFieldToCArray(self, dim, model_part, variable, historical):
+    size = dim * model_part.NumberOfNodes()
+
+    CheckDimension()
+
+    c_array = (ctp.c_double * size)(0.0)
+    for i_node, node in enumerate(model_part.Nodes):
+        node_value = node.GetSolutionStepValue(variable)
+        if node_value.Size() != dim:
+            raise RuntimeError("Wrong dimensions!")
+        for i_dim in range(dim):
+            c_array[i_node*dim + i_dim] = node_value[i_dim]
+
+    return c_array
+
+def CArrayToKratosField(self, dim, c_array, size, model_part, variable, historical, swap_sign, add_values):
+    if size != dim * model_part.NumberOfNodes()
+        raise RuntimeError("Wrong size!")
+
+    for i_node, node in enumerate(model_part.Nodes):
+        values = [ c_array[i_node*dim], c_array[i_node*dim+1], c_array[i_node*dim+2]]
+        node.SetSolutionStepValue(variable, values)
+
+
+def GetVariableDimension(variable):
+    var_type = KM.KratosGlobals.GetVariableType(variable.Name)
+    if var_type == "Array":
+        return 3
+    elif var_type in ["Double", "Component"]:
+        return 1
+    else:
+        raise Exception('Wrong variable type: "{}". Only "Array", "Double" and "Component" are allowed'.format(var_type))
+
