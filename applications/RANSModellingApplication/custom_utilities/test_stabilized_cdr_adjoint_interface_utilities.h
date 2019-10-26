@@ -47,7 +47,7 @@ void RunScalarSensitivityTest(
                          const typename TEvmAdjointElement::BaseType&,
                          const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType&,
                          const ProcessInfo&,
-                         const int GaussIndex)> CalculateElementScalarValueAdjointSensitivities,
+                         const int GaussIndex)> CalculateElementScalarValueAdjointScalarSensitivities,
     std::function<double&(NodeType&)> PerturbVariable,
     std::function<double(const Vector&,
                          const Matrix&,
@@ -104,6 +104,14 @@ void RunScalarSensitivityTest(
     const ProcessInfo& r_primal_process_info = rPrimalModelPart.GetProcessInfo();
     const ProcessInfo& r_adjoint_process_info = rAdjointModelPart.GetProcessInfo();
 
+    const int primal_domain_size = r_primal_process_info[DOMAIN_SIZE];
+    const int adjoint_domain_size = r_adjoint_process_info[DOMAIN_SIZE];
+
+    KRATOS_ERROR_IF(primal_domain_size != TDim)
+        << "Primal model part domain size mismatch.";
+    KRATOS_ERROR_IF(adjoint_domain_size != TDim)
+        << "Adjoint model part domain size mismatch.";
+
     typename Element::GeometryType::ShapeFunctionsGradientsType adjoint_shape_function_gradients;
     typename Element::GeometryType::ShapeFunctionsGradientsType primal_shape_function_gradients;
 
@@ -145,10 +153,11 @@ void RunScalarSensitivityTest(
                 r_adjoint_gauss_shape_derivatives, r_adjoint_process_info);
 
             BoundedVector<double, TNumNodes> adjoint_scalar_sensitivities;
-            const double adjoint_scalar_value = CalculateElementScalarValueAdjointSensitivities(
-                adjoint_scalar_sensitivities, r_adjoint_gauss_shape_functions,
-                r_adjoint_gauss_shape_derivatives, r_rans_adjoint_element,
-                adjoint_data, r_adjoint_process_info, g);
+            const double adjoint_scalar_value =
+                CalculateElementScalarValueAdjointScalarSensitivities(
+                    adjoint_scalar_sensitivities, r_adjoint_gauss_shape_functions,
+                    r_adjoint_gauss_shape_derivatives, r_rans_adjoint_element,
+                    adjoint_data, r_adjoint_process_info, g);
 
             // KRATOS_WATCH(adjoint_scalar_sensitivities);
 
@@ -214,14 +223,14 @@ void RunVectorSensitivityTest(
     ModelPart& rAdjointModelPart,
     std::vector<Process*>& rPrimalProcessList,
     std::vector<Process*>& rAdjointProcessList,
-    std::function<double(BoundedVector<double, TNumNodes>&,
+    std::function<double(BoundedMatrix<double, TNumNodes, TDim>&,
                          const Vector&,
                          const Matrix&,
                          const typename TEvmAdjointElement::BaseType&,
                          const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType&,
                          const ProcessInfo&,
-                         const int GaussIndex)> CalculateElementScalarValueAdjointSensitivities,
-    std::function<double&(NodeType&)> PerturbVariable,
+                         const int GaussIndex)> CalculateElementScalarValueAdjointVectorSensitivities,
+    std::function<double&(NodeType&, const int)> PerturbVariable,
     std::function<double(const Vector&,
                          const Matrix&,
                          const typename TEvmElement::BaseType&,
@@ -233,6 +242,33 @@ void RunVectorSensitivityTest(
     const double RelativePrecision,
     const double AbsolutePrecision)
 {
+    for (int i_dim = 0; i_dim < TDim; ++i_dim)
+    {
+        auto calculate_sensitivities =
+            [CalculateElementScalarValueAdjointVectorSensitivities, i_dim](
+                BoundedVector<double, TNumNodes>& rOutput,
+                const Vector& rShapeFunctions, const Matrix& rShapeFunctionDerivatives,
+                const typename TEvmAdjointElement::BaseType& rElement,
+                const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                const ProcessInfo& rCurrentProcessInfo) {
+                BoundedMatrix<double, TNumNodes, TDim> scalar_vector_sensitivities;
+                const double scalar_value = CalculateElementScalarValueAdjointVectorSensitivities(
+                    scalar_vector_sensitivities, rShapeFunctions,
+                    rShapeFunctionDerivatives, rElement, rData, rCurrentProcessInfo);
+
+                noalias(rOutput) = column(scalar_vector_sensitivities, i_dim);
+                return scalar_value;
+            };
+
+        auto perturb_variable = [PerturbVariable, i_dim](NodeType& rNode) -> double& {
+            return PerturbVariable(rNode, i_dim);
+        };
+
+        RunScalarSensitivityTest<TEvmElement, TEvmAdjointElement, TDim, TNumNodes>(
+            rPrimalModelPart, rAdjointModelPart, rPrimalProcessList, rAdjointProcessList,
+            calculate_sensitivities, perturb_variable, CalculateElementScalarValue,
+            UpdateVariablesInModelPart, Delta, RelativePrecision, AbsolutePrecision);
+    }
 }
 } // namespace Testing
 } // namespace Kratos
