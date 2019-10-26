@@ -30,7 +30,7 @@
 #include "custom_elements/evm_k_epsilon/rans_evm_k_adjoint.h"
 #include "custom_elements/evm_k_epsilon/rans_evm_k_element.h"
 
-#include "test_evm_k_epsilon_stabilized_cdr_adjoint_utilities.h"
+#include "test_evm_k_epsilon_stabilized_cdr_adjoint_interface_utilities.h"
 
 namespace Kratos
 {

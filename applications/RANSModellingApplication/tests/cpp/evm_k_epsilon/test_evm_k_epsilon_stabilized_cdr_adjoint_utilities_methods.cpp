@@ -33,7 +33,7 @@
 
 #include "custom_elements/stabilized_convection_diffusion_reaction_adjoint_utilities.h"
 #include "custom_elements/stabilized_convection_diffusion_reaction_utilities.h"
-#include "test_evm_k_epsilon_stabilized_cdr_adjoint_utilities.h"
+#include "test_evm_k_epsilon_stabilized_cdr_adjoint_interface_utilities.h"
 
 namespace Kratos
 {
