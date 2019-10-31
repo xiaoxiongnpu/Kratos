@@ -25,6 +25,7 @@
 #include "includes/model_part.h"
 #include "includes/ublas_interface.h"
 #include "processes/process.h"
+#include "utilities/geometrical_sensitivity_utility.h"
 
 #include "custom_utilities/test_utilities.h"
 
@@ -269,6 +270,55 @@ void RunVectorSensitivityTest(
             rPrimalModelPart, rAdjointModelPart, rPrimalProcessList, rAdjointProcessList,
             calculate_sensitivities, perturb_variable, CalculateElementScalarValue,
             UpdateVariablesInModelPart, Delta, RelativePrecision, AbsolutePrecision);
+    }
+}
+
+template <typename TEvmAdjointElement, unsigned int TDim, unsigned int TNumNodes>
+void CalculateScalarShapeSensitivityMatrix(
+    BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+    const Vector& rShapeFunctions,
+    const Matrix& rShapeFunctionDerivatives,
+    const typename TEvmAdjointElement::BaseType& rElement,
+    const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+    const ProcessInfo& rProcessInfo,
+    const int GaussIndex,
+    std::function<double(const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType&,
+                         const Vector&,
+                         const Matrix&,
+                         const ShapeParameter&,
+                         const double&,
+                         const GeometricalSensitivityUtility::ShapeFunctionsGradientType&,
+                         const ProcessInfo&)> CalculateScalarShapeSensitivity)
+{
+    const Geometry<ModelPart::NodeType>& r_geometry = rElement.GetGeometry();
+
+    Geometry<Point>::JacobiansType J;
+    r_geometry.Jacobian(J, rElement.GetIntegrationMethod());
+
+    Geometry<Point>::ShapeFunctionsGradientsType DN_De;
+    DN_De = r_geometry.ShapeFunctionsLocalGradients(rElement.GetIntegrationMethod());
+
+    const Matrix& rJ = J[GaussIndex];
+    const Matrix& rDN_De = DN_De[GaussIndex];
+    GeometricalSensitivityUtility geom_sensitivity(rJ, rDN_De);
+
+    GeometricalSensitivityUtility::ShapeFunctionsGradientType DN_DX_deriv;
+    ShapeParameter deriv;
+
+    for (unsigned int c = 0; c < TNumNodes; ++c)
+    {
+        for (unsigned int k = 0; k < TDim; ++k)
+        {
+            deriv.NodeIndex = c;
+            deriv.Direction = k;
+
+            double detJ_deriv;
+            geom_sensitivity.CalculateSensitivity(deriv, detJ_deriv, DN_DX_deriv);
+
+            rOutput(c, k) = CalculateScalarShapeSensitivity(
+                rData, rShapeFunctions, rShapeFunctionDerivatives, deriv,
+                detJ_deriv, DN_DX_deriv, rProcessInfo);
+        }
     }
 }
 } // namespace Testing

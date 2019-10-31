@@ -24,6 +24,7 @@
 #include "includes/model_part.h"
 #include "includes/ublas_interface.h"
 #include "processes/process.h"
+#include "utilities/geometrical_sensitivity_utility.h"
 
 #include "custom_elements/evm_k_epsilon/rans_evm_epsilon_adjoint.h"
 #include "custom_elements/evm_k_epsilon/rans_evm_epsilon_element.h"
@@ -156,8 +157,25 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateEffectiveKinematicViscosi
             const typename adjoint_element::BaseType& rElement,
             const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
             const ProcessInfo& rProcessInfo, const int GaussIndex) {
-            rElement.CalculateEffectiveKinematicViscosityVelocityDerivatives(
-                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateEffectiveKinematicViscosityShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
             return rElement.CalculateEffectiveKinematicViscosity(
                 rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
         };
@@ -171,8 +189,8 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateEffectiveKinematicViscosi
                 rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
         };
 
-    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
-        "RansEvmK", "RansEvmKAdjoint", VELOCITY, calculate_scalar_sensitivity,
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", calculate_scalar_sensitivity,
         calculate_scalar_value, 1e-8, 1e-6, 1e-14);
 }
 
