@@ -719,7 +719,7 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateCrossWindDiffusionCoeffSc
             reaction_derivatives, absolute_reaction_tilde_derivatives);
 
         StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffScalarDerivatives(
-            rOutput, psi_one, psi_two, element_length,
+            rOutput, k2, psi_one, psi_two, element_length,
             effective_kinematic_viscosity, psi_one_derivatives,
             psi_two_derivatives, effective_kinematic_viscosity_derivatives);
 
@@ -950,8 +950,8 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateStreamLineDiffusionCoeffS
             reaction_tilde, tau, element_length);
 
         StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffScalarDerivatives(
-            rOutput, element_length, tau, velocity_magnitude, reaction_tilde, psi_one,
-            psi_two, psi_one_derivatives, psi_two_derivatives, tau_derivatives,
+            rOutput, k1, element_length, tau, velocity_magnitude, reaction_tilde,
+            psi_one, psi_two, psi_one_derivatives, psi_two_derivatives, tau_derivatives,
             reaction_derivatives, effective_kinematic_viscosity_derivatives);
 
         return k1;

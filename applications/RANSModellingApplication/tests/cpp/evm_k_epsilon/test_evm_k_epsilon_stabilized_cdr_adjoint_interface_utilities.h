@@ -34,8 +34,8 @@
 
 #include "custom_elements/stabilized_convection_diffusion_reaction_adjoint_utilities.h"
 #include "custom_elements/stabilized_convection_diffusion_reaction_utilities.h"
-#include "test_k_epsilon_utilities.h"
 #include "custom_utilities/test_stabilized_cdr_adjoint_interface_utilities.h"
+#include "test_k_epsilon_utilities.h"
 
 namespace Kratos
 {
@@ -97,6 +97,131 @@ void RunScalarKEpsilon2D3NElementTest(
     };
 
     RunScalarSensitivityTest<TEvmElement, TEvmAdjointElement, 2, 3>(
+        r_primal_model_part, r_adjoint_model_part, primal_processes_list,
+        adjoint_processes_list, CalculateElementScalarValueAdjointSensitivities, perturbation,
+        CalculateElementScalarValue, RansEvmKEpsilonModel::UpdateVariablesInModelPart,
+        Delta, RelativePrecision, AbsolutePrecision);
+}
+
+template <typename TEvmElement, typename TEvmAdjointElement>
+void RunVectorKEpsilon2D3NElementTest(
+    const std::string PrimalElementName,
+    const std::string AdjointElementName,
+    const Variable<array_1d<double, 3>>& rPerturbVariable,
+    std::function<double(BoundedMatrix<double, 3, 2>&,
+                         const Vector&,
+                         const Matrix&,
+                         const typename TEvmAdjointElement::BaseType&,
+                         const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType&,
+                         const ProcessInfo&,
+                         const int GaussIndex)> CalculateElementScalarValueAdjointSensitivities,
+    std::function<double(const Vector&,
+                         const Matrix&,
+                         const typename TEvmElement::BaseType&,
+                         const typename TEvmElement::BaseType::ConvectionDiffusionReactionDataType&,
+                         const ProcessInfo&,
+                         const int GaussIndex)> CalculateElementScalarValue,
+    const double Delta,
+    const double RelativePrecision,
+    const double AbsolutePrecision)
+{
+    Model primal_model;
+    ModelPart& r_primal_model_part = primal_model.CreateModelPart("test");
+    RansEvmKEpsilonModel::GenerateRansEvmKEpsilonElementTestModelPart(
+        r_primal_model_part, PrimalElementName + "2D3N");
+
+    Model adjoint_model;
+    ModelPart& r_adjoint_model_part = adjoint_model.CreateModelPart("test");
+    RansEvmKEpsilonModel::GenerateRansEvmKEpsilonElementTestModelPart(
+        r_adjoint_model_part, AdjointElementName + "2D3N");
+
+    ProcessInfo& r_adjoint_process_info = r_adjoint_model_part.GetProcessInfo();
+    r_adjoint_process_info.SetValue(DELTA_TIME, r_adjoint_process_info[DELTA_TIME] * -1.0);
+
+    std::vector<Process*> adjoint_processes_list;
+    std::vector<Process*> primal_processes_list;
+
+    Parameters empty_nut_parameters = Parameters(R"({
+        "model_part_name" : "test"
+    })");
+    RansNutKEpsilonHighReSensitivitiesProcess nut_sensitivities_process(
+        adjoint_model, empty_nut_parameters);
+    RansNutKEpsilonHighReCalculationProcess adjoint_nut_process(
+        adjoint_model, empty_nut_parameters);
+    RansNutKEpsilonHighReCalculationProcess primal_nut_process(primal_model, empty_nut_parameters);
+
+    adjoint_processes_list.push_back(&adjoint_nut_process);
+    adjoint_processes_list.push_back(&nut_sensitivities_process);
+    primal_processes_list.push_back(&primal_nut_process);
+
+    auto perturbation = [rPerturbVariable](NodeType& rNode, const int Dim) -> double& {
+        array_1d<double, 3>& r_vector = rNode.FastGetSolutionStepValue(rPerturbVariable);
+        return r_vector[Dim];
+    };
+
+    RunVectorSensitivityTest<TEvmElement, TEvmAdjointElement, 2, 3>(
+        r_primal_model_part, r_adjoint_model_part, primal_processes_list,
+        adjoint_processes_list, CalculateElementScalarValueAdjointSensitivities, perturbation,
+        CalculateElementScalarValue, RansEvmKEpsilonModel::UpdateVariablesInModelPart,
+        Delta, RelativePrecision, AbsolutePrecision);
+}
+
+template <typename TEvmElement, typename TEvmAdjointElement>
+void RunShapeSensitivityKEpsilon2D3NElementTest(
+    const std::string PrimalElementName,
+    const std::string AdjointElementName,
+    std::function<double(BoundedMatrix<double, 3, 2>&,
+                         const Vector&,
+                         const Matrix&,
+                         const typename TEvmAdjointElement::BaseType&,
+                         const typename TEvmAdjointElement::BaseType::ConvectionDiffusionReactionAdjointDataType&,
+                         const ProcessInfo&,
+                         const int GaussIndex)> CalculateElementScalarValueAdjointSensitivities,
+    std::function<double(const Vector&,
+                         const Matrix&,
+                         const typename TEvmElement::BaseType&,
+                         const typename TEvmElement::BaseType::ConvectionDiffusionReactionDataType&,
+                         const ProcessInfo&,
+                         const int GaussIndex)> CalculateElementScalarValue,
+    const double Delta,
+    const double RelativePrecision,
+    const double AbsolutePrecision)
+{
+    Model primal_model;
+    ModelPart& r_primal_model_part = primal_model.CreateModelPart("test");
+    RansEvmKEpsilonModel::GenerateRansEvmKEpsilonElementTestModelPart(
+        r_primal_model_part, PrimalElementName + "2D3N");
+
+    Model adjoint_model;
+    ModelPart& r_adjoint_model_part = adjoint_model.CreateModelPart("test");
+    RansEvmKEpsilonModel::GenerateRansEvmKEpsilonElementTestModelPart(
+        r_adjoint_model_part, AdjointElementName + "2D3N");
+
+    ProcessInfo& r_adjoint_process_info = r_adjoint_model_part.GetProcessInfo();
+    r_adjoint_process_info.SetValue(DELTA_TIME, r_adjoint_process_info[DELTA_TIME] * -1.0);
+
+    std::vector<Process*> adjoint_processes_list;
+    std::vector<Process*> primal_processes_list;
+
+    Parameters empty_nut_parameters = Parameters(R"({
+        "model_part_name" : "test"
+    })");
+    RansNutKEpsilonHighReSensitivitiesProcess nut_sensitivities_process(
+        adjoint_model, empty_nut_parameters);
+    RansNutKEpsilonHighReCalculationProcess adjoint_nut_process(
+        adjoint_model, empty_nut_parameters);
+    RansNutKEpsilonHighReCalculationProcess primal_nut_process(primal_model, empty_nut_parameters);
+
+    adjoint_processes_list.push_back(&adjoint_nut_process);
+    adjoint_processes_list.push_back(&nut_sensitivities_process);
+    primal_processes_list.push_back(&primal_nut_process);
+
+    auto perturbation = [](NodeType& rNode, const int Dim) -> double& {
+        array_1d<double, 3>& r_coordinates = rNode.Coordinates();
+        return r_coordinates[Dim];
+    };
+
+    RunVectorSensitivityTest<TEvmElement, TEvmAdjointElement, 2, 3>(
         r_primal_model_part, r_adjoint_model_part, primal_processes_list,
         adjoint_processes_list, CalculateElementScalarValueAdjointSensitivities, perturbation,
         CalculateElementScalarValue, RansEvmKEpsilonModel::UpdateVariablesInModelPart,

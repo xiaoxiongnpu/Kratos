@@ -771,56 +771,63 @@ public:
                 positivity_preservation_coeff =
                     std::abs(residual) * chi /
                     (velocity_magnitude_square * primal_variable_gradient_norm);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateChiVelocityDerivatives(
+                    chi_derivatives, chi, element_length, bossak_alpha, bossak_gamma,
+                    delta_time, reaction, dynamic_tau, reaction_derivatives,
+                    velocity_magnitude_derivatives, element_length_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateResidualVelocityDerivative(
+                    residual_derivatives, primal_variable_value, primal_variable_gradient,
+                    reaction_derivatives, source_derivatives, gauss_shape_functions);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueVectorDerivatives(
+                    absolute_residual_derivatives, residual, residual_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientVelocityDerivatives(
+                    positivity_preservation_coeff_derivatives, std::abs(residual),
+                    primal_variable_gradient_norm, velocity_magnitude, chi, chi_derivatives,
+                    absolute_residual_derivatives, velocity_magnitude_derivatives);
+
+                const double reaction_tilde =
+                    reaction + dynamic_tau * (1 - bossak_alpha) / (bossak_gamma * delta_time);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueVectorDerivatives(
+                    absolute_reaction_tilde_derivatives, reaction_tilde, reaction_derivatives);
+
+                const double psi_one =
+                    StabilizedConvectionDiffusionReactionUtilities::CalculatePsiOne(
+                        velocity_magnitude, tau, reaction_tilde);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneVelocityDerivatives(
+                    psi_one_derivatives, velocity_magnitude, reaction_tilde,
+                    tau, tau_derivatives, absolute_reaction_tilde_derivatives,
+                    velocity_magnitude_derivatives);
+
+                const double psi_two =
+                    StabilizedConvectionDiffusionReactionUtilities::CalculatePsiTwo(
+                        reaction_tilde, tau, element_length);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoVelocityDerivatives(
+                    psi_two_derivatives, reaction_tilde, tau, element_length,
+                    tau_derivatives, reaction_derivatives,
+                    absolute_reaction_tilde_derivatives, element_length_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffVelocityDerivatives(
+                    stream_line_diffusion_coeff_derivatives, k1, element_length,
+                    tau, velocity_magnitude, reaction_tilde, psi_one, psi_two,
+                    velocity_magnitude_derivatives, psi_one_derivatives,
+                    psi_two_derivatives, tau_derivatives, reaction_derivatives,
+                    effective_kinematic_viscosity_derivatives, element_length_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffVelocityDerivatives(
+                    cross_wind_diffusion_coeff_derivatives, k2, psi_one,
+                    element_length, psi_one_derivatives, psi_two_derivatives,
+                    effective_kinematic_viscosity_derivatives, element_length_derivatives);
             }
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateChiVelocityDerivatives(
-                chi_derivatives, chi, element_length, bossak_alpha, bossak_gamma,
-                delta_time, reaction, dynamic_tau, reaction_derivatives,
-                velocity_magnitude_derivatives, element_length_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateResidualVelocityDerivative(
-                residual_derivatives, primal_variable_value, primal_variable_gradient,
-                reaction_derivatives, source_derivatives, gauss_shape_functions);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueVectorDerivatives(
-                absolute_residual_derivatives, residual, residual_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientVelocityDerivatives(
-                positivity_preservation_coeff_derivatives, std::abs(residual),
-                primal_variable_gradient_norm, velocity_magnitude, chi, chi_derivatives,
-                absolute_residual_derivatives, velocity_magnitude_derivatives);
-
-            const double reaction_tilde =
-                reaction + dynamic_tau * (1 - bossak_alpha) / (bossak_gamma * delta_time);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueVectorDerivatives(
-                absolute_reaction_tilde_derivatives, reaction_tilde, reaction_derivatives);
-
-            const double psi_one =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePsiOne(
-                    velocity_magnitude, tau, reaction_tilde);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneVelocityDerivatives(
-                psi_one_derivatives, velocity_magnitude, reaction_tilde, tau, tau_derivatives,
-                absolute_reaction_tilde_derivatives, velocity_magnitude_derivatives);
-
-            const double psi_two =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePsiTwo(
-                    reaction_tilde, tau, element_length);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoVelocityDerivatives(
-                psi_two_derivatives, reaction_tilde, tau, element_length,
-                tau_derivatives, reaction_derivatives,
-                absolute_reaction_tilde_derivatives, element_length_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffVelocityDerivatives(
-                stream_line_diffusion_coeff_derivatives, element_length, tau,
-                velocity_magnitude, reaction_tilde, psi_one, psi_two,
-                velocity_magnitude_derivatives, psi_one_derivatives,
-                psi_two_derivatives, tau_derivatives, reaction_derivatives,
-                effective_kinematic_viscosity_derivatives, element_length_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffVelocityDerivatives(
-                cross_wind_diffusion_coeff_derivatives, psi_one, element_length,
-                psi_one_derivatives, psi_two_derivatives,
-                effective_kinematic_viscosity_derivatives, element_length_derivatives);
+            else
+            {
+                positivity_preservation_coeff_derivatives.clear();
+                cross_wind_diffusion_coeff_derivatives.clear();
+                stream_line_diffusion_coeff_derivatives.clear();
+            }
 
             const double s = std::abs(reaction);
             StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueVectorDerivatives(
@@ -987,14 +994,6 @@ public:
         const Variable<double>& r_primal_relaxed_rate_variable =
             this->GetPrimalRelaxedRateVariable();
         const Variable<double>& r_adjoint_variable = this->GetAdjointVariable();
-
-        KRATOS_CHECK_VARIABLE_KEY(r_primal_variable);
-        KRATOS_CHECK_VARIABLE_KEY(r_primal_relaxed_rate_variable);
-        KRATOS_CHECK_VARIABLE_KEY(VELOCITY);
-        KRATOS_CHECK_VARIABLE_KEY(BOSSAK_ALPHA);
-        KRATOS_CHECK_VARIABLE_KEY(NEWMARK_GAMMA);
-        KRATOS_CHECK_VARIABLE_KEY(DELTA_TIME);
-        KRATOS_CHECK_VARIABLE_KEY(r_adjoint_variable);
 
         for (IndexType iNode = 0; iNode < this->GetGeometry().size(); ++iNode)
         {
@@ -1613,58 +1612,64 @@ private:
 
                 positivity_preserving_coeff =
                     residual * chi / (velocity_magnitude_square * scalar_gradient_norm);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateChiScalarDerivatives(
+                    chi_derivatives, chi, element_length, bossak_alpha, bossak_gamma,
+                    delta_time, reaction, dynamic_tau, reaction_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarGradientScalarDerivative(
+                    scalar_gradient_norm_derivative, scalar_gradient, r_shape_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateResidualScalarDerivative(
+                    residual_derivatives, scalar_value, reaction, velocity,
+                    reaction_derivatives, source_derivatives, gauss_shape_functions,
+                    r_shape_derivatives, primal_variable, rDerivativeVariable);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueScalarDerivatives(
+                    absolute_residual_derivatives, residual, residual_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientScalarDerivatives(
+                    positivity_preserving_coeff_derivatives, chi, residual,
+                    scalar_gradient_norm, velocity_magnitude_square, chi_derivatives,
+                    absolute_residual_derivatives, scalar_gradient_norm_derivative,
+                    primal_variable, rDerivativeVariable);
+
+                const double reaction_tilde =
+                    reaction + dynamic_tau * (1 - bossak_alpha) / (bossak_gamma * delta_time);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueScalarDerivatives(
+                    absolute_reaction_tilde_derivatives, reaction_tilde, reaction_derivatives);
+
+                const double psi_one =
+                    StabilizedConvectionDiffusionReactionUtilities::CalculatePsiOne(
+                        velocity_magnitude, tau, reaction_tilde);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneScalarDerivatives(
+                    psi_one_derivatives, velocity_magnitude, reaction_tilde,
+                    tau, tau_derivatives, absolute_reaction_tilde_derivatives);
+
+                const double psi_two =
+                    StabilizedConvectionDiffusionReactionUtilities::CalculatePsiTwo(
+                        reaction_tilde, tau, element_length);
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoScalarDerivatives(
+                    psi_two_derivatives, element_length, tau, reaction_tilde, tau_derivatives,
+                    reaction_derivatives, absolute_reaction_tilde_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffScalarDerivatives(
+                    streamline_diffusion_coeff_derivatives, k1, element_length,
+                    tau, velocity_magnitude, reaction_tilde, psi_one, psi_two,
+                    psi_one_derivatives, psi_two_derivatives, tau_derivatives,
+                    reaction_derivatives, effective_kinematic_viscosity_derivatives);
+
+                StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffScalarDerivatives(
+                    crosswind_diffusion_coeff_derivatives, k2, psi_one, psi_two,
+                    element_length, effective_kinematic_viscosity, psi_one_derivatives,
+                    psi_two_derivatives, effective_kinematic_viscosity_derivatives);
             }
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateChiScalarDerivatives(
-                chi_derivatives, chi, element_length, bossak_alpha, bossak_gamma,
-                delta_time, reaction, dynamic_tau, reaction_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarGradientScalarDerivative(
-                scalar_gradient_norm_derivative, scalar_gradient, r_shape_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateResidualScalarDerivative(
-                residual_derivatives, scalar_value, reaction, velocity,
-                reaction_derivatives, source_derivatives, gauss_shape_functions,
-                r_shape_derivatives, primal_variable, rDerivativeVariable);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueScalarDerivatives(
-                absolute_residual_derivatives, residual, residual_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientScalarDerivatives(
-                positivity_preserving_coeff_derivatives, chi, residual,
-                scalar_gradient_norm, velocity_magnitude_square, chi_derivatives,
-                absolute_residual_derivatives, scalar_gradient_norm_derivative,
-                primal_variable, rDerivativeVariable);
-
-            const double reaction_tilde =
-                reaction + dynamic_tau * (1 - bossak_alpha) / (bossak_gamma * delta_time);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateAbsoluteScalarValueScalarDerivatives(
-                absolute_reaction_tilde_derivatives, reaction_tilde, reaction_derivatives);
-
-            const double psi_one =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePsiOne(
-                    velocity_magnitude, tau, reaction_tilde);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneScalarDerivatives(
-                psi_one_derivatives, velocity_magnitude, reaction_tilde, tau,
-                tau_derivatives, absolute_reaction_tilde_derivatives);
-
-            const double psi_two =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePsiTwo(
-                    reaction_tilde, tau, element_length);
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoScalarDerivatives(
-                psi_two_derivatives, element_length, tau, reaction_tilde, tau_derivatives,
-                reaction_derivatives, absolute_reaction_tilde_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffScalarDerivatives(
-                streamline_diffusion_coeff_derivatives, element_length, tau,
-                velocity_magnitude, reaction_tilde, psi_one, psi_two,
-                psi_one_derivatives, psi_two_derivatives, tau_derivatives,
-                reaction_derivatives, effective_kinematic_viscosity_derivatives);
-
-            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffScalarDerivatives(
-                crosswind_diffusion_coeff_derivatives, psi_one, psi_two,
-                element_length, effective_kinematic_viscosity, psi_one_derivatives,
-                psi_two_derivatives, effective_kinematic_viscosity_derivatives);
+            else
+            {
+                crosswind_diffusion_coeff_derivatives.clear();
+                streamline_diffusion_coeff_derivatives.clear();
+                positivity_preserving_coeff_derivatives.clear();
+            }
 
             // calculating primal damping matrix scalar derivatives
             for (unsigned int a = 0; a < TNumNodes; ++a)
@@ -2153,6 +2158,10 @@ private:
                 const unsigned int block_size = c * TDim;
                 for (unsigned int k = 0; k < TDim; ++k)
                 {
+                    double stream_line_diffusion_coeff_deriv{0.0},
+                        cross_wind_diffusion_coeff_deriv{0.0},
+                        positivity_preserving_coeff_deriv{0.0};
+
                     deriv.NodeIndex = c;
                     deriv.Direction = k;
 
@@ -2217,34 +2226,41 @@ private:
                             residual, velocity, DN_DX_deriv, primal_variable_value,
                             primal_variable_nodal_values, reaction_deriv, source_deriv);
 
-                    const double positivity_preserving_coeff_deriv =
-                        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientShapeSensitivity(
-                            chi, chi_deriv, residual, residual_deriv,
-                            velocity_magnitude_square, primal_variable_gradient_norm,
-                            primal_variable_gradient_norm_deriv);
+                    if (primal_variable_gradient_norm >
+                            std::numeric_limits<double>::epsilon() &&
+                        velocity_magnitude_square > std::numeric_limits<double>::epsilon())
+                    {
+                        positivity_preserving_coeff_deriv =
+                            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePositivityPreservationCoefficientShapeSensitivity(
+                                chi, chi_deriv, residual, residual_deriv,
+                                velocity_magnitude_square, primal_variable_gradient_norm,
+                                primal_variable_gradient_norm_deriv);
 
-                    const double psi_one_deriv =
-                        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneShapeSensitivity(
-                            tau, tau_deriv, velocity_magnitude, reaction, reaction_deriv,
-                            bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
+                        const double psi_one_deriv =
+                            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiOneShapeSensitivity(
+                                tau, tau_deriv, velocity_magnitude, reaction, reaction_deriv,
+                                bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
 
-                    const double psi_two_deriv =
-                        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoShapeSensitivity(
-                            psi_two, element_length, element_length_deriv,
-                            reaction, reaction_deriv, tau, tau_deriv,
-                            bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
+                        const double psi_two_deriv =
+                            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculatePsiTwoShapeSensitivity(
+                                psi_two, element_length, element_length_deriv,
+                                reaction, reaction_deriv, tau, tau_deriv,
+                                bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
 
-                    const double stream_line_diffusion_coeff_deriv =
-                        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffShapeSensitivity(
-                            psi_one, psi_one_deriv, tau, tau_deriv, velocity_magnitude,
-                            reaction, reaction_deriv, element_length, element_length_deriv,
-                            effective_kinematic_viscosity_deriv, psi_two_deriv,
-                            bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
+                        stream_line_diffusion_coeff_deriv =
+                            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateStreamLineDiffusionCoeffShapeSensitivity(
+                                stream_line_diffusion_coeff, psi_one, psi_one_deriv,
+                                tau, tau_deriv, velocity_magnitude, reaction,
+                                reaction_deriv, element_length, element_length_deriv,
+                                effective_kinematic_viscosity_deriv, psi_two_deriv,
+                                bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
 
-                    const double cross_wind_diffusion_coeff_deriv =
-                        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffShapeSensitivity(
-                            psi_one, psi_one_deriv, element_length, element_length_deriv,
-                            effective_kinematic_viscosity_deriv, psi_two_deriv);
+                        cross_wind_diffusion_coeff_deriv =
+                            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateCrossWindDiffusionCoeffShapeSensitivity(
+                                cross_wind_diffusion_coeff, psi_one, psi_one_deriv,
+                                element_length, element_length_deriv,
+                                effective_kinematic_viscosity_deriv, psi_two_deriv);
+                    }
 
                     const double s_deriv = reaction * reaction_deriv / s;
 
