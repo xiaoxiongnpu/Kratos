@@ -19,7 +19,11 @@
 
 // Project includes
 #include "beam_mapper.h"
+#include "custom_utilities/mapper_typedefs.h"
 #include "mapping_application_variables.h"
+#ifdef KRATOS_USING_MPI // mpi-parallel compilation
+#include "custom_searching/interface_communicator_mpi.h"
+#endif
 
 namespace Kratos
 {
@@ -33,7 +37,8 @@ void BeamMapperInterfaceInfo::ProcessSearchResult(const InterfaceObject& rInterf
 void BeamMapperInterfaceInfo::ProcessSearchResultForApproximation(const InterfaceObject& rInterfaceObject,
                                                                   const double NeighborDistance)
 {
-    SaveSearchResult(rInterfaceObject, true);
+    KRATOS_ERROR << "ProcessSearchResultForApproximation is not implemented for Beam Mapping yet." << std::endl;
+    //SaveSearchResult(rInterfaceObject, true);
 }
 
 void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterfaceObject,
@@ -50,7 +55,8 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
 
     ProjectionUtilities::PairingIndex pairing_index;
 
-    std::cout << "Is it calculating and approximation? " << ComputeApproximation << std::endl;
+    const auto geom_family = p_geom->GetGeometryFamily();
+    KRATOS_ERROR_IF(geom_family != GeometryData::Kratos_Linear) << "Invalid geometry of the Origin! The geometry should be a beam!" << std::endl;
 
     //const bool is_full_projection = ProjectionUtilities::ComputeProjection(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, pairing_index, ComputeApproximation);
 
@@ -172,7 +178,7 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
 {
     MapperUtilities::CheckInterfaceModelParts(0);
-    
+
     Parameters mapper_default_settings(GetMapperDefaultSettings());
     mMapperSettings.ValidateAndAssignDefaults(mapper_default_settings);
 
@@ -184,5 +190,63 @@ void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
         mMapperSettings["search_radius"].SetDouble(search_radius);
     }
 }
+
+template<>
+void BeamMapper<MapperDefinitions::SparseSpaceType,
+    MapperDefinitions::DenseSpaceType>::InitializeInterfaceCommunicator()
+{
+    mpIntefaceCommunicator = Kratos::make_unique<InterfaceCommunicator>(mrModelPartOrigin,
+                                                                        mMapperLocalSystems,
+                                                                        mMapperSettings);
+}
+
+#ifdef KRATOS_USING_MPI // mpi-parallel compilation
+template<>
+void BeamMapper<MapperDefinitions::MPISparseSpaceType,
+    MapperDefinitions::DenseSpaceType>::InitializeInterfaceCommunicator()
+{
+    mpIntefaceCommunicator = Kratos::make_unique<InterfaceCommunicatorMPI>(mrModelPartOrigin,
+                                                                           mMapperLocalSystems,
+                                                                           mMapperSettings);
+}
+#endif
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::Initialize()
+{
+    InitializeInterfaceCommunicator();
+    InitializeInterface();
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInterface(Kratos::Flags MappingOptions)
+{
+    // Here we can see that the local systems are done with the Destination Model Part 
+    CreateMapperLocalSystems(mrModelPartDestination.GetCommunicator(), mMapperLocalSystems);
+
+    // Lets find the information for the local systems CHANGE NAME OF THIS FUNCTION LATER
+    BuildMappingMatrix(MappingOptions);
+
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags MappingOptions)
+{
+    //MapperUtilities::AssignInterfaceEquationIds(mrModelPartOrigin.GetCommunicator());
+    //MapperUtilities::AssignInterfaceEquationIds(mrModelPartDestination.GetCommunicator());
+
+    KRATOS_ERROR_IF_NOT(mpIntefaceCommunicator) << "mpInterfaceCommunicator is a nullptr" << std::endl;
+    const MapperInterfaceInfoUniquePointerType p_ref_interface_info = GetMapperInterfaceInfo();
+    std::cout << "Calculating shape function values" << std::endl;
+    mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
+                                                  MappingOptions,
+                                                  p_ref_interface_info);
+}
+
+// Extern template instantiation
+
+template class BeamMapper< MapperDefinitions::SparseSpaceType, MapperDefinitions::DenseSpaceType >;
+
+
 
 }  // namespace Kratos.

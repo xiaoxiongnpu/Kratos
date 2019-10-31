@@ -182,7 +182,11 @@ public:
 
     typedef Mapper<TSparseSpace, TDenseSpace> BaseType;
 
+    typedef Kratos::unique_ptr<InterfaceCommunicator> InterfaceCommunicatorPointerType;
     typedef typename InterfaceCommunicator::MapperInterfaceInfoUniquePointerType MapperInterfaceInfoUniquePointerType;
+
+    typedef Kratos::unique_ptr<MapperLocalSystem> MapperLocalSystemPointer;
+    typedef std::vector<MapperLocalSystemPointer> MapperLocalSystemPointerVector;
 
     typedef typename BaseType::MapperUniquePointerType MapperUniquePointerType;
     typedef typename BaseType::TMappingMatrixType TMappingMatrixType;
@@ -212,6 +216,14 @@ public:
         mLocalCoordTol = JsonParameters["local_coord_tolerance"].GetDouble();
         KRATOS_ERROR_IF(mLocalCoordTol < 0.0) << "The local_coord_tolerance cannot be negative" << std::endl;
         
+        //  In this function the search task is done, and the parameters for the local systems are stored
+        // Local system has:
+        // 1. A beam id to relate
+        // 2. a t_B_P
+        // 3. linear and hermitean interpolation values
+        // 4. its own position in GCS space
+
+        Initialize();
     }
 
     /// Destructor.
@@ -314,6 +326,9 @@ public:
     }
 
     void ValidateInput();
+
+    void Initialize();
+
 private:
     ///@name Member Variables
     ///@{
@@ -321,6 +336,10 @@ private:
     ModelPart& mrModelPartDestination;
 
     Parameters mMapperSettings;
+
+    MapperLocalSystemPointerVector mMapperLocalSystems;
+
+    InterfaceCommunicatorPointerType mpIntefaceCommunicator;
 
     double mLocalCoordTol;
     //InterfaceVectorContainerPointerType mpInterfaceVectorContainerOriginDisplacements;
@@ -330,6 +349,12 @@ private:
 
     ///@name Private Operations
     ///@{
+
+    void InitializeInterfaceCommunicator();
+
+    void InitializeInterface(Kratos::Flags MappingOptions = Kratos::Flags());
+
+    void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 
     void CreateMapperLocalSystems(
         const Communicator& rModelPartCommunicator,
