@@ -22,8 +22,14 @@
 // External includes
 
 // Project includes
-#include "interpolative_mapper_base.h"
+#include "mapper.h"
+#include "custom_searching/interface_communicator.h"
+#include "custom_utilities/interface_vector_container.h"
+#include "custom_utilities/mapper_flags.h"
+#include "custom_utilities/mapper_local_system.h"
+
 #include "custom_utilities/projection_utilities.h"
+#include "utilities/geometrical_projection_utilities.h"
 
 namespace Kratos
 {
@@ -151,7 +157,7 @@ public:
 private:
     NodePointerType mpNode;
     mutable ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
-
+    double mTheta;
 };
 
 /// Beam Mapper
@@ -162,7 +168,7 @@ private:
 * look into the class description of the MapperCommunicator
 */
 template<class TSparseSpace, class TDenseSpace>
-class BeamMapper : public InterpolativeMapperBase<TSparseSpace, TDenseSpace>
+class BeamMapper : public Mapper<TSparseSpace, TDenseSpace>
 {
 public:
 
@@ -174,33 +180,38 @@ public:
     /// Pointer definition of BeamMapper
     KRATOS_CLASS_POINTER_DEFINITION(BeamMapper);
 
-    typedef InterpolativeMapperBase<TSparseSpace, TDenseSpace> BaseType;
-    typedef typename BaseType::MapperUniquePointerType MapperUniquePointerType;
-    typedef typename BaseType::MapperInterfaceInfoUniquePointerType MapperInterfaceInfoUniquePointerType;
+    typedef Mapper<TSparseSpace, TDenseSpace> BaseType;
 
+    typedef typename InterfaceCommunicator::MapperInterfaceInfoUniquePointerType MapperInterfaceInfoUniquePointerType;
+
+    typedef typename BaseType::MapperUniquePointerType MapperUniquePointerType;
+    typedef typename BaseType::TMappingMatrixType TMappingMatrixType;
+    typedef Kratos::unique_ptr<TMappingMatrixType> TMappingMatrixUniquePointerType;
+    
     ///@}
     ///@name Life Cycle
     ///@{
 
     // Default constructor, needed for registration
     BeamMapper(ModelPart& rModelPartOrigin,
-                          ModelPart& rModelPartDestination)
-                          : BaseType(rModelPartOrigin, rModelPartDestination) {}
+               ModelPart& rModelPartDestination):
+               mrModelPartOrigin(rModelPartOrigin),
+               mrModelPartDestination(rModelPartDestination) {}
 
     BeamMapper(ModelPart& rModelPartOrigin,
-                          ModelPart& rModelPartDestination,
-                          Parameters JsonParameters)
-                          : BaseType(rModelPartOrigin,
-                                     rModelPartDestination,
-                                     JsonParameters)
+               ModelPart& rModelPartDestination,
+               Parameters JsonParameters):
+               mrModelPartOrigin(rModelPartOrigin),
+               mrModelPartDestination(rModelPartDestination),
+               mMapperSettings(JsonParameters)
+                          
     {
-        std::cout << "CTOR BEAM mapper..." << std::endl;
-        this->ValidateInput();
-        std::cout << "...Finished ValidateInput beam mapper" << std::endl;
+        ValidateInput();
+        
+        // Not so sure for what it is, but I'll leave it here
         mLocalCoordTol = JsonParameters["local_coord_tolerance"].GetDouble();
-        KRATOS_ERROR_IF(mLocalCoordTol < 0.0) << "The local-coord-tolerance cannot be negative" << std::endl;
-        this->Initialize();
-        std::cout << "...Finished constructing beam mapper" << std::endl;
+        KRATOS_ERROR_IF(mLocalCoordTol < 0.0) << "The local_coord_tolerance cannot be negative" << std::endl;
+        
     }
 
     /// Destructor.
@@ -210,46 +221,49 @@ public:
     ///@name Operations
     ///@{
 
-    void Map(
-        const std::tuple<const Variable< array_1d<double, 3> >&,
-                         const Variable< array_1d<double, 3> >&>& rOriginVariables,
-        const Variable< array_1d<double, 3> >& rDestinationVariable,
-        Kratos::Flags MappingOptions)
+    void UpdateInterface(Kratos::Flags MappingOptions, double SearchRadius) override
     {
-        //KRATOS_ERROR << "Implement Me!" << std::endl;
-        MapInternal(rOriginVariables, rDestinationVariable, MappingOptions);
+        KRATOS_ERROR << "Implement me UpdateInterface" << std::endl;
     }
 
-    void Map(
-        const Variable<double>& rOriginVariable,
-        const Variable<double>& rDestinationVariable,
-        Kratos::Flags MappingOptions) override
+    void Map( const Variable<double>& rOriginVariable, const Variable<double>& rDestinationVariable,
+              Kratos::Flags MappingOptions) override
     {
         KRATOS_ERROR << "This function is not supported for the Beam-Mapper!" << std::endl;
     }
 
-    void Map(
-        const Variable< array_1d<double, 3> >& rOriginVariable,
-        const Variable< array_1d<double, 3> >& rDestinationVariable,
-        Kratos::Flags MappingOptions) override
+    void Map( const Variable< array_1d<double, 3> >& rOriginVariable, const Variable< array_1d<double, 3> >& rDestinationVariable,
+              Kratos::Flags MappingOptions) override
     {
         KRATOS_ERROR << "This function is not supported for the Beam-Mapper!" << std::endl;
     }
 
-    void InverseMap(
-        const Variable<double>& rOriginVariable,
-        const Variable<double>& rDestinationVariable,
-        Kratos::Flags MappingOptions) override
+    void Map( const std::tuple<const Variable< array_1d<double, 3> >&, 
+              const Variable< array_1d<double, 3> >&>& rOriginVariables,
+              const Variable< array_1d<double, 3> >& rDestinationVariable, 
+              Kratos::Flags MappingOptions)
+    {
+        KRATOS_ERROR << "Implement Me! (Map)" << std::endl;
+    }
+
+    void InverseMap( const Variable<double>& rOriginVariable, const Variable<double>& rDestinationVariable, 
+                     Kratos::Flags MappingOptions) override
     {
         KRATOS_ERROR << "This function is not supported for the Beam-Mapper!" << std::endl;
     }
 
-    void InverseMap(
-        const Variable< array_1d<double, 3> >& rOriginVariable,
-        const Variable< array_1d<double, 3> >& rDestinationVariable,
-        Kratos::Flags MappingOptions) override
+    void InverseMap( const Variable< array_1d<double, 3> >& rOriginVariable, const Variable< array_1d<double, 3> >& rDestinationVariable,
+                     Kratos::Flags MappingOptions) override
     {
         KRATOS_ERROR << "This function is not supported for the Beam-Mapper!" << std::endl;
+    }
+
+    void InverseMap( const std::tuple<const Variable< array_1d<double, 3> >&, 
+                     const Variable< array_1d<double, 3> >&>& rOriginVariables,
+                     const Variable< array_1d<double, 3> >& rDestinationVariable,
+                     Kratos::Flags MappingOptions)
+    {
+        KRATOS_ERROR << "Implement Me! (InverseMap)" << std::endl;
     }
 
     MapperUniquePointerType Clone(ModelPart& rModelPartOrigin,
@@ -261,6 +275,17 @@ public:
             rModelPartDestination,
             JsonParameters);
     }
+
+    ///@}
+    ///@name Access
+    ///@{
+
+    TMappingMatrixType* pGetMappingMatrix() override
+    {
+        KRATOS_ERROR << "This function is not supported by beam-mapper" << std::endl;
+        return mpMappingMatrix.get();
+    }
+
 
     ///@}
     ///@name Inquiry
@@ -288,18 +313,27 @@ public:
         BaseType::PrintData(rOStream);
     }
 
+    void ValidateInput();
 private:
     ///@name Member Variables
     ///@{
+    ModelPart& mrModelPartOrigin;
+    ModelPart& mrModelPartDestination;
+
+    Parameters mMapperSettings;
 
     double mLocalCoordTol;
+    //InterfaceVectorContainerPointerType mpInterfaceVectorContainerOriginDisplacements;
+    //InterfaceVectorContainerPointerType mpInterfaceVectorContainerOriginRotations;
+    //InterfaceVectorContainerPointerType mpInterfaceVectorContainerDestinationDisplacements;
+    TMappingMatrixUniquePointerType mpMappingMatrix;
 
     ///@name Private Operations
     ///@{
 
     void CreateMapperLocalSystems(
         const Communicator& rModelPartCommunicator,
-        std::vector<Kratos::unique_ptr<MapperLocalSystem>>& rLocalSystems) override
+        std::vector<Kratos::unique_ptr<MapperLocalSystem>>& rLocalSystems)
     {
         MapperUtilities::CreateMapperLocalSystemsFromNodes<BeamMapperLocalSystem>(
             rModelPartCommunicator,
@@ -314,12 +348,12 @@ private:
        KRATOS_ERROR << "Implement Me in MapInternal!" << std::endl; 
     }
 
-    MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const override
+    MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const 
     {
         return Kratos::make_unique<BeamMapperInterfaceInfo>();
     }
 
-    Parameters GetMapperDefaultSettings() const override
+    Parameters GetMapperDefaultSettings() const 
     {
         return Parameters( R"({
             "search_radius"            : -1.0,

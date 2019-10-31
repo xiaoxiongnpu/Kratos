@@ -49,11 +49,15 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     std::vector<int> eq_ids;
 
     ProjectionUtilities::PairingIndex pairing_index;
-    
+
     std::cout << "Is it calculating and approximation? " << ComputeApproximation << std::endl;
 
-    const bool is_full_projection = ProjectionUtilities::ComputeProjection(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, pairing_index, ComputeApproximation);
+    //const bool is_full_projection = ProjectionUtilities::ComputeProjection(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, pairing_index, ComputeApproximation);
 
+    pairing_index = ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, ComputeApproximation);
+    const bool is_full_projection = (pairing_index == ProjectionUtilities::PairingIndex::Line_Inside);
+    std::cout << "rShapeFunctionValues : " << shape_function_values << std::endl;
+    
     if (is_full_projection) {
         SetLocalSearchWasSuccessful();
     } else {
@@ -77,13 +81,16 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
             mShapeFunctionValues[i] = shape_function_values[i];
         }
     }
+
+    // For the beam mapper I calculate the angles of each beam and store them in the Beam Mapper Local System
+    
 }
         
 void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
                     EquationIdVectorType& rOriginIds,
                     EquationIdVectorType& rDestinationIds,
                     MapperLocalSystem::PairingStatus& rPairingStatus) const
-{
+{ std::cout << "CalculateAll is running here" << std::endl;
     if (mInterfaceInfos.size() > 0) {
         double distance;
         double min_distance = std::numeric_limits<double>::max();
@@ -159,6 +166,23 @@ std::string BeamMapperLocalSystem::PairingInfo(const int EchoLevel) const
         } 
     }
     return buffer.str();
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
+{
+    MapperUtilities::CheckInterfaceModelParts(0);
+    
+    Parameters mapper_default_settings(GetMapperDefaultSettings());
+    mMapperSettings.ValidateAndAssignDefaults(mapper_default_settings);
+
+    if (mMapperSettings["search_radius"].GetDouble() < 0.0) {
+        const double search_radius = MapperUtilities::ComputeSearchRadius(
+                                        mrModelPartOrigin,
+                                        mrModelPartDestination,
+                                        mMapperSettings["echo_level"].GetInt());
+        mMapperSettings["search_radius"].SetDouble(search_radius);
+    }
 }
 
 }  // namespace Kratos.
