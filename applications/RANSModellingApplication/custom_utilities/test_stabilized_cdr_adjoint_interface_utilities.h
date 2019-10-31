@@ -265,10 +265,10 @@ void RunVectorSensitivityTest(
             return PerturbVariable(rNode, i_dim);
         };
 
-        // RunScalarSensitivityTest<TEvmElement, TEvmAdjointElement, TDim, TNumNodes>(
-        //     rPrimalModelPart, rAdjointModelPart, rPrimalProcessList, rAdjointProcessList,
-        //     calculate_sensitivities, perturb_variable, CalculateElementScalarValue,
-        //     UpdateVariablesInModelPart, Delta, RelativePrecision, AbsolutePrecision);
+        RunScalarSensitivityTest<TEvmElement, TEvmAdjointElement, TDim, TNumNodes>(
+            rPrimalModelPart, rAdjointModelPart, rPrimalProcessList, rAdjointProcessList,
+            calculate_sensitivities, perturb_variable, CalculateElementScalarValue,
+            UpdateVariablesInModelPart, Delta, RelativePrecision, AbsolutePrecision);
     }
 }
 } // namespace Testing
