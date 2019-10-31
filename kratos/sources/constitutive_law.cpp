@@ -47,6 +47,7 @@ namespace Kratos
 
     KRATOS_CREATE_LOCAL_FLAG( ConstitutiveLaw, INITIALIZE_MATERIAL_RESPONSE, 9 );
     KRATOS_CREATE_LOCAL_FLAG( ConstitutiveLaw, FINALIZE_MATERIAL_RESPONSE,  10 );
+    KRATOS_CREATE_LOCAL_FLAG( ConstitutiveLaw, INTERNAL_IMPOSED_DEFORMATION,11 );
 
 
     /**
@@ -67,8 +68,10 @@ namespace Kratos
 /**
  * Constructor.
  */
-ConstitutiveLaw::ConstitutiveLaw() : Flags()
+ConstitutiveLaw::ConstitutiveLaw()
+    : Flags()
 {
+    this->Set(ConstitutiveLaw::INTERNAL_IMPOSED_DEFORMATION, false);
 }
 
 

@@ -27,6 +27,7 @@ namespace Kratos
 ConstitutiveLawWithImposedDeformation::ConstitutiveLawWithImposedDeformation()
     : ConstitutiveLaw()
 {
+    this->Set(ConstitutiveLaw::INTERNAL_IMPOSED_DEFORMATION, true);
 }
 
 /******************************COPY CONSTRUCTOR*************************************/

@@ -132,7 +132,7 @@ public:
     ///please DO NOT use them from the API
     KRATOS_DEFINE_LOCAL_FLAG( INITIALIZE_MATERIAL_RESPONSE );
     KRATOS_DEFINE_LOCAL_FLAG( FINALIZE_MATERIAL_RESPONSE );
-
+    KRATOS_DEFINE_LOCAL_FLAG( INTERNAL_IMPOSED_DEFORMATION );
 
     /**
      * Flags related to the Features of the Contitutive Law
