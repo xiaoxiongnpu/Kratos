@@ -21,6 +21,7 @@
 // Project includes
 #include "includes/constitutive_law.h"
 #include "includes/imposed_deformation.h"
+#include "constitutive/constitutive_law_with_imposed_deformation.h"
 
 namespace Kratos
 {
@@ -89,8 +90,14 @@ ConstitutiveLaw::Pointer ConstitutiveLaw::Clone() const
  */
 ConstitutiveLaw::Pointer ConstitutiveLaw::Create(Kratos::Parameters NewParameters) const
 {
-    const std::string& name = NewParameters["name"].GetString();
-    return KratosComponents<ConstitutiveLaw>::Get(name).Clone();
+    const std::string& r_name = NewParameters["name"].GetString();
+    const std::size_t with_imposed_deformation =r_name.find("WithImposedDeformation");
+    if (with_imposed_deformation != std::string::npos) {
+        auto* p_law = &const_cast<ConstitutiveLaw&>(KratosComponents<ConstitutiveLaw>::Get(r_name.substr(0,with_imposed_deformation)));
+        return (dynamic_cast<ConstitutiveLawWithImposedDeformation*>(p_law))->Clone();
+    } else {
+        return KratosComponents<ConstitutiveLaw>::Get(r_name).Clone();
+    }
 }
 
 /**
