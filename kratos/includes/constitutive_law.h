@@ -561,6 +561,12 @@ public:
     virtual ImposedDeformation* GetImposedDeformation (ConstitutiveLaw::Parameters& rParameterValues);
 
     /**
+     * @brief Sets the current imposed deformation instance
+     * @param The current imposed deformation instance
+     */
+    virtual void SetImposedDeformation (ImposedDeformation* pImposedDeformation);
+
+    /**
      * @brief Returns whether this constitutive Law has specified variable (boolean)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law

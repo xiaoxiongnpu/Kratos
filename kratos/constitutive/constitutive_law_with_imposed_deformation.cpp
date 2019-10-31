@@ -82,6 +82,14 @@ ImposedDeformation* ConstitutiveLawWithImposedDeformation::GetImposedDeformation
 /***********************************************************************************/
 /***********************************************************************************/
 
+void ConstitutiveLawWithImposedDeformation::SetImposedDeformation (ImposedDeformation* pImposedDeformation)
+{
+    mpImposedDeformation = pImposedDeformation;
+}
+
+/***********************************************************************************/
+/***********************************************************************************/
+
 int ConstitutiveLawWithImposedDeformation::Check(
     const Properties& rMaterialProperties,
     const GeometryType& rElementGeometry,

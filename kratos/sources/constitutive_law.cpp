@@ -135,6 +135,15 @@ ImposedDeformation* ConstitutiveLaw::GetImposedDeformation (ConstitutiveLaw::Par
     return NULL;
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+void ConstitutiveLaw::SetImposedDeformation (ImposedDeformation* pImposedDeformation)
+{
+    // NOTE: DOES NOTHING HERE
+    KRATOS_WARNING("ConstitutiveLaw") << "This class does not store any ImposedDeformation" << std::endl;
+}
+
 /**
  * returns whether this constitutive Law has specified variable
  * @param rThisVariable the variable to be checked for

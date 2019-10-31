@@ -110,6 +110,12 @@ public:
     ImposedDeformation* GetImposedDeformation (ConstitutiveLaw::Parameters& rParameterValues) override;
 
     /**
+     * @brief Sets the current imposed deformation instance
+     * @param The current imposed deformation instance
+     */
+    void SetImposedDeformation (ImposedDeformation* pImposedDeformation) override;
+
+    /**
      * @brief This function provides the place to perform checks on the completeness of the input.
      * @details It is designed to be called only once (or anyway, not often) typically at the beginning of the calculations, so to verify that nothing is missing from the input or that no common error is found.
      * @param rMaterialProperties: The properties of the material
