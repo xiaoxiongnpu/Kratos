@@ -50,7 +50,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
 
     const Point point_to_proj(this->Coordinates());
 
-    Vector shape_function_values;
+    Vector linear_shape_function_values;
+    Vector hermitian_shape_function_values;
+    Vector hermitian_shape_function_derivatives_values;
     std::vector<int> eq_ids;
 
     ProjectionUtilities::PairingIndex pairing_index;
@@ -60,10 +62,17 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
 
     //const bool is_full_projection = ProjectionUtilities::ComputeProjection(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, pairing_index, ComputeApproximation);
 
-    pairing_index = ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, ComputeApproximation);
+    // Calculating and storing the shape function values
+    // Linear shape functions
+    pairing_index = ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, linear_shape_function_values, eq_ids, proj_dist, ComputeApproximation);
+    ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist);
     const bool is_full_projection = (pairing_index == ProjectionUtilities::PairingIndex::Line_Inside);
-    std::cout << "rShapeFunctionValues : " << shape_function_values << std::endl;
     
+    std::cout << "rShapeFunctionValues : " << linear_shape_function_values << std::endl;
+    std::cout << "rHermitianShapeFunctionValues : " << hermitian_shape_function_values << std::endl;
+    std::cout << "rHermitianShapeFunctionValuesDerivatives : " << hermitian_shape_function_derivatives_values << std::endl;
+    
+
     if (is_full_projection) {
         SetLocalSearchWasSuccessful();
     } else {
@@ -74,21 +83,32 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         }
     }
 
-    const std::size_t num_values = shape_function_values.size();
-    KRATOS_ERROR_IF_NOT(num_values == eq_ids.size()) << "Number of equation-ids is not the same as the number of ShapeFunction values, something went wrong!" << std::endl;
+    const std::size_t num_values_linear = linear_shape_function_values.size();
+    const std::size_t num_values_hermitian = hermitian_shape_function_values.size();
+    const std::size_t num_values_hermitian_der = hermitian_shape_function_derivatives_values.size();
+
+    //KRATOS_ERROR_IF_NOT(num_values == eq_ids.size()) << "Number of equation-ids is not the same as the number of ShapeFunction values, something went wrong!" << std::endl;
 
     if (pairing_index > mPairingIndex || (pairing_index == mPairingIndex && proj_dist < mClosestProjectionDistance)) {
         mPairingIndex = pairing_index;
         mClosestProjectionDistance = proj_dist;
         mNodeIds = eq_ids;
 
-        if (mShapeFunctionValues.size() != num_values) mShapeFunctionValues.resize(num_values);
-        for (std::size_t i=0; i<num_values; ++i) {
-            mShapeFunctionValues[i] = shape_function_values[i];
+        if (mLinearShapeFunctionValues.size() != num_values_linear) mLinearShapeFunctionValues.resize(num_values_linear);
+        for (std::size_t i=0; i<num_values_linear; ++i) {
+            mLinearShapeFunctionValues[i] = linear_shape_function_values[i];
+        }
+
+        if (mHermitianShapeFunctionValues.size() != num_values_linear) mHermitianShapeFunctionValues.resize(num_values_hermitian);
+        for (std::size_t i=0; i<num_values_hermitian; ++i) {
+            mHermitianShapeFunctionValues[i] = hermitian_shape_function_values[i];
+        }
+
+        if (mHermitianShapeFunctionValuesDerivatives.size() != num_values_hermitian_der) mHermitianShapeFunctionValuesDerivatives.resize(num_values_hermitian_der);
+        for (std::size_t i=0; i<num_values_hermitian_der; ++i) {
+            mHermitianShapeFunctionValuesDerivatives[i] = hermitian_shape_function_derivatives_values[i];
         }
     }
-
-    // For the beam mapper I calculate the angles of each beam and store them in the Beam Mapper Local System
     
 }
         

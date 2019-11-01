@@ -54,6 +54,18 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
                            double& rProjectionDistance,
                            const bool ComputeApproximation=true);
 
+PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
+                                    const Point& rPointToProject,
+                                    const double LocalCoordTol,
+                                    Vector& rHermitianShapeFunctionValues,
+                                    Vector& rHermitianShapeFunctionValuesDer,
+                                    double& rProjectionDistance);
+
+void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions, 
+                                    Vector &hermitianShapeFunctionsDer, 
+                                    double lenght_line, 
+                                    const array_1d<double, 3>& rCoordinates);
+
 PairingIndex ProjectOnSurface(const GeometryType& rGeometry,
                      const Point& rPointToProject,
                      const double LocalCoordTol,

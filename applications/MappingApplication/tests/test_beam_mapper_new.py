@@ -65,7 +65,8 @@ class TestBeamMapper(KratosUnittest.TestCase):
     def test_beam_mapper(self):
         mapper_settings = KM.Parameters("""{
             "mapper_type": "beam_mapper",
-            "echo_level" : 3
+            "echo_level" : 3,
+            "local_coord_tolerance" : 0.25
         }""")
 
         self.mapper = KratosMapping.MapperFactory.CreateMapper(self.model_part_beam, self.model_part_surface, mapper_settings)

@@ -85,7 +85,7 @@ public:
     void GetValue(std::vector<double>& rValue,
                   const InfoType ValueType) const override
     {
-        rValue = mShapeFunctionValues;
+        rValue = mLinearShapeFunctionValues;
     }
 
     void GetValue(int& rValue,
@@ -103,10 +103,14 @@ public:
 private:
 
     std::vector<int> mNodeIds;
-    std::vector<double> mShapeFunctionValues;
-    double mClosestProjectionDistance = std::numeric_limits<double>::max();
+
+    std::vector<double> mLinearShapeFunctionValues;
+    std::vector<double> mHermitianShapeFunctionValues;
+    std::vector<double> mHermitianShapeFunctionValuesDerivatives;
+
+    double mClosestProjectionDistance = std::numeric_limits<double>::max(); // Distance between the surface node and the beam
     ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
-    double mLocalCoordTol; // this is not needed after searching, hence no need to serialize it
+    double mLocalCoordTol; // this is not needed after searching, hence no need to serialize it // Do I really need this?
 
     void SaveSearchResult(const InterfaceObject& rInterfaceObject,
                           const bool ComputeApproximation);
@@ -117,7 +121,9 @@ private:
     {
         KRATOS_SERIALIZE_SAVE_BASE_CLASS( rSerializer, MapperInterfaceInfo );
         rSerializer.save("NodeIds", mNodeIds);
-        rSerializer.save("SFValues", mShapeFunctionValues);
+        rSerializer.save("LSFValues", mLinearShapeFunctionValues);
+        rSerializer.save("HSFValues", mHermitianShapeFunctionValues);
+        rSerializer.save("HSFDValues", mHermitianShapeFunctionValuesDerivatives);
         rSerializer.save("ClosestProjectionDistance", mClosestProjectionDistance);
         rSerializer.save("PairingIndex", (int)mPairingIndex);
     }
@@ -126,7 +132,9 @@ private:
     {
         KRATOS_SERIALIZE_LOAD_BASE_CLASS( rSerializer, MapperInterfaceInfo );
         rSerializer.load("NodeIds", mNodeIds);
-        rSerializer.load("SFValues", mShapeFunctionValues);
+        rSerializer.load("LSFValues", mLinearShapeFunctionValues);
+        rSerializer.load("HSFValues", mHermitianShapeFunctionValues);
+        rSerializer.load("HSFDValues", mHermitianShapeFunctionValuesDerivatives);
         rSerializer.load("ClosestProjectionDistance", mClosestProjectionDistance);
         int temp;
         rSerializer.load("PairingIndex", temp);

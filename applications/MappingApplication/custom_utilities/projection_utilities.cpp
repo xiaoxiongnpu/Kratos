@@ -119,6 +119,60 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
     return pairing_index;
 }
 
+PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
+                                    const Point& rPointToProject,
+                                    const double LocalCoordTol,
+                                    Vector& rHermitianShapeFunctionValues,
+                                    Vector& rHermitianShapeFunctionValuesDer,
+                                    double& rProjectionDistance)
+{
+    Point projected_point;
+
+    rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, projected_point));
+    std::cout << "Projection Distance : " << rProjectionDistance << std::endl;
+    array_1d<double, 3> local_coords;
+    std::cout << "local coords : " << local_coords << std::endl;
+    PairingIndex pairing_index;
+
+    double lenght_line;
+    lenght_line = rGeometry.Length();
+
+    if (rGeometry.IsInside(projected_point, local_coords, 1e-14)) {
+        pairing_index = PairingIndex::Line_Inside;
+        HermitianShapeFunctionsValues(rHermitianShapeFunctionValues, rHermitianShapeFunctionValuesDer, lenght_line, local_coords);
+        // FillEquationIdVector(rGeometry, rEquationIds);
+
+    } 
+
+    return pairing_index;
+}
+
+void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions, 
+                                    Vector &hermitianShapeFunctionsDer, 
+                                    double lenght_line, 
+                                    const array_1d<double, 3>& rCoordinates) 
+{
+    if(hermitianShapeFunctions.size() != 4) {
+        hermitianShapeFunctions.resize(4, false);
+    }
+
+    hermitianShapeFunctions[0] =  0.25 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 2.0 + rCoordinates[0]);
+    hermitianShapeFunctions[1] =  0.125 * lenght_line * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
+    hermitianShapeFunctions[2] =  0.25 * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 2.0 - rCoordinates[0]);
+    hermitianShapeFunctions[3] =  -0.125 * lenght_line * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 1.0 - rCoordinates[0]);
+
+    if(hermitianShapeFunctionsDer.size() != 4) {
+        hermitianShapeFunctionsDer.resize(4, false);
+    }
+
+    hermitianShapeFunctionsDer[0] = -(3 / (2 * lenght_line)) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
+    hermitianShapeFunctionsDer[1] = -0.25 * ( 1.0 - rCoordinates[0] ) * ( 1.0 + 3 * rCoordinates[0]) ;
+    hermitianShapeFunctionsDer[2] = (3 / (2 * lenght_line)) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
+    hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;
+    
+    
+}
+
 PairingIndex ProjectOnSurface(const GeometryType& rGeometry,
                      const Point& rPointToProject,
                      const double LocalCoordTol,
@@ -238,7 +292,6 @@ bool ComputeProjection(const GeometryType& rGeometry,
 
     if (geom_family == GeometryData::Kratos_Linear && num_points == 2) { // linear line
         rPairingIndex = ProjectOnLine(rGeometry, rPointToProject, LocalCoordTol, rShapeFunctionValues, rEquationIds, rProjectionDistance, ComputeApproximation);
-        std::cout << "rShapeFunctionValues : " << rShapeFunctionValues << std::endl;
         is_full_projection = (rPairingIndex == PairingIndex::Line_Inside);
 
     } else if ((geom_family == GeometryData::Kratos_Triangle      && num_points == 3) || // linear triangle
