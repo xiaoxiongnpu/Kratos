@@ -94,13 +94,7 @@ ConstitutiveLaw::Pointer ConstitutiveLaw::Clone() const
 ConstitutiveLaw::Pointer ConstitutiveLaw::Create(Kratos::Parameters NewParameters) const
 {
     const std::string& r_name = NewParameters["name"].GetString();
-    const std::size_t with_imposed_deformation =r_name.find("WithImposedDeformation");
-    if (with_imposed_deformation != std::string::npos) {
-        auto* p_law = &const_cast<ConstitutiveLaw&>(KratosComponents<ConstitutiveLaw>::Get(r_name.substr(0,with_imposed_deformation)));
-        return (dynamic_cast<ConstitutiveLawWithImposedDeformation*>(p_law))->Clone();
-    } else {
-        return KratosComponents<ConstitutiveLaw>::Get(r_name).Clone();
-    }
+    return KratosComponents<ConstitutiveLaw>::Get(r_name).Clone();
 }
 
 /**
