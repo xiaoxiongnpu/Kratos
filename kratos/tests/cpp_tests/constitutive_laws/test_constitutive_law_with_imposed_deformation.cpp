@@ -17,6 +17,7 @@
 // Project includes
 #include "testing/testing.h"
 #include "includes/kratos_parameters.h"
+#include "includes/imposed_deformation.h"
 #include "constitutive/constitutive_law_with_imposed_deformation.h"
 
 namespace Kratos
@@ -24,25 +25,30 @@ namespace Kratos
     namespace Testing
     {
         /**
-        * Checks the correct work of the Has methods
+        * Checks the correct work of the create methods
         */
-        KRATOS_TEST_CASE_IN_SUITE(CreateMethodForImposedDeformation, KratosCoreFastSuite)
+        KRATOS_TEST_CASE_IN_SUITE(InitializeMaterialForConstitutiveLawWithImposedDeformation, KratosCoreFastSuite)
         {
             const auto& r_law = KratosComponents<ConstitutiveLaw>::Get("ConstitutiveLaw");
 
             KRATOS_CHECK_IS_FALSE(r_law.Is(ConstitutiveLaw::INTERNAL_IMPOSED_DEFORMATION));
 
-            const auto& r_law_with_imposed_deformation = KratosComponents<ConstitutiveLaw>::Get("ConstitutiveLawWithImposedDeformation");
+            auto& r_law_with_imposed_deformation = const_cast<ConstitutiveLaw&>(KratosComponents<ConstitutiveLaw>::Get("ConstitutiveLawWithImposedDeformation"));
 
             KRATOS_CHECK(r_law_with_imposed_deformation.Is(ConstitutiveLaw::INTERNAL_IMPOSED_DEFORMATION));
 
-//             Parameters this_parameters = Parameters(R"(
-//             {
-//                 "name" : "ConstitutiveLawWithImposedDeformation"
-//             })" );
-//             auto p_law = r_law.Create(this_parameters);
-//
-//             KRATOS_CHECK(p_law->Is(ConstitutiveLaw::INTERNAL_IMPOSED_DEFORMATION));
+            // Check initialize material works
+            ImposedDeformation::Pointer p_imposed_deformation = Kratos::make_shared<ImposedDeformation>();
+
+            Properties this_prop;
+            this_prop.SetValue(IMPOSED_DEFORMATION, p_imposed_deformation);
+            Geometry<Node<3>> geometry;
+            Vector vector;
+
+            r_law_with_imposed_deformation.InitializeMaterial(this_prop, geometry, vector);
+
+            ConstitutiveLaw::Parameters dummy_parameters;
+            KRATOS_CHECK_IS_FALSE(r_law_with_imposed_deformation.GetImposedDeformation(dummy_parameters) == NULL);
         }
 
     } // namespace Testing
