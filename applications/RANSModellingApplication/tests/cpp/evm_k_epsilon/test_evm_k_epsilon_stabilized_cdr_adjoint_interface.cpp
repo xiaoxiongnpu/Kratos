@@ -24,6 +24,7 @@
 #include "includes/model_part.h"
 #include "includes/ublas_interface.h"
 #include "processes/process.h"
+#include "utilities/geometrical_sensitivity_utility.h"
 
 #include "custom_elements/evm_k_epsilon/rans_evm_epsilon_adjoint.h"
 #include "custom_elements/evm_k_epsilon/rans_evm_epsilon_element.h"
@@ -156,8 +157,24 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateEffectiveKinematicViscosi
             const typename adjoint_element::BaseType& rElement,
             const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
             const ProcessInfo& rProcessInfo, const int GaussIndex) {
-            rElement.CalculateEffectiveKinematicViscosityVelocityDerivatives(
-                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateEffectiveKinematicViscosityShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
             return rElement.CalculateEffectiveKinematicViscosity(
                 rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
         };
@@ -171,8 +188,8 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateEffectiveKinematicViscosi
                 rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
         };
 
-    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
-        "RansEvmK", "RansEvmKAdjoint", VELOCITY, calculate_scalar_sensitivity,
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", calculate_scalar_sensitivity,
         calculate_scalar_value, 1e-8, 1e-6, 1e-14);
 }
 
@@ -246,6 +263,92 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateReactionTermScalarDerivat
         calculate_scalar_sensitivity, calculate_scalar_value, 1e-6, 1e-6, 1e-14);
 }
 
+KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateReactionTermVelocityDerivatives,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmKAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmKElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            rElement.CalculateReactionTermVelocityDerivatives(
+                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", VELOCITY, calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-8, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateReactionTermShapeSensitivity,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmKAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmKElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateReactionTermShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-7, 1e-6, 1e-14);
+}
+
 KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateSourceTermScalarDerivatives_TURBULENT_KINETIC_ENERGY,
                           RansStabilizedCDRAdjointInterfaces)
 {
@@ -314,6 +417,92 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateSourceTermScalarDerivativ
     RunScalarKEpsilon2D3NElementTest<primal_element, adjoint_element>(
         "RansEvmK", "RansEvmKAdjoint", perturb_variable,
         calculate_scalar_sensitivity, calculate_scalar_value, 1e-6, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateSourceTermVelocityDerivatives,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmKAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmKElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            rElement.CalculateSourceTermVelocityDerivatives(
+                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", VELOCITY, calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-8, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmKAdjoint2D3N_CalculateSourceTermShapeSensitivity,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmKAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmKElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateSourceTermShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmK", "RansEvmKAdjoint", calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-7, 1e-6, 1e-14);
 }
 
 KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateEffectiveKinematicViscosityScalarDerivatives_TURBULENT_KINETIC_ENERGY,
@@ -386,6 +575,92 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateEffectiveKinematicV
         calculate_scalar_sensitivity, calculate_scalar_value, 1e-6, 1e-6, 1e-14);
 }
 
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateEffectiveKinematicViscosityVelocityDerivatives,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            rElement.CalculateEffectiveKinematicViscosityVelocityDerivatives(
+                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            return rElement.CalculateEffectiveKinematicViscosity(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateEffectiveKinematicViscosity(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", VELOCITY,
+        calculate_scalar_sensitivity, calculate_scalar_value, 1e-8, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateEffectiveKinematicViscosityShapeSensitivity,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateEffectiveKinematicViscosityShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
+            return rElement.CalculateEffectiveKinematicViscosity(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateEffectiveKinematicViscosity(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-7, 1e-6, 1e-14);
+}
+
 KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateReactionTermScalarDerivatives_TURBULENT_KINETIC_ENERGY,
                           RansStabilizedCDRAdjointInterfaces)
 {
@@ -454,6 +729,92 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateReactionTermScalarD
     RunScalarKEpsilon2D3NElementTest<primal_element, adjoint_element>(
         "RansEvmEpsilon", "RansEvmEpsilonAdjoint", perturb_variable,
         calculate_scalar_sensitivity, calculate_scalar_value, 1e-6, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateReactionTermVelocityDerivatives,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            rElement.CalculateReactionTermVelocityDerivatives(
+                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", VELOCITY,
+        calculate_scalar_sensitivity, calculate_scalar_value, 1e-8, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateReactionTermShapeSensitivity,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateReactionTermShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateReactionTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-7, 1e-6, 1e-14);
 }
 
 KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateSourceTermScalarDerivatives_TURBULENT_KINETIC_ENERGY,
@@ -527,6 +888,92 @@ KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateSourceTermScalarDer
     RunScalarKEpsilon2D3NElementTest<primal_element, adjoint_element>(
         "RansEvmEpsilon", "RansEvmEpsilonAdjoint", perturb_variable,
         calculate_scalar_sensitivity, calculate_scalar_value, 1e-8, 1e-6, 1e-6);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateSourceTermVelocityDerivatives,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            rElement.CalculateSourceTermVelocityDerivatives(
+                rOutput, rData, rShapeFunctions, rShapeDerivatives, rProcessInfo);
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunVectorKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", VELOCITY,
+        calculate_scalar_sensitivity, calculate_scalar_value, 1e-8, 1e-6, 1e-14);
+}
+
+KRATOS_TEST_CASE_IN_SUITE(RansEvmEpsilonAdjoint2D3N_CalculateSourceTermShapeSensitivity,
+                          RansStabilizedCDRAdjointInterfaces)
+{
+    const unsigned int TNumNodes = 3;
+    const unsigned int TDim = 2;
+    using adjoint_element = RansEvmEpsilonAdjoint<TDim, TNumNodes>;
+    using primal_element = RansEvmEpsilonElement<TDim, TNumNodes>;
+
+    auto calculate_scalar_sensitivity =
+        [TNumNodes, TDim](
+            BoundedMatrix<double, TNumNodes, TDim>& rOutput,
+            const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+            const typename adjoint_element::BaseType& rElement,
+            const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+            const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            const auto p_element = &rElement;
+
+            auto shape_sensitivity_method =
+                [p_element](
+                    const typename adjoint_element::BaseType::ConvectionDiffusionReactionAdjointDataType& rData,
+                    const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+                    const ShapeParameter& rShapeParameter, const double& rDetJ_deriv,
+                    const GeometricalSensitivityUtility::ShapeFunctionsGradientType& rDN_DX_deriv,
+                    const ProcessInfo& rProcessInfo) -> double {
+                return p_element->CalculateSourceTermShapeSensitivity(
+                    rData, rShapeFunctions, rShapeDerivatives, rShapeParameter,
+                    rDetJ_deriv, rDN_DX_deriv, rProcessInfo);
+            };
+
+            CalculateScalarShapeSensitivityMatrix<adjoint_element, TDim, TNumNodes>(
+                rOutput, rShapeFunctions, rShapeDerivatives, rElement, rData,
+                rProcessInfo, GaussIndex, shape_sensitivity_method);
+
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    auto calculate_scalar_value =
+        [](const Vector& rShapeFunctions, const Matrix& rShapeDerivatives,
+           const typename primal_element::BaseType& rElement,
+           const typename primal_element::BaseType::ConvectionDiffusionReactionDataType& rData,
+           const ProcessInfo& rProcessInfo, const int GaussIndex) {
+            return rElement.CalculateSourceTerm(
+                rData, rShapeFunctions, rShapeDerivatives, rProcessInfo, 0);
+        };
+
+    RunShapeSensitivityKEpsilon2D3NElementTest<primal_element, adjoint_element>(
+        "RansEvmEpsilon", "RansEvmEpsilonAdjoint", calculate_scalar_sensitivity,
+        calculate_scalar_value, 1e-7, 1e-6, 1e-14);
 }
 } // namespace Testing
 } // namespace Kratos
