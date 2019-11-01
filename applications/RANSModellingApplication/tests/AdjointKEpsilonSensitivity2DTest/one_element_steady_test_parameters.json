@@ -45,7 +45,7 @@
     },
     "solver_settings": {
         "solver_type": "Monolithic",
-        "maximum_iterations": 10,
+        "maximum_iterations": 100,
         "domain_size": 2,
         "echo_level": 0,
         "consider_periodic_conditions": false,
