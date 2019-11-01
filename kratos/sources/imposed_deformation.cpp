@@ -28,8 +28,8 @@ KRATOS_CREATE_LOCAL_FLAG( ImposedDeformation, IS_INITIALIZED,  0 );
 
 ImposedDeformation::Pointer ImposedDeformation::Clone() const
 {
-    KRATOS_ERROR << "Called the virtual function for Clone"<< std::endl;
-    return nullptr;
+    ImposedDeformation::Pointer p_clone(new ImposedDeformation(*this));
+    return p_clone;
 }
 
 /***********************************************************************************/
