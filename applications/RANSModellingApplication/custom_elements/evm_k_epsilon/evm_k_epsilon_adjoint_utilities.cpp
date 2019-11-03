@@ -14,9 +14,9 @@
 
 // Project includes
 #include "evm_k_epsilon_adjoint_utilities.h"
-#include "evm_k_epsilon_utilities.h"
 #include "custom_elements/stabilized_convection_diffusion_reaction_adjoint_utilities.h"
 #include "custom_utilities/rans_calculation_utilities.h"
+#include "evm_k_epsilon_utilities.h"
 
 namespace Kratos
 {
@@ -172,9 +172,9 @@ void CalculateThetaVelocitySensitivity(BoundedMatrix<double, TNumNodes, TDim>& r
                                        const BoundedMatrix<double, TNumNodes, TDim>& rNuTSensitivities)
 {
     rOutput.clear();
-
-    noalias(rOutput) += rFmuSensitivities * c_mu * tke / nu_t;
-    noalias(rOutput) -= rNuTSensitivities * c_mu * f_mu * tke / std::pow(nu_t, 2);
+    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, f_mu, tke, nu_t);
+    noalias(rOutput) += rFmuSensitivities * gamma / f_mu;
+    noalias(rOutput) -= rNuTSensitivities * (gamma / nu_t);
 }
 
 template <unsigned int TNumNodes>
@@ -188,8 +188,9 @@ void CalculateThetaTKESensitivity(BoundedVector<double, TNumNodes>& rOutput,
 {
     rOutput.clear();
 
-    noalias(rOutput) += rGaussShapeFunctions * c_mu * f_mu / nu_t;
-    noalias(rOutput) -= rNuTGaussSensitivities * c_mu * f_mu * tke / std::pow(nu_t, 2);
+    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, f_mu, tke, nu_t);
+    noalias(rOutput) += rGaussShapeFunctions * gamma / tke;
+    noalias(rOutput) -= rNuTGaussSensitivities * (gamma / nu_t);
 }
 
 template <unsigned int TNumNodes>

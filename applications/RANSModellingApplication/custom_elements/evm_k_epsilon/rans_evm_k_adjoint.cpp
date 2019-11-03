@@ -496,34 +496,43 @@ void RansEvmKAdjoint<TDim, TNumNodes>::CalculateReactionTermScalarDerivatives(
     const Matrix& rShapeFunctionDerivatives,
     const ProcessInfo& rCurrentProcessInfo) const
 {
+    const double value = rCurrentData.Gamma + (2.0 / 3.0) * rCurrentData.VelocityDivergence;
+    rOutput.clear();
+
     if (rDerivativeVariable == TURBULENT_KINETIC_ENERGY)
     {
-        const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
+        if (value > 0.0)
+        {
+            const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
 
-        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateGaussSensitivities(
-            rOutput, rCurrentData.TurbulentKinematicViscositySensitivitiesK, rShapeFunctions);
+            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateGaussSensitivities(
+                rOutput, rCurrentData.TurbulentKinematicViscositySensitivitiesK, rShapeFunctions);
 
-        BoundedVector<double, TNumNodes> theta_sensitivities;
-        EvmKepsilonModelAdjointUtilities::CalculateThetaTKESensitivity<TNumNodes>(
-            theta_sensitivities, c_mu, 1.0, rCurrentData.TurbulentKineticEnergy,
-            rCurrentData.TurbulentKinematicViscosity, rOutput, rShapeFunctions);
+            BoundedVector<double, TNumNodes> theta_sensitivities;
+            EvmKepsilonModelAdjointUtilities::CalculateThetaTKESensitivity<TNumNodes>(
+                theta_sensitivities, c_mu, 1.0, rCurrentData.TurbulentKineticEnergy,
+                rCurrentData.TurbulentKinematicViscosity, rOutput, rShapeFunctions);
 
-        noalias(rOutput) = theta_sensitivities;
+            noalias(rOutput) = theta_sensitivities;
+        }
     }
     else if (rDerivativeVariable == TURBULENT_ENERGY_DISSIPATION_RATE)
     {
-        const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
+        if (value > 0.0)
+        {
+            const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
 
-        StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateGaussSensitivities(
-            rOutput, rCurrentData.TurbulentKinematicViscositySensitivitiesEpsilon,
-            rShapeFunctions);
+            StabilizedConvectionDiffusionReactionAdjointUtilities::CalculateGaussSensitivities(
+                rOutput, rCurrentData.TurbulentKinematicViscositySensitivitiesEpsilon,
+                rShapeFunctions);
 
-        BoundedVector<double, TNumNodes> theta_sensitivities;
-        EvmKepsilonModelAdjointUtilities::CalculateThetaEpsilonSensitivity<TNumNodes>(
-            theta_sensitivities, c_mu, 1.0, rCurrentData.TurbulentKineticEnergy,
-            rCurrentData.TurbulentKinematicViscosity, rOutput);
+            BoundedVector<double, TNumNodes> theta_sensitivities;
+            EvmKepsilonModelAdjointUtilities::CalculateThetaEpsilonSensitivity<TNumNodes>(
+                theta_sensitivities, c_mu, 1.0, rCurrentData.TurbulentKineticEnergy,
+                rCurrentData.TurbulentKinematicViscosity, rOutput);
 
-        noalias(rOutput) = theta_sensitivities;
+            noalias(rOutput) = theta_sensitivities;
+        }
     }
     else
     {

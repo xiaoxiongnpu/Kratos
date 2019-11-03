@@ -658,7 +658,7 @@ public:
 
         const Variable<double>& primal_variable = this->GetPrimalVariable();
 
-        const double delta_time = -1.0 * rCurrentProcessInfo[DELTA_TIME];
+        const double delta_time = this->GetDeltaTime(rCurrentProcessInfo);
         const double bossak_alpha = rCurrentProcessInfo[BOSSAK_ALPHA];
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
@@ -1510,7 +1510,7 @@ private:
 
         const Variable<double>& primal_variable = this->GetPrimalVariable();
 
-        const double delta_time = -1.0 * rCurrentProcessInfo[DELTA_TIME];
+        const double delta_time = this->GetDeltaTime(rCurrentProcessInfo);
         const double bossak_alpha = rCurrentProcessInfo[BOSSAK_ALPHA];
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
@@ -1772,7 +1772,7 @@ private:
 
         const Variable<double>& primal_variable = this->GetPrimalVariable();
 
-        const double delta_time = -1.0 * rCurrentProcessInfo[DELTA_TIME];
+        const double delta_time = this->GetDeltaTime(rCurrentProcessInfo);
         const double bossak_alpha = rCurrentProcessInfo[BOSSAK_ALPHA];
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
@@ -1926,7 +1926,7 @@ private:
         const ShapeFunctionDerivativesArrayType& r_parameter_derivatives =
             this->GetGeometryParameterDerivatives();
 
-        const double delta_time = -1.0 * rCurrentProcessInfo[DELTA_TIME];
+        const double delta_time = this->GetDeltaTime(rCurrentProcessInfo);
         const double bossak_alpha = rCurrentProcessInfo[BOSSAK_ALPHA];
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
@@ -2034,7 +2034,7 @@ private:
         RansCalculationUtilities rans_calculation_utilities;
         RansVariableUtils rans_variable_utils;
 
-        const double delta_time = -1.0 * rCurrentProcessInfo[DELTA_TIME];
+        const double delta_time = this->GetDeltaTime(rCurrentProcessInfo);
         const double bossak_alpha = rCurrentProcessInfo[BOSSAK_ALPHA];
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();

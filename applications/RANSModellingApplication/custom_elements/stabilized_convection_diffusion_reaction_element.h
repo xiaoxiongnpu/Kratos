@@ -801,7 +801,8 @@ public:
                     effective_kinematic_viscosity, reaction, bossak_alpha,
                     bossak_gamma, delta_time, element_length, dynamic_tau);
 
-                positivity_preserving_coefficient = residual * chi / (velocity_magnitude_square * variable_gradient_norm);
+                positivity_preserving_coefficient =
+                    residual * chi / (velocity_magnitude_square * variable_gradient_norm);
             }
 
             const double s = std::abs(reaction);

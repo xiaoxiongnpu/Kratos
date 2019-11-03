@@ -170,9 +170,14 @@ inline void CalculateAbsoluteScalarValueScalarDerivatives(
     const double scalar_value,
     const BoundedVector<double, TNumNodes>& rScalarValueDerivatives)
 {
-    noalias(rOutput) =
-        rScalarValueDerivatives *
-        (scalar_value / (std::abs(scalar_value) + std::numeric_limits<double>::epsilon()));
+    if (scalar_value >= 0.0)
+    {
+        noalias(rOutput) = rScalarValueDerivatives;
+    }
+    else
+    {
+        noalias(rOutput) = rScalarValueDerivatives * (-1.0);
+    }
 }
 
 template <std::size_t TDim, std::size_t TNumNodes>
@@ -181,9 +186,14 @@ inline void CalculateAbsoluteScalarValueVectorDerivatives(
     const double scalar_value,
     const BoundedMatrix<double, TNumNodes, TDim>& rScalarValueDerivatives)
 {
-    noalias(rOutput) =
-        rScalarValueDerivatives *
-        (scalar_value / (std::abs(scalar_value) + std::numeric_limits<double>::epsilon()));
+    if (scalar_value >= 0)
+    {
+        noalias(rOutput) = rScalarValueDerivatives;
+    }
+    else
+    {
+        noalias(rOutput) = rScalarValueDerivatives * -1.0;
+    }
 }
 
 template <std::size_t TNumNodes>
