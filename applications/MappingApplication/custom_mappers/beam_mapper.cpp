@@ -215,6 +215,14 @@ void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
     }
 }
 
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::Initialize()
+{
+    InitializeInterfaceCommunicator();
+    InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
+    InitializeInterface();
+}
+
 template<>
 void BeamMapper<MapperDefinitions::SparseSpaceType,
     MapperDefinitions::DenseSpaceType>::InitializeInterfaceCommunicator()
@@ -234,14 +242,6 @@ void BeamMapper<MapperDefinitions::MPISparseSpaceType,
                                                                            mMapperSettings);
 }
 #endif
-
-template<class TSparseSpace, class TDenseSpace>
-void BeamMapper<TSparseSpace, TDenseSpace>::Initialize()
-{
-    InitializeInterfaceCommunicator();
-    InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
-    InitializeInterface();
-}
 
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
