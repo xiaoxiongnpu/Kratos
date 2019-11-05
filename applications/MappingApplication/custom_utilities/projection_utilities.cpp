@@ -124,11 +124,10 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
                                     const double LocalCoordTol,
                                     Vector& rHermitianShapeFunctionValues,
                                     Vector& rHermitianShapeFunctionValuesDer,
-                                    double& rProjectionDistance)
+                                    double& rProjectionDistance,
+                                    Point& rProjectionOfPoint)
 {
-    Point projected_point;
-
-    rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, projected_point));
+    rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, rProjectionOfPoint));
     std::cout << "Projection Distance : " << rProjectionDistance << std::endl;
     array_1d<double, 3> local_coords;
     std::cout << "local coords : " << local_coords << std::endl;
@@ -137,7 +136,7 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
     double lenght_line;
     lenght_line = rGeometry.Length();
 
-    if (rGeometry.IsInside(projected_point, local_coords, 1e-14)) {
+    if (rGeometry.IsInside(rProjectionOfPoint, local_coords, 1e-14)) {
         pairing_index = PairingIndex::Line_Inside;
         HermitianShapeFunctionsValues(rHermitianShapeFunctionValues, rHermitianShapeFunctionValuesDer, lenght_line, local_coords);
         // FillEquationIdVector(rGeometry, rEquationIds);

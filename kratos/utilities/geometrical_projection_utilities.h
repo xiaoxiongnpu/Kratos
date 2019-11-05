@@ -191,10 +191,10 @@ public:
         std::cout << "Coords point to project=" << rPointToProject.Coordinates() << std::endl;
 
         const double factor = (inner_prod(r_p_b, p_c) - inner_prod(r_p_a, p_c) - inner_prod(r_p_b, r_p_a) + inner_prod(r_p_a, r_p_a)) / inner_prod(ab, ab);
-
+        std::cout << "factor : " << factor << std::endl;
         rPointProjected.Coordinates() = r_p_a + factor * ab;
         std::cout << "Coords Point projected" << rPointProjected.Coordinates() << std::endl;
-
+        std::cout << "p_c : " << p_c << std::endl; 
         return norm_2(rPointProjected.Coordinates()-p_c);
     }
 

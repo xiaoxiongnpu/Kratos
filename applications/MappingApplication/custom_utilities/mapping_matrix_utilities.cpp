@@ -135,8 +135,8 @@ void BuildMatrix(Kratos::unique_ptr<typename SparseSpaceType::MatrixType>& rpMdo
 
     for (auto& r_local_sys : rMapperLocalSystems) { // TODO omp
 
-        r_local_sys->CalculateLocalSystem(local_mapping_matrix, origin_ids, destination_ids);
-
+        r_local_sys->CalculateLocalSystem(local_mapping_matrix, origin_ids, destination_ids); // Assigns a local mapping matrix to the matrix of a local system
+        std::cout << "Local Mapping matrix looks like this: " << local_mapping_matrix << std::endl;
         KRATOS_DEBUG_ERROR_IF(local_mapping_matrix.size1() != destination_ids.size()) << "MappingMatrixAssembly: DestinationID vector size mismatch: LocalMappingMatrix-Size1: " << local_mapping_matrix.size1() << " | DestinationIDs-size: " << destination_ids.size() << std::endl;
         KRATOS_DEBUG_ERROR_IF(local_mapping_matrix.size2() != origin_ids.size()) << "MappingMatrixAssembly: OriginID vector size mismatch: LocalMappingMatrix-Size2: " << local_mapping_matrix.size2() << " | OriginIDs-size: " << origin_ids.size() << std::endl;
 
@@ -192,6 +192,9 @@ void BuildMappingMatrix<SparseSpaceType, DenseSpaceType>(
 
     const SizeType num_nodes_origin = rModelPartOrigin.NumberOfNodes();
     const SizeType num_nodes_destination = rModelPartDestination.NumberOfNodes();
+    std::cout << "num_nodes_origin : " << num_nodes_origin << std::endl;
+    std::cout << "num_nodes_destination : " << num_nodes_destination << std::endl;
+
     KRATOS_WATCH("1")
     // Initialize the Matrix
     // This has to be done always since the Graph has changed if the Interface is updated!

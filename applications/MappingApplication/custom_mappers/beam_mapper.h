@@ -85,19 +85,25 @@ public:
     void GetValue(std::vector<double>& rValue,
                   const InfoType ValueType) const override
     {
-        rValue = mLinearShapeFunctionValues;
+        std::vector<double> vector = mLinearShapeFunctionValues;
+        vector.insert(vector.end(), mHermitianShapeFunctionValues.begin(), mHermitianShapeFunctionValues.end());
+        vector.insert(vector.end(), mHermitianShapeFunctionValuesDerivatives.begin(), mHermitianShapeFunctionValuesDerivatives.end());
+
+        rValue = vector;
     }
 
     void GetValue(int& rValue,
                   const InfoType ValueType) const override
-    {
-        rValue = mClosestProjectionDistance;
+    {   
+        //rValue = mClosestProjectionDistance;
+        rValue = (int)mPairingIndex;
     }
 
     void GetValue(double& rValue,
                   const InfoType ValueType) const override
-    {
-        rValue = (int)mPairingIndex;
+    {   std::cout << "Geting closest projection Distance" << std::endl;
+        //rValue = (int)mPairingIndex;
+        rValue = mClosestProjectionDistance;
     }
 
 private:
@@ -109,6 +115,8 @@ private:
     std::vector<double> mLinearShapeFunctionValues;
     std::vector<double> mHermitianShapeFunctionValues;
     std::vector<double> mHermitianShapeFunctionValuesDerivatives;
+
+    Point mProjectionOfPoint; // Point that results form the projection of the surface node on the beam
 
     double mClosestProjectionDistance = std::numeric_limits<double>::max(); // Distance between the surface node and the beam
     ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;

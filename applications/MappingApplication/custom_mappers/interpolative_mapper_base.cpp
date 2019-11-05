@@ -56,7 +56,7 @@ void InterpolativeMapperBase<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Krat
 
     const MapperInterfaceInfoUniquePointerType p_ref_interface_info = GetMapperInterfaceInfo();
     std::cout << "Calculating shape function values" << std::endl;
-    mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
+    mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(), // Does the search of neighbours and if they are found it calculates the linear shape functions and hermitian shape functions for each InterfaceInfos and assigns these InterfaceInfos to the LocalSystems of the mapper
                                                   MappingOptions,
                                                   p_ref_interface_info);
 

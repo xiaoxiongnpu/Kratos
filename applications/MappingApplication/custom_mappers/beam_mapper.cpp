@@ -51,6 +51,7 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     double proj_dist;
 
     const Point point_to_proj(this->Coordinates());
+    Point projection_point;
 
     mCoordinates = point_to_proj;
 
@@ -69,7 +70,8 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     // Calculating and storing the shape function values
     // Linear shape functions
     pairing_index = ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, linear_shape_function_values, eq_ids, proj_dist, ComputeApproximation);
-    ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist);
+    // Hermitian shape functions
+    ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist, projection_point);
     const bool is_full_projection = (pairing_index == ProjectionUtilities::PairingIndex::Line_Inside);
     
     std::cout << "rShapeFunctionValues : " << linear_shape_function_values << std::endl;
@@ -112,6 +114,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         for (std::size_t i=0; i<num_values_hermitian_der; ++i) {
             mHermitianShapeFunctionValuesDerivatives[i] = hermitian_shape_function_derivatives_values[i];
         }
+
+        mProjectionOfPoint = projection_point;
+        std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
     }
     
 }
@@ -166,8 +171,8 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
 
         mInterfaceInfos[found_idx]->GetValue(sf_values, MapperInterfaceInfo::InfoType::Dummy);
 
-        if (rLocalMappingMatrix.size1() != 1 || rLocalMappingMatrix.size2() != sf_values.size()) {
-            rLocalMappingMatrix.resize(1, sf_values.size(), false);
+        if (rLocalMappingMatrix.size1() != 6 || rLocalMappingMatrix.size2() != sf_values.size()) {
+            rLocalMappingMatrix.resize(6, 12, false);
         }
         for (IndexType i=0; i<sf_values.size(); ++i) {
             rLocalMappingMatrix(0,i) = sf_values[i];

@@ -59,7 +59,8 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
                                     const double LocalCoordTol,
                                     Vector& rHermitianShapeFunctionValues,
                                     Vector& rHermitianShapeFunctionValuesDer,
-                                    double& rProjectionDistance);
+                                    double& rProjectionDistance,
+                                    Point& rProjectionOfPoint);
 
 void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions, 
                                     Vector &hermitianShapeFunctionsDer, 

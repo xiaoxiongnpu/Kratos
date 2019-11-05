@@ -95,13 +95,15 @@ public:
                               EquationIdVectorType& rDestinationIds) const
     {
         if (mIsComputed) {
+            std::cout << "EquationIdVectors was computed already" << std::endl;
             // This will be called if the EquationIdVectors have been querried before
             // i.e. matrix-based mapping
             rLocalMappingMatrix = mLocalMappingMatrix;
             rOriginIds      = mOriginIds;
             rDestinationIds = mDestinationIds;
         }
-        else {
+        else {            
+            std::cout << "EquationIdVectors was NOT computed already" << std::endl;
             // This will be called if the EquationIdVectors have NOT been querried before
             // i.e. matrix-free mapping
             CalculateAll(rLocalMappingMatrix, rOriginIds, rDestinationIds, mPairingStatus);
