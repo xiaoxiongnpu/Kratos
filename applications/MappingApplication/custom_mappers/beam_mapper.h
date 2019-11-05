@@ -104,6 +104,8 @@ private:
 
     std::vector<int> mNodeIds;
 
+    Point mCoordinates;
+
     std::vector<double> mLinearShapeFunctionValues;
     std::vector<double> mHermitianShapeFunctionValues;
     std::vector<double> mHermitianShapeFunctionValuesDerivatives;
@@ -199,6 +201,12 @@ public:
     typedef typename BaseType::MapperUniquePointerType MapperUniquePointerType;
     typedef typename BaseType::TMappingMatrixType TMappingMatrixType;
     typedef Kratos::unique_ptr<TMappingMatrixType> TMappingMatrixUniquePointerType;
+
+    // my typedefs
+    typedef std::vector<TMappingMatrixType> RotationMatrixVector;
+
+    //typedef InterfaceObjectConfigure::ContainerType InterfaceObjectContainerType;
+    //typedef Kratos::unique_ptr<InterfaceObjectContainerType> InterfaceObjectContainerUniquePointerType;
     
     ///@}
     ///@name Life Cycle
@@ -225,7 +233,7 @@ public:
         KRATOS_ERROR_IF(mLocalCoordTol < 0.0) << "The local_coord_tolerance cannot be negative" << std::endl;
         
         //  In this function the search task is done, and the parameters for the local systems are stored
-        // Local system has:
+        // MapperInterfaceInfo has:
         // 1. A beam id to relate
         // 2. a t_B_P
         // 3. linear and hermitean interpolation values
@@ -337,6 +345,8 @@ public:
 
     void Initialize();
 
+    void InitializeInformationBeams();
+
 private:
     ///@name Member Variables
     ///@{
@@ -348,6 +358,8 @@ private:
     MapperLocalSystemPointerVector mMapperLocalSystems;
 
     InterfaceCommunicatorPointerType mpIntefaceCommunicator;
+
+    RotationMatrixVector mRotationMatrixOfBeams;
 
     double mLocalCoordTol;
     //InterfaceVectorContainerPointerType mpInterfaceVectorContainerOriginDisplacements;

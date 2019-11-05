@@ -21,6 +21,7 @@
 #include "beam_mapper.h"
 #include "custom_utilities/mapper_typedefs.h"
 #include "mapping_application_variables.h"
+#include <math.h>
 #ifdef KRATOS_USING_MPI // mpi-parallel compilation
 #include "custom_searching/interface_communicator_mpi.h"
 #endif
@@ -49,6 +50,8 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     double proj_dist;
 
     const Point point_to_proj(this->Coordinates());
+
+    mCoordinates = point_to_proj;
 
     Vector linear_shape_function_values;
     Vector hermitian_shape_function_values;
@@ -235,7 +238,65 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::Initialize()
 {
     InitializeInterfaceCommunicator();
+    InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
     InitializeInterface();
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
+{
+    std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
+    
+    const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
+    
+    const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
+
+    for (std::size_t i = 0; i < num_elements; ++i){
+        auto it_elem = elements_begin + i;
+        array_1d<double, 3> axisX;
+        array_1d<double, 3> axisY;
+        array_1d<double, 3> axisZ;
+
+        auto& geometry_line = (*it_elem)->GetGeometry()
+        ;
+        auto temp_v = geometry_line[1].Coordinates() - geometry_line[0].Coordinates();
+        double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
+        axisX = (temp_v / lengthX); 
+        
+        double lengthY = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1]);
+        axisY[0] = -temp_v[1] / lengthY;
+        axisY[1] =  temp_v[0] / lengthY;
+        axisY[2] =  0;
+
+        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+
+        std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
+        std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
+        std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
+
+    }
+
+
+
+
+
+
+
+
+    //const int num_elements = (int)rElements.size();
+    ////const int num_nodes = (int)rNodes.size();
+    //const auto line = Kratos::make_unique<[0].pGetGeometry().get();// this should give a line
+//
+    //std::cout << "Lenght Line : " << line << std::endl;
+    //mRotationMatrixOfBeams.resize(num_elements);
+//
+    std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
+
+
+
+
 }
 
 template<class TSparseSpace, class TDenseSpace>
