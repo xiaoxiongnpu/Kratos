@@ -19,6 +19,12 @@ namespace Kratos {
 
     void DEM_D_Stress_Dependent_Cohesive::Check(Properties::Pointer pProp) const {
         DEMDiscontinuumConstitutiveLaw::Check(pProp);
+        if(!pProp->Has(PARTICLE_INITIAL_COHESION)) {
+            KRATOS_WARNING("DEM")<<std::endl;
+            KRATOS_WARNING("DEM")<<"WARNING: Variable PARTICLE_INITIAL_COHESION should be present in the properties when using DEM_D_Conical_damage. 90.0 value assigned by default."<<std::endl;
+            KRATOS_WARNING("DEM")<<std::endl;
+            pProp->GetValue(PARTICLE_INITIAL_COHESION) = 0.0;
+        }
         if(!pProp->Has(AMOUNT_OF_COHESION_FROM_STRESS)) {
             KRATOS_WARNING("DEM")<<std::endl;
             KRATOS_WARNING("DEM")<<"WARNING: Variable AMOUNT_OF_COHESION_FROM_STRESS should be present in the properties when using DEM_D_Conical_damage. 90.0 value assigned by default."<<std::endl;
@@ -57,7 +63,8 @@ namespace Kratos {
 
         //Normal and Tangent elastic constants
         mKn = 0.5 * Globals::Pi * equiv_young * equiv_radius;
-        mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        // mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = 8.0 * equiv_shear * equiv_radius;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForces(const ProcessInfo& r_process_info,
@@ -90,7 +97,11 @@ namespace Kratos {
             ViscoDampingLocalContactForce[2] = -1.0 * LocalElasticContactForce[2];
         }
 
-        cohesive_force = CalculateCohesiveNormalForce(p_element1, p_element2, normal_contact_force, indentation);
+        bool initial_time_step = false;
+
+        if (r_process_info[TIME_STEPS] == 0) initial_time_step = true;
+
+        cohesive_force = CalculateCohesiveNormalForce(p_element1, p_element2, normal_contact_force, indentation, initial_time_step);
 
         double AuxElasticShearForce;
         double MaximumAdmisibleShearForce;
@@ -136,7 +147,8 @@ namespace Kratos {
         const double equiv_shear         = 1.0 / ((2.0 - my_poisson)/my_shear_modulus + (2.0 - walls_poisson)/walls_shear_modulus);
 
         mKn = 0.5 * Globals::Pi * equiv_young * effective_radius;
-        mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        // mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = 8.0 * equiv_shear * effective_radius;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForcesWithFEM(ProcessInfo& r_process_info,
@@ -167,7 +179,11 @@ namespace Kratos {
             ViscoDampingLocalContactForce[2] = -1.0 * LocalElasticContactForce[2];
         }
 
-        cohesive_force = CalculateCohesiveNormalForceWithFEM(p_element, wall, normal_contact_force, indentation);
+        bool initial_time_step = false;
+
+        if (r_process_info[TIME_STEPS] == 0) initial_time_step = true;
+
+        cohesive_force = CalculateCohesiveNormalForceWithFEM(p_element, wall, normal_contact_force, indentation, initial_time_step);
 
         double AuxElasticShearForce;
         double MaximumAdmisibleShearForce;
@@ -230,7 +246,11 @@ namespace Kratos {
 
     }
 
-    double DEM_D_Stress_Dependent_Cohesive::CalculateCohesiveNormalForce(ContactInfoSphericParticle* const element1, ContactInfoSphericParticle* const element2, const double normal_contact_force, const double indentation) {
+    double DEM_D_Stress_Dependent_Cohesive::CalculateCohesiveNormalForce(ContactInfoSphericParticle* const element1,
+                                                                         ContactInfoSphericParticle* const element2,
+                                                                         const double normal_contact_force,
+                                                                         const double indentation,
+                                                                         const bool initial_time_step) {
 
         double equiv_cohesion = 0.0;
         double equiv_amount_of_cohesion_from_stress = 0.5 * (element1->GetAmountOfCohesionFromStress() + element2->GetAmountOfCohesionFromStress());
@@ -239,19 +259,26 @@ namespace Kratos {
 
         for (unsigned int i = 0; element1->mNeighbourElements.size(); i++) {
             if (element1->mNeighbourElements[i]->Id() == element2->Id()) {
+                if (initial_time_step) element1->mNeighbourCohesion[i] = 0.5 * (element1->GetParticleInitialCohesion() + element2->GetParticleInitialCohesion());
                 equiv_cohesion = std::min(0.5 * (element1->GetParticleCohesion() + element2->GetParticleCohesion()), equiv_amount_of_cohesion_from_stress * element1->mNeighbourContactStress[i]);
+                if (element1->mNeighbourCohesion[i] != 0.0) equiv_cohesion = std::max(element1->mNeighbourCohesion[i], equiv_cohesion);
+
                 double contact_stress = normal_contact_force / (Globals::Pi * equiv_radius * equiv_radius);
                 element1->mNeighbourContactStress[i] = std::max(element1->mNeighbourContactStress[i], contact_stress);
                 break;
             }
         }
 
-        const double cohesive_force = Globals::Pi * equiv_cohesion * equiv_radius* equiv_radius;
+        const double cohesive_force = Globals::Pi * equiv_cohesion * equiv_radius * equiv_radius;
 
         return cohesive_force;
     }
 
-    double DEM_D_Stress_Dependent_Cohesive::CalculateCohesiveNormalForceWithFEM(ContactInfoSphericParticle* const element, Condition* const wall, const double normal_contact_force, const double indentation) {
+    double DEM_D_Stress_Dependent_Cohesive::CalculateCohesiveNormalForceWithFEM(ContactInfoSphericParticle* const element,
+                                                                                Condition* const wall,
+                                                                                const double normal_contact_force,
+                                                                                const double indentation,
+                                                                                const bool initial_time_step) {
 
         double equiv_cohesion = 0.0;
         double equiv_amount_of_cohesion_from_stress = element->GetAmountOfCohesionFromStress();
@@ -260,7 +287,10 @@ namespace Kratos {
 
         for (unsigned int i = 0; element->mNeighbourRigidFaces.size(); i++) {
             if (element->mNeighbourRigidFaces[i]->Id() == wall->Id()) {
+                if (initial_time_step) element->mNeighbourRigidCohesion[i] = 0.5 * (element->GetParticleCohesion() + wall->GetProperties()[WALL_INITIAL_COHESION]);
                 equiv_cohesion = std::min(0.5 * (element->GetParticleCohesion() + wall->GetProperties()[WALL_COHESION]), equiv_amount_of_cohesion_from_stress * element->mNeighbourRigidContactStress[i]);
+                if (element->mNeighbourRigidCohesion[i] != 0.0) equiv_cohesion = std::max(element->mNeighbourRigidCohesion[i], equiv_cohesion);
+
                 double contact_stress = normal_contact_force / (Globals::Pi * equiv_radius * equiv_radius);
                 element->mNeighbourRigidContactStress[i] = std::max(element->mNeighbourRigidContactStress[i], contact_stress);
                 break;

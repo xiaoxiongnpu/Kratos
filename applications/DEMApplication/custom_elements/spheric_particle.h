@@ -360,7 +360,7 @@ virtual void ComputeRollingResistance(double& RollingResistance,
                                       const double& equiv_rolling_friction_coeff,
                                       const unsigned int i);
 
-virtual void ComputeRollingFriction(array_1d<double, 3>& rolling_resistance_moment, double& RollingResistance, double dt) final;
+virtual void ComputeRollingFriction(array_1d<double, 3>& rolling_resistance_moment, double& RollingResistance, double dt);
 
 virtual double GetInitialDeltaWithFEM(int index);
 
@@ -438,7 +438,7 @@ virtual void AddWallContributionToStressTensor(const double GlobalElasticContact
 
 virtual void RotateOldContactForces(const double LocalCoordSystem[3][3], const double OldLocalCoordSystem[3][3], array_1d<double, 3>& mNeighbourElasticContactForces) final;
 
-virtual void ApplyGlobalDampingToContactForcesAndMoments(array_1d<double,3>& total_forces, array_1d<double,3>& total_moment);
+virtual void ApplyGlobalDampingToContactForcesAndMoments(array_1d<double,3>& contact_force, array_1d<double,3>& contact_moment);
 
 DEMDiscontinuumConstitutiveLaw::Pointer mDiscontinuumConstitutiveLaw;
 double mRadius;
