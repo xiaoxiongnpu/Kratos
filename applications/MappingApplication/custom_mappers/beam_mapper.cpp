@@ -340,7 +340,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags Map
     mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
                                                   MappingOptions,
                                                   p_ref_interface_info);
-    const int echo_level = mMapperSettings["echo_level"].GetInt();
+    //const int echo_level = mMapperSettings["echo_level"].GetInt();
     
     //KRATOS_WATCH("BEFORE Building MMatrix")
     //MappingMatrixUtilities::BuildMappingMatrix<TSparseSpace, TDenseSpace>(

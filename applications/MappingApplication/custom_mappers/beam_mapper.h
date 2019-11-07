@@ -408,22 +408,45 @@ private:
                      const Variable< array_1d<double, 3> >& rDestinationVariable,
                      Kratos::Flags MappingOptions)
     {
-       //KRATOS_ERROR << "Implement Me in MapInternal!" << std::endl;
+       std::vector< array_1d<double, 3> > element_displacements_vector;
+       std::vector< array_1d<double, 3> > element_rotations_vector;
 
-       //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
-//
-       //const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(std::get< 0 >(rOriginVariables).Name() + var_comps[0]);
-//
-       //InterfaceVectorContainerPointerType vectorContainerOriginDisplacement;
-       //vectorContainerOriginDisplacement->UpdateSystemVectorFromModelPart(var_origin_disp, MappingOptions);
-//
-       //auto vector_displacement_X = vectorContainerOriginDisplacement->GetVector();
-//
-       //std::cout << "Origin :  Displacements on X = " << vector_displacement_X << std::endl;
+       RotateOriginVariablesLinear(rOriginVariablesDisplacements, rOriginVariablesRotations, element_displacements_vector, element_rotations_vector); 
 
+    }
 
+    void RotateOriginVariablesLinear(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                                     std::vector< array_1d<double, 3>>& displacements_vector,
+                                     std::vector< array_1d<double, 3>>& rotations_vector )
+    {
+        array_1d<double, 3> displacementNode1;
+        array_1d<double, 3> displacementNode2;
+        array_1d<double, 3> rotationNode1;
+        array_1d<double, 3> rotationNode2;
 
+        const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
 
+        const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
+        const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
+
+        for (std::size_t i = 0; i < num_elements; ++i)
+        {   
+            auto it_element = elements_begin + i;
+            auto it_nodes_line = (*it_element)->GetGeometry();
+            
+            size_t k = 0;
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
+
+                displacementNode1[k] = it_nodes_line[0].FastGetSolutionStepValue(var_origin_disp);
+                displacementNode2[k] = it_nodes_line[1].FastGetSolutionStepValue(var_origin_disp);
+                k++;
+            }
+            std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
+            std::cout << "displacement of node 2 is" << displacementNode2 << std::endl; 
+        }
     }
 
     MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const 
