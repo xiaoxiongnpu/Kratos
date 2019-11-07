@@ -133,6 +133,10 @@ void BuildMatrix(Kratos::unique_ptr<typename SparseSpaceType::MatrixType>& rpMdo
     EquationIdVectorType origin_ids;
     EquationIdVectorType destination_ids;
 
+    size_t asize = rMapperLocalSystems.size();
+
+    std::cout << "size of rMapperLocalSystems is : " << asize << std::endl;
+
     for (auto& r_local_sys : rMapperLocalSystems) { // TODO omp
 
         r_local_sys->CalculateLocalSystem(local_mapping_matrix, origin_ids, destination_ids); // Assigns a local mapping matrix to the matrix of a local system

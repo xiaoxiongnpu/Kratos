@@ -93,12 +93,12 @@ inline void InverseMapWithoutOptionsVector(Mapper<TSparseSpace, TDenseSpace>& du
 
 template<class TSparseSpace, class TDenseSpace>
 inline void BeamMapWithoutOptions(BeamMapper<TSparseSpace, TDenseSpace>& dummy,
-                const std::tuple<const Variable< array_1d<double, 3> >&,
-                                 const Variable< array_1d<double, 3> >&>& origin_variables,
-                const Variable< array_1d<double, 3> >& destination_variable)
+                                  const Variable< array_1d<double, 3> >& origin_variable_displacement,
+                                  const Variable< array_1d<double, 3> >& origin_variable_rotation,
+                                  const Variable< array_1d<double, 3> >& destination_variable)
 {
     Kratos::Flags dummy_flags = Kratos::Flags();
-    dummy.Map(origin_variables, destination_variable, dummy_flags);
+    dummy.Map(origin_variable_displacement, origin_variable_rotation, destination_variable, dummy_flags);
 }
 
 template<class TSparseSpace, class TDenseSpace>

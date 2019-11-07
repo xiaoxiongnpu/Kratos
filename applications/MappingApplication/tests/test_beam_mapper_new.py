@@ -75,7 +75,7 @@ class TestBeamMapper(KratosUnittest.TestCase):
             node.SetSolutionStepValue(KM.DISPLACEMENT_Y, 10*node.X)
             node.SetSolutionStepValue(KM.ROTATION_X, 10*node.X)
             
-        self.mapper.Map((KM.DISPLACEMENT, KM.ROTATION), KM.DISPLACEMENT)
+        self.mapper.Map(KM.DISPLACEMENT, KM.ROTATION, KM.DISPLACEMENT)
         #self.mapper.Map(KM.ROTATION, KM.DISPLACEMENT)
         #self.mapper.InverseMap(KM.PRESSURE, KM.TEMPERATURE)
         #self.mapper.InverseMap(KM.DISPLACEMENT, KM.TEMPERATURE)

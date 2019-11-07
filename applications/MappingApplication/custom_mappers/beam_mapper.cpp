@@ -21,6 +21,7 @@
 // Project includes
 #include "beam_mapper.h"
 #include "custom_utilities/mapper_typedefs.h"
+#include "custom_utilities/mapping_matrix_utilities.h"
 #include "mapping_application_variables.h"
 #include <math.h>
 #ifdef KRATOS_USING_MPI // mpi-parallel compilation
@@ -29,6 +30,8 @@
 
 namespace Kratos
 {
+
+// ************ BeamMapperInterfaceInfo function definitions
 
 void BeamMapperInterfaceInfo::ProcessSearchResult(const InterfaceObject& rInterfaceObject,
                                                       const double NeighborDistance)
@@ -116,10 +119,12 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         }
 
         mProjectionOfPoint = projection_point;
-        std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
+        //std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
     }
     
 }
+
+// ************ BeamMapperLocalSystem function definitions
         
 void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
                     EquationIdVectorType& rOriginIds,
@@ -171,19 +176,24 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
 
         mInterfaceInfos[found_idx]->GetValue(sf_values, MapperInterfaceInfo::InfoType::Dummy);
 
-        if (rLocalMappingMatrix.size1() != 6 || rLocalMappingMatrix.size2() != sf_values.size()) {
-            rLocalMappingMatrix.resize(6, 12, false);
+        if (rLocalMappingMatrix.size1() != 1 || rLocalMappingMatrix.size2() != sf_values.size()) {
+            rLocalMappingMatrix.resize(1, sf_values.size(), false);
         }
         for (IndexType i=0; i<sf_values.size(); ++i) {
             rLocalMappingMatrix(0,i) = sf_values[i];
         }
 
         mInterfaceInfos[found_idx]->GetValue(rOriginIds, MapperInterfaceInfo::InfoType::Dummy);
+        std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww " << std::endl;
+        std::cout << "found_idx is : " << found_idx << std::endl;
+        std::cout << "My OriginIDs in this interface Info are: " << rOriginIds << std::endl;
 
         KRATOS_DEBUG_ERROR_IF_NOT(mpNode) << "Members are not intitialized!" << std::endl;
 
         if (rDestinationIds.size() != 1) rDestinationIds.resize(1);
         rDestinationIds[0] = mpNode->GetValue(INTERFACE_EQUATION_ID);
+
+        std::cout << "My DestinationIDs in this interface Info are: " << rDestinationIds << std::endl;
     }
     else ResizeToZero(rLocalMappingMatrix, rOriginIds, rDestinationIds, rPairingStatus);
 }
@@ -202,6 +212,8 @@ std::string BeamMapperLocalSystem::PairingInfo(const int EchoLevel) const
     }
     return buffer.str();
 }
+
+// ************ BeamMapper function definitions
 
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
@@ -224,7 +236,6 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::Initialize()
 {
     InitializeInterfaceCommunicator();
-    InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
     InitializeInterface();
 }
 
@@ -301,9 +312,9 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
         // std::cout << "Inverse of a matrix " << _RotationMatrixInverse << std::endl;
     }
     
-    //std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
-    //std::cout << "rotationMatrixOfBeams[0] :" << mRotationMatrixOfBeams[0] << std::endl;
-    //std::cout << "rotationMatrixOfBeams[1] :" << mRotationMatrixOfBeams[1] << std::endl;
+    std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
+    std::cout << "rotationMatrixOfBeams[0] :" << mRotationMatrixOfBeams[0] << std::endl;
+    std::cout << "rotationMatrixOfBeams[1] :" << mRotationMatrixOfBeams[1] << std::endl;
 }
 
 template<class TSparseSpace, class TDenseSpace>
@@ -320,8 +331,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInterface(Kratos::Flags Ma
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags MappingOptions)
 {
-    //MapperUtilities::AssignInterfaceEquationIds(mrModelPartOrigin.GetCommunicator());
-    //MapperUtilities::AssignInterfaceEquationIds(mrModelPartDestination.GetCommunicator());
+    MapperUtilities::AssignInterfaceEquationIds(mrModelPartOrigin.GetCommunicator());
+    MapperUtilities::AssignInterfaceEquationIds(mrModelPartDestination.GetCommunicator());
 
     KRATOS_ERROR_IF_NOT(mpIntefaceCommunicator) << "mpInterfaceCommunicator is a nullptr" << std::endl;
     const MapperInterfaceInfoUniquePointerType p_ref_interface_info = GetMapperInterfaceInfo();
@@ -329,6 +340,17 @@ void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags Map
     mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
                                                   MappingOptions,
                                                   p_ref_interface_info);
+    const int echo_level = mMapperSettings["echo_level"].GetInt();
+    
+    //KRATOS_WATCH("BEFORE Building MMatrix")
+    //MappingMatrixUtilities::BuildMappingMatrix<TSparseSpace, TDenseSpace>(
+    //    mpMappingMatrix,
+    //    mpInterfaceVectorContainerOrigin->pGetVector(),
+    //    mpInterfaceVectorContainerDestination->pGetVector(),
+    //    mpInterfaceVectorContainerOrigin->GetModelPart(),
+    //    mpInterfaceVectorContainerDestination->GetModelPart(),
+    //    mMapperLocalSystems,
+    //    echo_level);
 }
 
 // Extern template instantiation

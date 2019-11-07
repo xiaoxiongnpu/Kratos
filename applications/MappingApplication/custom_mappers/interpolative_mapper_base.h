@@ -78,7 +78,7 @@ public:
                          : mrModelPartOrigin(rModelPartOrigin),
                            mrModelPartDestination(rModelPartDestination),
                            mMapperSettings(JsonParameters)
-    { std::cout << "This is running" << std::endl;
+    { 
         mpInterfaceVectorContainerOrigin = Kratos::make_unique<InterfaceVectorContainerType>(rModelPartOrigin);
         mpInterfaceVectorContainerDestination = Kratos::make_unique<InterfaceVectorContainerType>(rModelPartDestination);
     }

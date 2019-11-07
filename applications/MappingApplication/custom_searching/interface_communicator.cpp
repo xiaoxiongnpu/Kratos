@@ -48,7 +48,6 @@ void InterfaceCommunicator::ExchangeInterfaceData(const Communicator& rComm,
     // radius was either computed or specified properly)
     // only if some points did not find a neighbor or dont have a valid
     // projection, more search iterations are necessary
-    std::cout << "Does it stop here?" << std::endl;
     ConductSearchIteration(rOptions, rpInterfaceInfo);
 
     while (++num_iteration <= max_search_iterations && !AllNeighborsFound(rComm)) {
