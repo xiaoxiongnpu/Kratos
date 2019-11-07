@@ -23,7 +23,7 @@ class Communicator:
         self.optimization_settings = optimization_settings
         self.supported_objective_types = ["minimization", "maximization"]
         self.supported_constraint_types = ["=", "<", ">", "<=", ">="]
-        self.supported_constraint_references = ["initial_value", "specified_value"]
+        self.supported_constraint_references = ["initial_value", "specified_value", "ratio_initial_value"]
 
         objective_settings = self.__ExtractResponseSettingsRecursively(optimization_settings["objectives"])
         constraint_settings = self.__ExtractResponseSettingsRecursively(optimization_settings["constraints"])
@@ -64,7 +64,10 @@ class Communicator:
     def reportValue(self, response_id, value):
         self.__storeValue(response_id, value)
         if self.__isResponseWaitingForInitialValueAsReference(response_id):
-            self.__setValueAsReference(response_id, value)
+            if "ratio" in self.list_of_responses[response_id]:
+                self.__setValueAsReference(response_id, value*self.list_of_responses[response_id]["ratio"])
+            else:
+                self.__setValueAsReference(response_id, value)
 
         standardized_value = self.__translateValueToStandardForm(response_id, value)
         self.__storeStandardizedValue(response_id, standardized_value)
@@ -172,6 +175,15 @@ class Communicator:
                 list_of_constraints[constraint_id] = { "type"                 : constraint["type"].GetString(),
                                                         "value"                : None,
                                                         "scaling_factor"       : constraint["scaling_factor"].GetDouble(),
+                                                        "standardized_value"   : None,
+                                                        "standardized_gradient": None,
+                                                        "reference_value"      : None }
+
+            elif constraint["reference"].GetString() == "ratio_initial_value":
+                list_of_constraints[constraint_id] = {  "type"                 : constraint["type"].GetString(),
+                                                        "value"                : None,
+                                                        "scaling_factor"       : constraint["scaling_factor"].GetDouble(),
+                                                        "ratio"                : constraint["ratio"].GetDouble(),
                                                         "standardized_value"   : None,
                                                         "standardized_gradient": None,
                                                         "reference_value"      : None }

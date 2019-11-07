@@ -92,6 +92,7 @@ def _ValidateConstraintSettings(constraint_settings):
         "scaling_factor"                      : 1.0,
         "reference"                           : "initial_value",
         "reference_value"                     : 1.0,
+        "ratio"                               : 1.0,
         "analyzer"                            : "external",
         "response_settings"                   : {},
         "project_gradient_on_surface_normals" : false
