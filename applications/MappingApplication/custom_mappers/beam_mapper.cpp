@@ -294,7 +294,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
         //std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
         //std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
 
-        TMappingMatrixType _RotationMatrix( 3, 3, 0.0 );
+        MatrixType _RotationMatrix( 3, 3, 0.0 );
 
         for(std::size_t j = 0; j < 3; j++)
         {
