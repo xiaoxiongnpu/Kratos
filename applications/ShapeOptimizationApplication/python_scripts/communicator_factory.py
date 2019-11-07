@@ -23,7 +23,7 @@ class Communicator:
         self.optimization_settings = optimization_settings
         self.supported_objective_types = ["minimization", "maximization"]
         self.supported_constraint_types = ["=", "<", ">", "<=", ">="]
-        self.supported_constraint_references = ["initial_value", "specified_value", "ratio_initial_value"]
+        self.supported_constraint_references = ["initial_value", "specified_value", "specified_ratio_to_initial"]
 
         objective_settings = self.__ExtractResponseSettingsRecursively(optimization_settings["objectives"])
         constraint_settings = self.__ExtractResponseSettingsRecursively(optimization_settings["constraints"])
@@ -64,8 +64,8 @@ class Communicator:
     def reportValue(self, response_id, value):
         self.__storeValue(response_id, value)
         if self.__isResponseWaitingForInitialValueAsReference(response_id):
-            if "ratio" in self.list_of_responses[response_id]:
-                self.__setValueAsReference(response_id, value*self.list_of_responses[response_id]["ratio"])
+            if "specified_ratio" in self.list_of_responses[response_id]:
+                self.__setValueAsReference(response_id, value*self.list_of_responses[response_id]["specified_ratio"])
             else:
                 self.__setValueAsReference(response_id, value)
 
@@ -179,11 +179,11 @@ class Communicator:
                                                         "standardized_gradient": None,
                                                         "reference_value"      : None }
 
-            elif constraint["reference"].GetString() == "ratio_initial_value":
+            elif constraint["reference"].GetString() == "specified_ratio_to_initial":
                 list_of_constraints[constraint_id] = {  "type"                 : constraint["type"].GetString(),
                                                         "value"                : None,
                                                         "scaling_factor"       : constraint["scaling_factor"].GetDouble(),
-                                                        "ratio"                : constraint["ratio"].GetDouble(),
+                                                        "specified_ratio"      : constraint["specified_ratio"].GetDouble(),
                                                         "standardized_value"   : None,
                                                         "standardized_gradient": None,
                                                         "reference_value"      : None }
