@@ -178,6 +178,8 @@ public:
 
     ///@}
 
+    virtual void CalculateRotationMatrixInterfaceInfos(){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
+
 protected:
     ///@name Protected Life Cycle
     ///@{

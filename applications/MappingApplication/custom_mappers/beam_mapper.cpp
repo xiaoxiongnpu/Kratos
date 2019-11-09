@@ -121,7 +121,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         mProjectionOfPoint = projection_point;
         //std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
         
-        mpInterfaceObject = Kratos::make_shared<InterfaceObject>(rInterfaceObject); // save a pointer that points to the beam element
+        mpInterfaceObject = &rInterfaceObject; // save a pointer that points to the beam element
+        mpInterfaceObject->pGetBaseGeometry();
+        std::cout << "interfaceObject geometry was extracted successfully" << std::endl;
     }
     
 }
@@ -309,7 +311,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
         if( r_local_sys->HasInterfaceInfo())
         {
             //BeamMapperLocalSystem& rp_local_sys = dynamic_cast<BeamMapperLocalSystem&>((*r_local_sys));
-            //rp_local_sys.CalculateRotationMatrixInterfaceInfos();
+            r_local_sys->CalculateRotationMatrixInterfaceInfos();
 
         }
     }

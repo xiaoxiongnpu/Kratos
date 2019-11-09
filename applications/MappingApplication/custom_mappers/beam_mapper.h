@@ -111,7 +111,7 @@ public:
 
     // ANOTHER GET TO GET THE ROTATIONMATRIX INFORMATION
 
-    void ComputeRotationMatrixInterfaceObject()
+    void ComputeRotationMatrixInterfaceObject() override
     {
         ComputeRotationMatrix();
     }
@@ -132,7 +132,8 @@ private:
     ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
     double mLocalCoordTol; // this is not needed after searching, hence no need to serialize it // Do I really need this?
 
-    InterfaceObjectPointerType mpInterfaceObject;
+    //InterfaceObjectPointerType mpInterfaceObject;
+    const InterfaceObject* mpInterfaceObject;
 
     MatrixType mRotationMatrixOfBeam;
 
@@ -188,12 +189,12 @@ public:
         return mpNode->Coordinates();
     }
 
-    void CalculateRotationMatrixInterfaceInfos()
+    void CalculateRotationMatrixInterfaceInfos() override
     {
         for( auto& r_interface_info : mInterfaceInfos ){
             //std::cout << "This is a test" << std::endl;
             //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
-            //rp_interface_info.ComputeRotationMatrixInterfaceObject();
+            r_interface_info->ComputeRotationMatrixInterfaceObject();
         }
     }
 
