@@ -40,6 +40,8 @@ namespace Kratos
 class BeamMapperInterfaceInfo : public MapperInterfaceInfo
 {
 public:
+    typedef Kratos::shared_ptr<InterfaceObject> InterfaceObjectPointerType;
+    typedef Matrix MatrixType;
 
     /// Default constructor.
     explicit BeamMapperInterfaceInfo(const double LocalCoordTol=0.0) : mLocalCoordTol(LocalCoordTol) {}
@@ -107,6 +109,13 @@ public:
         rValue = mClosestProjectionDistance;
     }
 
+    // ANOTHER GET TO GET THE ROTATIONMATRIX INFORMATION
+
+    void ComputeRotationMatrixInterfaceObject()
+    {
+        ComputeRotationMatrix();
+    }
+
 private:
 
     std::vector<int> mNodeIds;
@@ -123,8 +132,15 @@ private:
     ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
     double mLocalCoordTol; // this is not needed after searching, hence no need to serialize it // Do I really need this?
 
+    InterfaceObjectPointerType mpInterfaceObject;
+
+    MatrixType mRotationMatrixOfBeam;
+
     void SaveSearchResult(const InterfaceObject& rInterfaceObject,
                           const bool ComputeApproximation);
+
+    // this computes the rotation matrix of the beam pointed by mpInterfaceObject
+    void ComputeRotationMatrix(); 
 
     friend class Serializer;
 
@@ -157,6 +173,7 @@ private:
 class BeamMapperLocalSystem : public MapperLocalSystem
 {
 public:
+    typedef Kratos::shared_ptr<BeamMapperInterfaceInfo> BeamMapperInterfaceInfoPointerType;
 
     explicit BeamMapperLocalSystem(NodePointerType pNode) : mpNode(pNode) {}
 
@@ -169,6 +186,15 @@ public:
     {
         KRATOS_DEBUG_ERROR_IF_NOT(mpNode) << "Members are not intitialized!" << std::endl;
         return mpNode->Coordinates();
+    }
+
+    void CalculateRotationMatrixInterfaceInfos()
+    {
+        for( auto& r_interface_info : mInterfaceInfos ){
+            //std::cout << "This is a test" << std::endl;
+            //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
+            //rp_interface_info.ComputeRotationMatrixInterfaceObject();
+        }
     }
 
     /// Turn back information as a string.
@@ -276,7 +302,7 @@ public:
               const Variable< array_1d<double, 3> >& rDestinationVariable, 
               Kratos::Flags MappingOptions)
     {
-        InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
+        //InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
         MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
 
     }
@@ -364,8 +390,6 @@ public:
 
     void Initialize();
 
-    void InitializeInformationBeams();
-
 private:
     ///@name Member Variables
     ///@{
@@ -387,11 +411,11 @@ private:
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerOrigin;
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerDestination;
 
-    //VectorType displacementNode1;
-    //VectorType displacementNode2;
-    //VectorType rotationNode1;
-    //VectorType rotationNode2;
-    //VectorType displacementNode1Rot; 
+    VectorType displacementNode1;
+    VectorType displacementNode2;
+    VectorType rotationNode1;
+    VectorType rotationNode2;
+    VectorType displacementNode1Rot; 
 
     ///@name Private Operations
     ///@{
@@ -399,6 +423,8 @@ private:
     void InitializeInterfaceCommunicator();
 
     void InitializeInterface(Kratos::Flags MappingOptions = Kratos::Flags());
+
+    void InitializeInformationBeams();
 
     void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 
@@ -416,72 +442,74 @@ private:
                      const Variable< array_1d<double, 3> >& rDestinationVariable,
                      Kratos::Flags MappingOptions)
     {   
-        VectorType displacementNode1_B(3);
-        VectorType rotationNode1_B(3);
-        std::tuple< VectorType, VectorType> DofsNode1_B;
-        DofsNode1_B = std::make_tuple(displacementNode1_B, rotationNode1_B);
+        InitializeInformationBeams();
 
-        VectorType displacementNode2_B(3);
-        VectorType rotationNode2_B(3);
-        std::tuple< VectorType, VectorType> DofsNode2_B;
-        DofsNode2_B = std::make_tuple(displacementNode2_B, rotationNode2_B);    
-        
-        RotateOriginVariablesLinear(rOriginVariablesDisplacements, rOriginVariablesRotations, 
-                                    DofsNode1_B, DofsNode2_B); 
+        //VectorType displacementNode1_B(3);
+        //VectorType rotationNode1_B(3);
+        //std::tuple< VectorType, VectorType> DofsNode1_B;
+        //DofsNode1_B = std::make_tuple(displacementNode1_B, rotationNode1_B);
+//
+        //VectorType displacementNode2_B(3);
+        //VectorType rotationNode2_B(3);
+        //std::tuple< VectorType, VectorType> DofsNode2_B;
+        //DofsNode2_B = std::make_tuple(displacementNode2_B, rotationNode2_B);    
+        //
+        //RotateOriginVariablesLinear(rOriginVariablesDisplacements, rOriginVariablesRotations, 
+        //                            DofsNode1_B, DofsNode2_B); 
 
     }
 
-    void RotateOriginVariablesLinear(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
-                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
-                                     std::tuple< VectorType, VectorType>& DofsNode1_B,
-                                     std::tuple< VectorType, VectorType>& DofsNode2_B )
-    {
-        VectorType displacementNode1(3);
-        VectorType displacementNode2(3);
-        VectorType rotationNode1(3);
-        VectorType rotationNode2(3);
-
-        const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
-
-        const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
-        const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
-
-        for (std::size_t i = 0; i < num_elements; ++i)
-        {   
-            size_t c = 0;
-            auto it_element = elements_begin + i;
-            auto it_nodes_line = (*it_element)->GetGeometry();
-            
-            size_t k = 0;
-            for (const auto& var_ext : var_comps)
-            {
-                const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
-                displacementNode1(k) = it_nodes_line[0].FastGetSolutionStepValue(var_origin_disp);
-                displacementNode2(k) = it_nodes_line[1].FastGetSolutionStepValue(var_origin_disp);
-
-                const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
-                rotationNode1(k) = it_nodes_line[0].FastGetSolutionStepValue(var_origin_rot);
-                rotationNode2(k) = it_nodes_line[1].FastGetSolutionStepValue(var_origin_rot);
-                k++;
-            }
-            //std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
-            //std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
-            //std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
-            //std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
-            
-            TDenseSpace::Mult( mRotationMatrixOfBeams[c], displacementNode1, std::get<0>(DofsNode1_B) );
-            TDenseSpace::Mult( mRotationMatrixOfBeams[c], rotationNode1, std::get<1>(DofsNode1_B) );
-            TDenseSpace::Mult( mRotationMatrixOfBeams[c], displacementNode2, std::get<0>(DofsNode2_B) );
-            TDenseSpace::Mult( mRotationMatrixOfBeams[c], rotationNode2, std::get<1>(DofsNode2_B) );
-            
-            //std::cout << "rotated displacement in node 1 is : " << std::get<0>(DofsNode1_B) << std::endl;
-            //std::cout << "rotated rotation in node 1 is : " << std::get<1>(DofsNode1_B) << std::endl;
-            //std::cout << "rotated displacement in node 2 is : " << std::get<0>(DofsNode2_B) << std::endl;
-            //std::cout << "rotated rotation in node 2 is : " << std::get<1>(DofsNode2_B) << std::endl;
-
-            c++;
-        }
-    }
+    //void RotateOriginVariablesLinear(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+    //                                 const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+    //                                 std::tuple< VectorType, VectorType>& DofsNode1_B,
+    //                                 std::tuple< VectorType, VectorType>& DofsNode2_B )
+    //{
+    //    VectorType displacementNode1(3);
+    //    VectorType displacementNode2(3);
+    //    VectorType rotationNode1(3);
+    //    VectorType rotationNode2(3);
+//
+    //    const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+//
+    //    const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
+    //    const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
+//
+    //    for (std::size_t i = 0; i < num_elements; ++i)
+    //    {   
+    //        size_t c = 0;
+    //        auto it_element = elements_begin + i;
+    //        auto it_nodes_line = (*it_element)->GetGeometry();
+    //        
+    //        size_t k = 0;
+    //        for (const auto& var_ext : var_comps)
+    //        {
+    //            const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
+    //            displacementNode1(k) = it_nodes_line[0].FastGetSolutionStepValue(var_origin_disp);
+    //            displacementNode2(k) = it_nodes_line[1].FastGetSolutionStepValue(var_origin_disp);
+//
+    //            const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
+    //            rotationNode1(k) = it_nodes_line[0].FastGetSolutionStepValue(var_origin_rot);
+    //            rotationNode2(k) = it_nodes_line[1].FastGetSolutionStepValue(var_origin_rot);
+    //            k++;
+    //        }
+    //        //std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
+    //        //std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
+    //        //std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
+    //        //std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
+    //        
+    //        TDenseSpace::Mult( mRotationMatrixOfBeams[c], displacementNode1, std::get<0>(DofsNode1_B) );
+    //        TDenseSpace::Mult( mRotationMatrixOfBeams[c], rotationNode1, std::get<1>(DofsNode1_B) );
+    //        TDenseSpace::Mult( mRotationMatrixOfBeams[c], displacementNode2, std::get<0>(DofsNode2_B) );
+    //        TDenseSpace::Mult( mRotationMatrixOfBeams[c], rotationNode2, std::get<1>(DofsNode2_B) );
+    //        
+    //        //std::cout << "rotated displacement in node 1 is : " << std::get<0>(DofsNode1_B) << std::endl;
+    //        //std::cout << "rotated rotation in node 1 is : " << std::get<1>(DofsNode1_B) << std::endl;
+    //        //std::cout << "rotated displacement in node 2 is : " << std::get<0>(DofsNode2_B) << std::endl;
+    //        //std::cout << "rotated rotation in node 2 is : " << std::get<1>(DofsNode2_B) << std::endl;
+//
+    //        c++;
+    //    }
+    //}
 
     MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const 
     {                                                                     
