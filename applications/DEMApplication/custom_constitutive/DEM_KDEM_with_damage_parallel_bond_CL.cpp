@@ -188,7 +188,7 @@ namespace Kratos {
 
         KRATOS_TRY
 
-        const double tension_limit = 0.5 * 1e6 * (GetContactSigmaMax(element1) + GetContactSigmaMax(element2));
+        const double tension_limit = 0.5 * (GetContactSigmaMax(element1) + GetContactSigmaMax(element2));
         const double fracture_energy = 0.5 * (element1->GetProperties()[FRACTURE_ENERGY] + element2->GetProperties()[FRACTURE_ENERGY]);
         mDamageEnergyCoeff = 2.0 * fracture_energy * kn_el / (calculation_area * tension_limit * tension_limit) - 1.0;
 
@@ -331,7 +331,7 @@ namespace Kratos {
 
         KRATOS_TRY
 
-        const double mTauZero = 0.5 * 1e6 * (GetTauZero(element1) + GetTauZero(element2));
+        const double mTauZero = 0.5 * (GetTauZero(element1) + GetTauZero(element2));
         const double mInternalFriction = 0.5 * (GetInternalFricc(element1) + GetInternalFricc(element2));
 
         double k_unload = 0.0;
@@ -562,9 +562,9 @@ namespace Kratos {
         double kn_el = equiv_young * calculation_area / initial_dist;
 
         if (&element1_props == &element2_props) {
-            mTensionLimit = 1e6 * GetContactSigmaMax(element1);
+            mTensionLimit = GetContactSigmaMax(element1);
         } else {
-            mTensionLimit = 0.5 * 1e6 * (GetContactSigmaMax(element1) + GetContactSigmaMax(element2));
+            mTensionLimit = 0.5 * (GetContactSigmaMax(element1) + GetContactSigmaMax(element2));
         }
 
         const double Ntstr_el = mTensionLimit * calculation_area;
