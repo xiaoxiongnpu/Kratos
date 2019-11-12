@@ -111,10 +111,17 @@ public:
         rValue = mClosestProjectionDistance;
     }
     
-    void GetValue(GeometryPointerType& rValue) const override
+    void GetValue(GeometryType& rValue) const override
     {
         mpInterfaceObject->PrintInfo(std::cout);
-        rValue = mpInterfaceObject->pGetBaseGeometry();
+        const auto geom = mpInterfaceObject->pGetBaseGeometry();
+
+        std::cout << "\nCoordinates 0 " << (*geom)[0].Coordinates() << std::endl;
+        std::cout << "\nCoordinates 1 " << (*geom)[1].Coordinates() << std::endl;
+
+        rValue = *(mpInterfaceObject->pGetBaseGeometry());
+        std::cout << "\nCoordinates 0 using pValue" << rValue[0].Coordinates() << std::endl;
+        std::cout << "\nCoordinates 1 using pValue" << rValue[1].Coordinates() << std::endl;
     }
 
     void GetValue(MatrixType& rotMatrixValue, 
@@ -220,19 +227,18 @@ public:
         return mpNode->Coordinates();
     }
 
-    void CalculateRotationMatrixInterfaceInfos(MatrixType _rotationMatrix_B,
-                                               VectorType _linearShapeValues,
-                                               VectorType _hermitianShapeValues,
-                                               VectorType _hermitanDerShapeValues,
-                                               GeometryPointerType p_geom) override
+    void CalculateRotationMatrixInterfaceInfos(MatrixType& _rotationMatrix_B,
+                                               VectorType& _linearShapeValues,
+                                               VectorType& _hermitianShapeValues,
+                                               VectorType& _hermitanDerShapeValues,
+                                               GeometryType& r_geom) override
     {
         for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
             //std::cout << "This is a test" << std::endl;
             //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
             r_interface_info->ComputeRotationMatrixInterfaceObject();
-            std::cout << "here is the error??" << std::endl;
             r_interface_info->GetValue(_rotationMatrix_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
-            r_interface_info->GetValue(p_geom);
+            r_interface_info->GetValue(r_geom);
         }
     }
 
@@ -286,6 +292,7 @@ public:
     typedef typename TDenseSpace::VectorType VectorType; 
 
     typedef VariableComponent< VectorComponentAdaptor<array_1d<double, 3> > > ComponentVariableType;
+    typedef InterfaceObject::GeometryType GeometryType;
     typedef InterfaceObject::GeometryPointerType GeometryPointerType;
     ///@}
     ///@name Life Cycle
@@ -342,7 +349,7 @@ public:
               Kratos::Flags MappingOptions)
     {
         //InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
-        //MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
 
     }
 

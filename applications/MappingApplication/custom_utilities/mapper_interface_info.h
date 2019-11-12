@@ -168,7 +168,7 @@ public:
     virtual void GetValue(std::vector<bool>& rValue, const InfoType ValueType) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
     virtual void GetValue(std::vector<GeometryType>& rValue, const InfoType ValueType) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
 
-    virtual void GetValue(GeometryPointerType& rValue ) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
+    virtual void GetValue(GeometryType& rValue ) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
     virtual void GetValue(MatrixType& rotMatrixValue, VectorType& linearValue, VectorType& hermitianValue, VectorType& hermitanDerValue) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
 
     ///@}

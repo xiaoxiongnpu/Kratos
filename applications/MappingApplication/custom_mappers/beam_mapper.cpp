@@ -325,16 +325,16 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             VectorType _linearShapeValues(2);
             VectorType _hermitianShapeValues(4);
             VectorType _hermitanDerShapeValues(4);
-            GeometryPointerType p_geom;
+            GeometryType r_geom;
 
             r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_B,
                                                                _linearShapeValues,
                                                                _hermitianShapeValues,
                                                                _hermitanDerShapeValues,
-                                                               p_geom);
+                                                               r_geom);
             
-            std::cout << "passed error" << std::endl;
-            std::cout << "first node" << (*p_geom)[0].Coordinates() << std::endl;
+            std::cout << "1 node " << r_geom[0].Coordinates() << std::endl;
+            std::cout << "2 node " << r_geom[1].Coordinates() << std::endl;
             //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             //VectorType displacementNode1_G(3); //Expresses in global coordinates
             //VectorType displacementNode2_G(3); //Expresses in global coordinates
