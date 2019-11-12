@@ -43,6 +43,7 @@ class BeamMapperInterfaceInfo : public MapperInterfaceInfo
 public:
     typedef Kratos::shared_ptr<InterfaceObject> InterfaceObjectPointerType;
     typedef Matrix MatrixType;
+    typedef Vector VectorType;
 
     /// Default constructor.
     explicit BeamMapperInterfaceInfo(const double LocalCoordTol=0.0) : mLocalCoordTol(LocalCoordTol) {}
@@ -217,12 +218,18 @@ public:
         return mpNode->Coordinates();
     }
 
-    void CalculateRotationMatrixInterfaceInfos() override
+    void CalculateRotationMatrixInterfaceInfos(MatrixType _rotationMatrix_B,
+                                               VectorType _linearShapeValues,
+                                               VectorType _hermitianShapeValues,
+                                               VectorType _hermitanDerShapeValues,
+                                               GeometryPointerType p_geom) override
     {
-        for( auto& r_interface_info : mInterfaceInfos ){
+        for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
             //std::cout << "This is a test" << std::endl;
             //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
             r_interface_info->ComputeRotationMatrixInterfaceObject();
+            r_interface_info->GetValue(_rotationMatrix_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
+            r_interface_info->GetValue(p_geom);
         }
     }
 
@@ -276,7 +283,7 @@ public:
     typedef typename TDenseSpace::VectorType VectorType; 
 
     typedef VariableComponent< VectorComponentAdaptor<array_1d<double, 3> > > ComponentVariableType;
-    
+    typedef InterfaceObject::GeometryPointerType GeometryPointerType;
     ///@}
     ///@name Life Cycle
     ///@{

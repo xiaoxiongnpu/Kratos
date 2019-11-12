@@ -312,8 +312,17 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
         // Calculates rotation matrices
         if( r_local_sys->HasInterfaceInfo())
         {
-            //BeamMapperLocalSystem& rp_local_sys = dynamic_cast<BeamMapperLocalSystem&>((*r_local_sys));
-            r_local_sys->CalculateRotationMatrixInterfaceInfos();
+            MatrixType _rotationMatrix_B;
+            VectorType _linearShapeValues;
+            VectorType _hermitianShapeValues;
+            VectorType _hermitanDerShapeValues;
+            GeometryPointerType p_geom;
+
+            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_B,
+                                                               _linearShapeValues,
+                                                               _hermitianShapeValues,
+                                                               _hermitanDerShapeValues,
+                                                               p_geom);
             
             //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             //VectorType displacementNode1(3);

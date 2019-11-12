@@ -51,6 +51,7 @@ public:
     typedef typename MapperInterfaceInfo::CoordinatesArrayType CoordinatesArrayType;
 
     typedef Matrix MatrixType;
+    typedef Vector VectorType;
     typedef std::vector<int> EquationIdVectorType; // int bcs of mpi
 
     typedef InterfaceObject::NodePointerType NodePointerType;
@@ -178,7 +179,11 @@ public:
 
     ///@}
 
-    virtual void CalculateRotationMatrixInterfaceInfos(){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
+    virtual void CalculateRotationMatrixInterfaceInfos(MatrixType _rotationMatrix_B,
+                                                       VectorType _linearShapeValues,
+                                                       VectorType _hermitianShapeValues,
+                                                       VectorType _hermitanDerShapeValues,
+                                                       GeometryPointerType p_geom){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
 
 protected:
     ///@name Protected Life Cycle
