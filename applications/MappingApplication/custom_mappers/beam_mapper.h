@@ -113,6 +113,7 @@ public:
     
     void GetValue(GeometryPointerType& rValue) const override
     {
+        mpInterfaceObject->PrintInfo(std::cout);
         rValue = mpInterfaceObject->pGetBaseGeometry();
     }
 
@@ -122,22 +123,23 @@ public:
                   VectorType& hermitanDerValue) const override 
     {
         rotMatrixValue = mRotationMatrixOfBeam;
+        //std::cout << "rotMatrixValue" << rotMatrixValue << std::endl;
+//
+        //std::cout << "mlinearShapeFunctionValues " << mLinearShapeFunctionValues << std::endl;
+        //std::cout << "mHermitianShapeFunctionValues " << mHermitianShapeFunctionValues << std::endl;
+        //std::cout << "mHermitianShapeFunctionDeriValues " << mHermitianShapeFunctionValuesDerivatives << std::endl;
         
-        std::size_t n = mLinearShapeFunctionValues.size();
-        linearValue( n );
-        for (std::size_t i = 0; i < n; i++)
-        {
-            linearValue( i ) = mLinearShapeFunctionValues[i];
-        }
+        linearValue( 0 ) = mLinearShapeFunctionValues[0];
+        linearValue( 1 ) = mLinearShapeFunctionValues[1];
 
-        std::size_t m = mHermitianShapeFunctionValues.size();
-        hermitianValue( m );
-        hermitanDerValue( m );
-        for (std::size_t j = 0; j < m; j++)
-        {
-            hermitianValue( j ) = mHermitianShapeFunctionValues[j];
-            hermitanDerValue( j ) = mHermitianShapeFunctionValuesDerivatives[j];
+        for (size_t i = 0; i < 4; i++){
+            hermitianValue( i ) = mHermitianShapeFunctionValues[i];
+            hermitanDerValue( i ) = mHermitianShapeFunctionValuesDerivatives[i];
         }
+        
+        std::cout << "vector linear" << linearValue << std::endl;
+        std::cout << "vector hermitian" << hermitianValue << std::endl;
+        std::cout << "vector hermitian derivatives" << hermitanDerValue << std::endl;
     }
 
     void ComputeRotationMatrixInterfaceObject() override
@@ -161,8 +163,8 @@ private:
     ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
     double mLocalCoordTol; // this is not needed after searching, hence no need to serialize it // Do I really need this?
 
-    //InterfaceObjectPointerType mpInterfaceObject;
-    const InterfaceObject* mpInterfaceObject;
+    InterfaceObjectPointerType mpInterfaceObject;
+    //const InterfaceObject* mpInterfaceObject;
 
     MatrixType mRotationMatrixOfBeam;
 
@@ -228,6 +230,7 @@ public:
             //std::cout << "This is a test" << std::endl;
             //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
             r_interface_info->ComputeRotationMatrixInterfaceObject();
+            std::cout << "here is the error??" << std::endl;
             r_interface_info->GetValue(_rotationMatrix_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(p_geom);
         }
@@ -339,7 +342,7 @@ public:
               Kratos::Flags MappingOptions)
     {
         //InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
-        MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
 
     }
 

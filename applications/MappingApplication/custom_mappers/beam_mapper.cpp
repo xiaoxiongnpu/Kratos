@@ -50,7 +50,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
                                                const bool ComputeApproximation)
 {
     const auto p_geom = rInterfaceObject.pGetBaseGeometry();
-
+    std::cout << "my first result " << std::endl;
+    rInterfaceObject.PrintInfo(std::cout);
+    std::cout << "\n";
     double proj_dist;
 
     const Point point_to_proj(this->Coordinates());
@@ -121,9 +123,16 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         mProjectionOfPoint = projection_point;
         //std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
         
-        mpInterfaceObject = &rInterfaceObject; // save a pointer that points to the beam element
-        mpInterfaceObject->pGetBaseGeometry();
-        std::cout << "interfaceObject geometry was extracted successfully" << std::endl;
+        //mpInterfaceObject = &rInterfaceObject; // save a pointer that points to the beam element
+        rInterfaceObject.PrintInfo(std::cout);
+        std::cout << "\n-----" << std::endl;
+        mpInterfaceObject = make_shared<InterfaceGeometryObject>(rInterfaceObject.pGetBaseGeometry());
+        mpInterfaceObject->PrintInfo(std::cout);
+        const auto g = mpInterfaceObject->pGetBaseGeometry();
+        std::cout << "\n coordinate 1  " << (*g)[0].Coordinates() << std::endl;
+        std::cout << "\n coordinate 2  " << (*g)[1].Coordinates() << std::endl;
+        //std::cout << "interfaceObject geometry was extracted successfully" << std::endl;
+        std::cout << "\n------------- END OF SEARCH -----------------" << std::endl;
     }
     
 }
@@ -312,10 +321,10 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
         // Calculates rotation matrices
         if( r_local_sys->HasInterfaceInfo())
         {
-            MatrixType _rotationMatrix_B;
-            VectorType _linearShapeValues;
-            VectorType _hermitianShapeValues;
-            VectorType _hermitanDerShapeValues;
+            MatrixType _rotationMatrix_B(3, 3);
+            VectorType _linearShapeValues(2);
+            VectorType _hermitianShapeValues(4);
+            VectorType _hermitanDerShapeValues(4);
             GeometryPointerType p_geom;
 
             r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_B,
@@ -324,11 +333,52 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
                                                                _hermitanDerShapeValues,
                                                                p_geom);
             
+            std::cout << "passed error" << std::endl;
+            std::cout << "first node" << (*p_geom)[0].Coordinates() << std::endl;
             //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
-            //VectorType displacementNode1(3);
-            //VectorType displacementNode2(3);
-            //VectorType rotationNode1(3);
-            //VectorType rotationNode2(3);
+            //VectorType displacementNode1_G(3); //Expresses in global coordinates
+            //VectorType displacementNode2_G(3); //Expresses in global coordinates
+            //VectorType rotationNode1_G(3); //Expresses in global coordinates
+            //VectorType rotationNode2_G(3); //Expresses in global coordinates
+//
+            //VectorType displacementNode1_B(3); //Expresses in beam coordinates
+            //VectorType displacementNode2_B(3); //Expresses in beam coordinates
+            //VectorType rotationNode1_B(3); //Expresses in beam coordinates
+            //VectorType rotationNode2_B(3); //Expresses in beam coordinates
+//
+//
+            //size_t k = 0;
+//
+            //for (const auto& var_ext : var_comps)
+            //{
+            //    const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
+            //    displacementNode1_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_disp);
+            //    displacementNode2_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_disp);
+//
+//
+            //    const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
+            //    rotationNode1_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_rot);
+            //    rotationNode2_G(k) = (*p_geom)[1].FastGetSolutionStepValue(var_origin_rot);
+            //    k++;
+            //}
+            ////std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
+            ////std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
+            ////std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
+            ////std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
+//
+            //MatrixType _RotationMatrixInverse( 3, 3 );
+            //double determinant;
+            //MathUtils<double>::InvertMatrix3(_rotationMatrix_B, _RotationMatrixInverse, determinant );
+            //
+            //TDenseSpace::Mult( _RotationMatrixInverse, displacementNode1_G, displacementNode1_B );
+            //TDenseSpace::Mult( _RotationMatrixInverse, rotationNode1_G, rotationNode1_B );
+            //TDenseSpace::Mult( _RotationMatrixInverse, displacementNode2_G, displacementNode2_B );
+            //TDenseSpace::Mult( _RotationMatrixInverse, rotationNode2_G, rotationNode2_B );
+            //
+            //std::cout << "rotated displacement in node 1 is : " << displacementNode1_B << std::endl;
+            //std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
+            //std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
+            //std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
         }
     }
 
