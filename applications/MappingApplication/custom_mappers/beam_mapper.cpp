@@ -333,52 +333,52 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
                                                                _hermitanDerShapeValues,
                                                                r_geom);
             
-            std::cout << "1 node " << r_geom[0].Coordinates() << std::endl;
-            std::cout << "2 node " << r_geom[1].Coordinates() << std::endl;
-            //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
-            //VectorType displacementNode1_G(3); //Expresses in global coordinates
-            //VectorType displacementNode2_G(3); //Expresses in global coordinates
-            //VectorType rotationNode1_G(3); //Expresses in global coordinates
-            //VectorType rotationNode2_G(3); //Expresses in global coordinates
-//
-            //VectorType displacementNode1_B(3); //Expresses in beam coordinates
-            //VectorType displacementNode2_B(3); //Expresses in beam coordinates
-            //VectorType rotationNode1_B(3); //Expresses in beam coordinates
-            //VectorType rotationNode2_B(3); //Expresses in beam coordinates
-//
-//
-            //size_t k = 0;
-//
-            //for (const auto& var_ext : var_comps)
-            //{
-            //    const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
-            //    displacementNode1_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_disp);
-            //    displacementNode2_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_disp);
-//
-//
-            //    const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
-            //    rotationNode1_G(k) = (*p_geom)[0].FastGetSolutionStepValue(var_origin_rot);
-            //    rotationNode2_G(k) = (*p_geom)[1].FastGetSolutionStepValue(var_origin_rot);
-            //    k++;
-            //}
-            ////std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
-            ////std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
-            ////std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
-            ////std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
-//
-            //MatrixType _RotationMatrixInverse( 3, 3 );
-            //double determinant;
-            //MathUtils<double>::InvertMatrix3(_rotationMatrix_B, _RotationMatrixInverse, determinant );
-            //
-            //TDenseSpace::Mult( _RotationMatrixInverse, displacementNode1_G, displacementNode1_B );
-            //TDenseSpace::Mult( _RotationMatrixInverse, rotationNode1_G, rotationNode1_B );
-            //TDenseSpace::Mult( _RotationMatrixInverse, displacementNode2_G, displacementNode2_B );
-            //TDenseSpace::Mult( _RotationMatrixInverse, rotationNode2_G, rotationNode2_B );
-            //
-            //std::cout << "rotated displacement in node 1 is : " << displacementNode1_B << std::endl;
-            //std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
-            //std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
-            //std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
+            //std::cout << "1 node " << r_geom[0].Coordinates() << std::endl;
+            //std::cout << "2 node " << r_geom[1].Coordinates() << std::endl;
+            
+            const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+            VectorType displacementNode1_G(3); //Expresses in global coordinates
+            VectorType displacementNode2_G(3); //Expresses in global coordinates
+            VectorType rotationNode1_G(3); //Expresses in global coordinates
+            VectorType rotationNode2_G(3); //Expresses in global coordinates
+
+            VectorType displacementNode1_B(3); //Expresses in beam coordinates
+            VectorType displacementNode2_B(3); //Expresses in beam coordinates
+            VectorType rotationNode1_B(3); //Expresses in beam coordinates
+            VectorType rotationNode2_B(3); //Expresses in beam coordinates
+
+            size_t k = 0;
+
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
+                displacementNode1_G(k) = r_geom[0].FastGetSolutionStepValue(var_origin_disp);
+                displacementNode2_G(k) = r_geom[1].FastGetSolutionStepValue(var_origin_disp);
+
+
+                const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
+                rotationNode1_G(k) = r_geom[0].FastGetSolutionStepValue(var_origin_rot);
+                rotationNode2_G(k) = r_geom[1].FastGetSolutionStepValue(var_origin_rot);
+                k++;
+            }
+            //std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
+            //std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
+            //std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
+            //std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
+
+            MatrixType _rotationMatrixInverse( 3, 3 );
+            double determinant;
+            MathUtils<double>::InvertMatrix3(_rotationMatrix_B, _rotationMatrixInverse, determinant );
+            
+            TDenseSpace::Mult( _rotationMatrixInverse, displacementNode1_G, displacementNode1_B );
+            TDenseSpace::Mult( _rotationMatrixInverse, rotationNode1_G, rotationNode1_B );
+            TDenseSpace::Mult( _rotationMatrixInverse, displacementNode2_G, displacementNode2_B );
+            TDenseSpace::Mult( _rotationMatrixInverse, rotationNode2_G, rotationNode2_B );
+            
+            std::cout << "rotated displacement in node 1 is : " << displacementNode1_B << std::endl;
+            std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
+            std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
+            std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
         }
     }
 
