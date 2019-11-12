@@ -304,73 +304,80 @@ void BeamMapper<MapperDefinitions::MPISparseSpaceType,
 #endif
 
 template<class TSparseSpace, class TDenseSpace>
-void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams()
+void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+                                                                       const Variable< array_1d<double, 3> >& rOriginVariablesRotations)
 {
     for( auto& r_local_sys : mMapperLocalSystems )
     {
+        // Calculates rotation matrices
         if( r_local_sys->HasInterfaceInfo())
         {
             //BeamMapperLocalSystem& rp_local_sys = dynamic_cast<BeamMapperLocalSystem&>((*r_local_sys));
             r_local_sys->CalculateRotationMatrixInterfaceInfos();
-
+            
+            //const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+            //VectorType displacementNode1(3);
+            //VectorType displacementNode2(3);
+            //VectorType rotationNode1(3);
+            //VectorType rotationNode2(3);
         }
     }
 
 
-    // OLD CODE
-    std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
-    
-    const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
-    mRotationMatrixOfBeams.resize(num_elements);
-    
-    const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
-
-    for (std::size_t i = 0; i < num_elements; ++i){
-        auto it_elem = elements_begin + i;
-        array_1d<double, 3> axisX;
-        array_1d<double, 3> axisY;
-        array_1d<double, 3> axisZ;
-
-        auto& geometry_line = (*it_elem)->GetGeometry()
-        ;
-        auto temp_v = geometry_line[1].Coordinates() - geometry_line[0].Coordinates();
-        double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
-        axisX = (temp_v / lengthX); 
-        
-        double lengthY = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1]);
-        axisY[0] = -temp_v[1] / lengthY;
-        axisY[1] =  temp_v[0] / lengthY;
-        axisY[2] =  0;
-
-        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
-        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
-        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
-
-        //std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
-        //std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
-        //std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
-
-        MatrixType _RotationMatrix( 3, 3, 0.0 );
-
-        for(std::size_t j = 0; j < 3; j++)
-        {
-            _RotationMatrix( j, 0 ) = axisX[j];
-            _RotationMatrix( j, 1 ) = axisY[j];
-            _RotationMatrix( j, 2 ) = axisZ[j];
-        }
-
-        mRotationMatrixOfBeams[i] = _RotationMatrix;
-
-        // How to calculate the inverse of a matrix:
-        // TMappingMatrixType _RotationMatrixInverse ( 3, 3 );
-        // double determinant;
-        // MathUtils<double>::InvertMatrix3(_RotationMatrix, _RotationMatrixInverse, determinant );
-        // std::cout << "Inverse of a matrix " << _RotationMatrixInverse << std::endl;
-    }
-    
-    std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
-    std::cout << "rotationMatrixOfBeams[0] :" << mRotationMatrixOfBeams[0] << std::endl;
-    std::cout << "rotationMatrixOfBeams[1] :" << mRotationMatrixOfBeams[1] << std::endl;
+    //// OLD CODE
+    //std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
+    //
+    //const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
+    //mRotationMatrixOfBeams.resize(num_elements);
+    //
+    //const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
+//
+    //for (std::size_t i = 0; i < num_elements; ++i){
+    //    auto it_elem = elements_begin + i;
+    //    array_1d<double, 3> axisX;
+    //    array_1d<double, 3> axisY;
+    //    array_1d<double, 3> axisZ;
+//
+    //    auto& geometry_line = (*it_elem)->GetGeometry()
+    //    ;
+    //    auto temp_v = geometry_line[1].Coordinates() - geometry_line[0].Coordinates();
+    //    double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
+    //    axisX = (temp_v / lengthX); 
+    //    
+    //    double lengthY = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1]);
+    //    axisY[0] = -temp_v[1] / lengthY;
+    //    axisY[1] =  temp_v[0] / lengthY;
+    //    axisY[2] =  0;
+//
+    //    axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+    //    axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+    //    axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+//
+    //    //std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
+    //    //std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
+    //    //std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
+//
+    //    MatrixType _RotationMatrix( 3, 3, 0.0 );
+//
+    //    for(std::size_t j = 0; j < 3; j++)
+    //    {
+    //        _RotationMatrix( j, 0 ) = axisX[j];
+    //        _RotationMatrix( j, 1 ) = axisY[j];
+    //        _RotationMatrix( j, 2 ) = axisZ[j];
+    //    }
+//
+    //    mRotationMatrixOfBeams[i] = _RotationMatrix;
+//
+    //    // How to calculate the inverse of a matrix:
+    //    // TMappingMatrixType _RotationMatrixInverse ( 3, 3 );
+    //    // double determinant;
+    //    // MathUtils<double>::InvertMatrix3(_RotationMatrix, _RotationMatrixInverse, determinant );
+    //    // std::cout << "Inverse of a matrix " << _RotationMatrixInverse << std::endl;
+    //}
+    //
+    //std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
+    //std::cout << "rotationMatrixOfBeams[0] :" << mRotationMatrixOfBeams[0] << std::endl;
+    //std::cout << "rotationMatrixOfBeams[1] :" << mRotationMatrixOfBeams[1] << std::endl;
 }
 
 template<class TSparseSpace, class TDenseSpace>

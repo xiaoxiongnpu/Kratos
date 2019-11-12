@@ -55,6 +55,10 @@ public:
 
     typedef InterfaceObject::NodeType NodeType;
     typedef InterfaceObject::GeometryType GeometryType;
+    typedef InterfaceObject::GeometryPointerType GeometryPointerType;
+
+    typedef Matrix MatrixType;
+    typedef Vector VectorType;
 
     ///@}
     ///@name  Enum's
@@ -164,7 +168,8 @@ public:
     virtual void GetValue(std::vector<bool>& rValue, const InfoType ValueType) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
     virtual void GetValue(std::vector<GeometryType>& rValue, const InfoType ValueType) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
 
-    //virtual void GetValue(std::vector<GeometryType>& rValue, const InfoType ValueType) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
+    virtual void GetValue(GeometryPointerType& rValue ) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
+    virtual void GetValue(MatrixType& rotMatrixValue, VectorType& linearValue, VectorType& hermitianValue, VectorType& hermitanDerValue) const { KRATOS_ERROR << "Base class function called!" << std::endl; }
 
     ///@}
     ///@name Input and output
