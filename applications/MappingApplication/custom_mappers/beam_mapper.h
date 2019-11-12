@@ -100,28 +100,18 @@ public:
     void GetValue(int& rValue,
                   const InfoType ValueType) const override
     {   
-        //rValue = mClosestProjectionDistance;
         rValue = (int)mPairingIndex;
     }
 
     void GetValue(double& rValue,
                   const InfoType ValueType) const override
-    {   std::cout << "Geting closest projection Distance" << std::endl;
-        //rValue = (int)mPairingIndex;
+    {   
         rValue = mClosestProjectionDistance;
     }
     
     void GetValue(GeometryType& rValue) const override
     {
-        mpInterfaceObject->PrintInfo(std::cout);
-        const auto geom = mpInterfaceObject->pGetBaseGeometry();
-
-        std::cout << "\nCoordinates 0 " << (*geom)[0].Coordinates() << std::endl;
-        std::cout << "\nCoordinates 1 " << (*geom)[1].Coordinates() << std::endl;
-
         rValue = *(mpInterfaceObject->pGetBaseGeometry());
-        std::cout << "\nCoordinates 0 using pValue" << rValue[0].Coordinates() << std::endl;
-        std::cout << "\nCoordinates 1 using pValue" << rValue[1].Coordinates() << std::endl;
     }
 
     void GetValue(MatrixType& rotMatrixValue, 
@@ -130,11 +120,6 @@ public:
                   VectorType& hermitanDerValue) const override 
     {
         rotMatrixValue = mRotationMatrixOfBeam;
-        //std::cout << "rotMatrixValue" << rotMatrixValue << std::endl;
-//
-        //std::cout << "mlinearShapeFunctionValues " << mLinearShapeFunctionValues << std::endl;
-        //std::cout << "mHermitianShapeFunctionValues " << mHermitianShapeFunctionValues << std::endl;
-        //std::cout << "mHermitianShapeFunctionDeriValues " << mHermitianShapeFunctionValuesDerivatives << std::endl;
         
         linearValue( 0 ) = mLinearShapeFunctionValues[0];
         linearValue( 1 ) = mLinearShapeFunctionValues[1];
@@ -143,10 +128,6 @@ public:
             hermitianValue( i ) = mHermitianShapeFunctionValues[i];
             hermitanDerValue( i ) = mHermitianShapeFunctionValuesDerivatives[i];
         }
-        
-        std::cout << "vector linear" << linearValue << std::endl;
-        std::cout << "vector hermitian" << hermitianValue << std::endl;
-        std::cout << "vector hermitian derivatives" << hermitanDerValue << std::endl;
     }
 
     void ComputeRotationMatrixInterfaceObject() override
@@ -234,8 +215,6 @@ public:
                                                GeometryType& r_geom) override
     {
         for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
-            //std::cout << "This is a test" << std::endl;
-            //BeamMapperInterfaceInfo& rp_interface_info = dynamic_cast<BeamMapperInterfaceInfo&>((*r_interface_info));
             r_interface_info->ComputeRotationMatrixInterfaceObject();
             r_interface_info->GetValue(_rotationMatrix_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(r_geom);
@@ -348,9 +327,7 @@ public:
               const Variable< array_1d<double, 3> >& rDestinationVariable, 
               Kratos::Flags MappingOptions)
     {
-        //InitializeInformationBeams(); // Calculates the rotation matrices of the beam elements
         MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
-
     }
 
     void Map( const Variable<double>& rOriginVariable, const Variable<double>& rDestinationVariable,
