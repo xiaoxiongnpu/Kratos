@@ -379,64 +379,52 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
             std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
             std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
+
+            //double _VX, _VY, _VZ, _ThetaX, _ThetaY, _ThetaZ;
+
+            // Initializing matrix of shape functions
+            MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
+
+            _ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3);
+            
+            _ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(4 , 10) = -_hermitanDerShapeValues(3);
+            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3);
+            
+            VectorType _DOF_Vector(12);
+            for (size_t i = 0; i < 3; i++){
+                _DOF_Vector(i) = displacementNode1_B(i);
+                _DOF_Vector(i + 3) = rotationNode1_B(i);
+                _DOF_Vector(i + 6) = displacementNode2_B(i);
+                _DOF_Vector(i + 9) = rotationNode2_B(i);
+            }
+
+            std::cout << "_ShapeFunctionsMatrix is : " << _ShapeFunctionsMatrix << std::endl;
+            std::cout << "_DOF_Vector is : " << _DOF_Vector << std::endl;
+            
+            VectorType _DisplacementsRotationsP(6);
+            TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector, _DisplacementsRotationsP);
+
+            std::cout << "Interpolated displacements and rotations are : " << _DisplacementsRotationsP << std::endl;
+            std::cout << "-------------------------- END OF INTERPOLATION ---------------------------" << std::endl; 
         }
     }
-
-
-    //// OLD CODE
-    //std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
-    //
-    //const std::size_t num_elements = mrModelPartOrigin.GetCommunicator().LocalMesh().NumberOfElements();
-    //mRotationMatrixOfBeams.resize(num_elements);
-    //
-    //const auto elements_begin = mrModelPartOrigin.GetCommunicator().LocalMesh().Elements().ptr_begin();
-//
-    //for (std::size_t i = 0; i < num_elements; ++i){
-    //    auto it_elem = elements_begin + i;
-    //    array_1d<double, 3> axisX;
-    //    array_1d<double, 3> axisY;
-    //    array_1d<double, 3> axisZ;
-//
-    //    auto& geometry_line = (*it_elem)->GetGeometry()
-    //    ;
-    //    auto temp_v = geometry_line[1].Coordinates() - geometry_line[0].Coordinates();
-    //    double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
-    //    axisX = (temp_v / lengthX); 
-    //    
-    //    double lengthY = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1]);
-    //    axisY[0] = -temp_v[1] / lengthY;
-    //    axisY[1] =  temp_v[0] / lengthY;
-    //    axisY[2] =  0;
-//
-    //    axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
-    //    axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
-    //    axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
-//
-    //    //std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
-    //    //std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
-    //    //std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
-//
-    //    MatrixType _RotationMatrix( 3, 3, 0.0 );
-//
-    //    for(std::size_t j = 0; j < 3; j++)
-    //    {
-    //        _RotationMatrix( j, 0 ) = axisX[j];
-    //        _RotationMatrix( j, 1 ) = axisY[j];
-    //        _RotationMatrix( j, 2 ) = axisZ[j];
-    //    }
-//
-    //    mRotationMatrixOfBeams[i] = _RotationMatrix;
-//
-    //    // How to calculate the inverse of a matrix:
-    //    // TMappingMatrixType _RotationMatrixInverse ( 3, 3 );
-    //    // double determinant;
-    //    // MathUtils<double>::InvertMatrix3(_RotationMatrix, _RotationMatrixInverse, determinant );
-    //    // std::cout << "Inverse of a matrix " << _RotationMatrixInverse << std::endl;
-    //}
-    //
-    //std::cout << "size of rotationMatrixOfBeams :" << mRotationMatrixOfBeams.size() << std::endl;
-    //std::cout << "rotationMatrixOfBeams[0] :" << mRotationMatrixOfBeams[0] << std::endl;
-    //std::cout << "rotationMatrixOfBeams[1] :" << mRotationMatrixOfBeams[1] << std::endl;
 }
 
 template<class TSparseSpace, class TDenseSpace>
