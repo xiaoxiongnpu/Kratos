@@ -321,20 +321,19 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
         // Calculates rotation matrices
         if( r_local_sys->HasInterfaceInfo())
         {
-            MatrixType _rotationMatrix_B(3, 3);
+            MatrixType _rotationMatrix_G_B(3, 3);
+            VectorType _translationVector_B_P(3);
             VectorType _linearShapeValues(2);
             VectorType _hermitianShapeValues(4);
             VectorType _hermitanDerShapeValues(4);
-            GeometryType r_geom;
+            GeometryType _r_geom;
 
-            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_B,
+            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
+                                                               _translationVector_B_P,
                                                                _linearShapeValues,
                                                                _hermitianShapeValues,
                                                                _hermitanDerShapeValues,
-                                                               r_geom);
-            
-            //std::cout << "1 node " << r_geom[0].Coordinates() << std::endl;
-            //std::cout << "2 node " << r_geom[1].Coordinates() << std::endl;
+                                                               _r_geom);
             
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             VectorType displacementNode1_G(3); //Expresses in global coordinates
@@ -352,13 +351,13 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             for (const auto& var_ext : var_comps)
             {
                 const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
-                displacementNode1_G(k) = r_geom[0].FastGetSolutionStepValue(var_origin_disp);
-                displacementNode2_G(k) = r_geom[1].FastGetSolutionStepValue(var_origin_disp);
+                displacementNode1_G(k) = _r_geom[0].FastGetSolutionStepValue(var_origin_disp);
+                displacementNode2_G(k) = _r_geom[1].FastGetSolutionStepValue(var_origin_disp);
 
 
                 const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
-                rotationNode1_G(k) = r_geom[0].FastGetSolutionStepValue(var_origin_rot);
-                rotationNode2_G(k) = r_geom[1].FastGetSolutionStepValue(var_origin_rot);
+                rotationNode1_G(k) = _r_geom[0].FastGetSolutionStepValue(var_origin_rot);
+                rotationNode2_G(k) = _r_geom[1].FastGetSolutionStepValue(var_origin_rot);
                 k++;
             }
             //std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
@@ -366,21 +365,19 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             //std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
             //std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
 
-            MatrixType _rotationMatrixInverse( 3, 3 );
+            MatrixType _rotationMatrix_B_G( 3, 3 );
             double determinant;
-            MathUtils<double>::InvertMatrix3(_rotationMatrix_B, _rotationMatrixInverse, determinant );
+            MathUtils<double>::InvertMatrix3(_rotationMatrix_G_B, _rotationMatrix_B_G, determinant );
             
-            TDenseSpace::Mult( _rotationMatrixInverse, displacementNode1_G, displacementNode1_B );
-            TDenseSpace::Mult( _rotationMatrixInverse, rotationNode1_G, rotationNode1_B );
-            TDenseSpace::Mult( _rotationMatrixInverse, displacementNode2_G, displacementNode2_B );
-            TDenseSpace::Mult( _rotationMatrixInverse, rotationNode2_G, rotationNode2_B );
+            TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
+            TDenseSpace::Mult( _rotationMatrix_B_G, rotationNode1_G, rotationNode1_B );
+            TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
+            TDenseSpace::Mult( _rotationMatrix_B_G, rotationNode2_G, rotationNode2_B );
             
-            std::cout << "rotated displacement in node 1 is : " << displacementNode1_B << std::endl;
-            std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
-            std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
-            std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
-
-            //double _VX, _VY, _VZ, _ThetaX, _ThetaY, _ThetaZ;
+            //std::cout << "rotated displacement in node 1 is : " << displacementNode1_B << std::endl;
+            //std::cout << "rotated rotation in node 1 is : " << rotationNode1_B << std::endl;
+            //std::cout << "rotated displacement in node 2 is : " << displacementNode2_B << std::endl;
+            //std::cout << "rotated rotation in node 2 is : " << rotationNode2_B << std::endl;
 
             // Initializing matrix of shape functions
             MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
@@ -423,8 +420,79 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
 
             std::cout << "Interpolated displacements and rotations are : " << _DisplacementsRotationsP << std::endl;
             std::cout << "-------------------------- END OF INTERPOLATION ---------------------------" << std::endl; 
+
+            VectorType axisX(3, 0.0);
+            VectorType axisY(3, 0.0);
+            VectorType axisZ(3, 0.0);
+            axisX(0) = 1.0;
+            axisY(1) = 1.0;
+            axisZ(2) = 1.0; 
+
+            MatrixType rotation_X(3, 3);
+            MatrixType rotation_Y(3, 3);
+            MatrixType rotation_Z(3, 3);
+
+            CalculateRotationMatrixWithAngle( axisX, _DisplacementsRotationsP(3), rotation_X);
+            CalculateRotationMatrixWithAngle( axisY, _DisplacementsRotationsP(4), rotation_Y);
+            CalculateRotationMatrixWithAngle( axisZ, _DisplacementsRotationsP(5), rotation_Z);
+
+            MatrixType RotationMatrix_P(3, 3);
+            MatrixType tmpRotation(3, 3);
+            tmpRotation = prod(rotation_X ,rotation_Z);
+            RotationMatrix_P = prod(tmpRotation, rotation_Y);
+
+            std::cout << "R_P is : " << RotationMatrix_P << std::endl;
+
+            VectorType TranslationVector_P(3);
+            TranslationVector_P(0) = _DisplacementsRotationsP(0);
+            TranslationVector_P(1) = _DisplacementsRotationsP(1);
+            TranslationVector_P(2) = _DisplacementsRotationsP(2);
+
+            std::cout << "t_P is : " << TranslationVector_P << std::endl;
+
+            // Rigid body operation 
+            // phi_G( X ) = R_G_B * R_P * (R_G_B ^ T) * X - R_G_B * R_P * (R_G_B ^ T) * t_B_P + R_G_B * t_B + t_B_P
+
+            MatrixType MatrixProduct(3, 3); 
+            MathUtils<double>::BDBtProductOperation(MatrixProduct, RotationMatrix_P, _rotationMatrix_G_B);
+            
+            VectorType firstProduct(3), secondProduct(3), thirdProduct(3), phi_G(3), displacement(3), _X(3);
+
+            _X( 0 ) = (r_local_sys->Coordinates())[ 0 ];
+            _X( 1 ) = (r_local_sys->Coordinates())[ 1 ];
+            _X( 2 ) = (r_local_sys->Coordinates())[ 2 ];
+            TDenseSpace::Mult(MatrixProduct, _X, firstProduct );
+            TDenseSpace::Mult(MatrixProduct, _translationVector_B_P, secondProduct );
+            TDenseSpace::Mult(_rotationMatrix_G_B, TranslationVector_P, thirdProduct );
+
+            phi_G( 0 ) = firstProduct( 0 ) + secondProduct( 0 ) + thirdProduct( 0 ) + _translationVector_B_P( 0 );
+            phi_G( 1 ) = firstProduct( 1 ) + secondProduct( 1 ) + thirdProduct( 1 ) + _translationVector_B_P( 1 );
+            phi_G( 2 ) = firstProduct( 2 ) + secondProduct( 2 ) + thirdProduct( 2 ) + _translationVector_B_P( 2 ); 
+
+            displacement( 0 ) = phi_G( 0 ) - _X( 0 );
+            displacement( 1 ) = phi_G( 1 ) - _X( 1 );
+            displacement( 2 ) = phi_G( 2 ) - _X( 2 );
+
+            std::cout << "The final displacement is : " << displacement << std::endl;
+
         }
     }
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix)
+{
+    rRotationMatrix(0, 0) = cos( rAngle ) + pow(rAxis(0), 2) * (1 - cos( rAngle ));
+    rRotationMatrix(0, 1) = rAxis(0) * rAxis(1) * (1 - cos( rAngle )) - rAxis(2)*sin(rAngle);
+    rRotationMatrix(0, 2) = rAxis(0)*rAxis(2)*(1-cos(rAngle)) + rAxis(1)*sin(rAngle);
+
+    rRotationMatrix(1, 0) = rAxis(0)*rAxis(1)*(1-cos(rAngle)) + rAxis(2)*sin(rAngle);
+    rRotationMatrix(1, 1) = cos(rAngle) + pow(rAxis(1), 2)*(1 - cos(rAngle));
+    rRotationMatrix(1, 2) = rAxis(1)*rAxis(2)*(1-cos(rAngle)) - rAxis(0)*sin(rAngle);
+
+    rRotationMatrix(2, 0) = rAxis(0)*rAxis(2)*(1-cos(rAngle)) - rAxis(1)*sin(rAngle);
+    rRotationMatrix(2, 1) = rAxis(1)*rAxis(2)*(1-cos(rAngle)) + rAxis(0)*sin(rAngle);
+    rRotationMatrix(2, 2) = cos(rAngle) + pow(rAxis(2),2)*(1-cos(rAngle));
 }
 
 template<class TSparseSpace, class TDenseSpace>

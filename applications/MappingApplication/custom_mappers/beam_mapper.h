@@ -115,11 +115,16 @@ public:
     }
 
     void GetValue(MatrixType& rotMatrixValue, 
+                  VectorType& transVectorValue,
                   VectorType& linearValue, 
                   VectorType& hermitianValue, 
                   VectorType& hermitanDerValue) const override 
     {
         rotMatrixValue = mRotationMatrixOfBeam;
+
+        transVectorValue( 0 ) = mProjectionOfPoint[ 0 ];
+        transVectorValue( 1 ) = mProjectionOfPoint[ 1 ];
+        transVectorValue( 2 ) = mProjectionOfPoint[ 2 ];
         
         linearValue( 0 ) = mLinearShapeFunctionValues[0];
         linearValue( 1 ) = mLinearShapeFunctionValues[1];
@@ -208,7 +213,8 @@ public:
         return mpNode->Coordinates();
     }
 
-    void CalculateRotationMatrixInterfaceInfos(MatrixType& _rotationMatrix_B,
+    void CalculateRotationMatrixInterfaceInfos(MatrixType& _rotationMatrix_G_B,
+                                               VectorType& _translationVector_G_B,
                                                VectorType& _linearShapeValues,
                                                VectorType& _hermitianShapeValues,
                                                VectorType& _hermitanDerShapeValues,
@@ -216,7 +222,7 @@ public:
     {
         for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
             r_interface_info->ComputeRotationMatrixInterfaceObject();
-            r_interface_info->GetValue(_rotationMatrix_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
+            r_interface_info->GetValue(_rotationMatrix_G_B, _translationVector_G_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(r_geom);
         }
     }
@@ -545,6 +551,8 @@ private:
     //        c++;
     //    }
     //}
+
+    void CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix);
 
     MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const 
     {                                                                     

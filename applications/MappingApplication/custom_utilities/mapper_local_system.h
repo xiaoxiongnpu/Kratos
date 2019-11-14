@@ -181,6 +181,7 @@ public:
     ///@}
 
     virtual void CalculateRotationMatrixInterfaceInfos(MatrixType& _rotationMatrix_B,
+                                                       VectorType& _translationVector_G_B,
                                                        VectorType& _linearShapeValues,
                                                        VectorType& _hermitianShapeValues,
                                                        VectorType& _hermitanDerShapeValues,
