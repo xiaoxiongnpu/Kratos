@@ -50,9 +50,7 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
                                                const bool ComputeApproximation)
 {
     const auto p_geom = rInterfaceObject.pGetBaseGeometry();
-    std::cout << "my first result " << std::endl;
-    rInterfaceObject.PrintInfo(std::cout);
-    std::cout << "\n";
+
     double proj_dist;
 
     const Point point_to_proj(this->Coordinates());
@@ -79,9 +77,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist, projection_point);
     const bool is_full_projection = (pairing_index == ProjectionUtilities::PairingIndex::Line_Inside);
     
-    std::cout << "rShapeFunctionValues : " << linear_shape_function_values << std::endl;
-    std::cout << "rHermitianShapeFunctionValues : " << hermitian_shape_function_values << std::endl;
-    std::cout << "rHermitianShapeFunctionValuesDerivatives : " << hermitian_shape_function_derivatives_values << std::endl;
+    //std::cout << "rShapeFunctionValues : " << linear_shape_function_values << std::endl;
+    //std::cout << "rHermitianShapeFunctionValues : " << hermitian_shape_function_values << std::endl;
+    //std::cout << "rHermitianShapeFunctionValuesDerivatives : " << hermitian_shape_function_derivatives_values << std::endl;
     
 
     if (is_full_projection) {
@@ -124,13 +122,11 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         //std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
         
         //mpInterfaceObject = &rInterfaceObject; // save a pointer that points to the beam element
-        rInterfaceObject.PrintInfo(std::cout);
-        std::cout << "\n-----" << std::endl;
+
         mpInterfaceObject = make_shared<InterfaceGeometryObject>(rInterfaceObject.pGetBaseGeometry());
-        mpInterfaceObject->PrintInfo(std::cout);
-        const auto g = mpInterfaceObject->pGetBaseGeometry();
-        std::cout << "\n coordinate 1  " << (*g)[0].Coordinates() << std::endl;
-        std::cout << "\n coordinate 2  " << (*g)[1].Coordinates() << std::endl;
+
+        //std::cout << "\n coordinate 1  " << (*g)[0].Coordinates() << std::endl;
+        //std::cout << "\n coordinate 2  " << (*g)[1].Coordinates() << std::endl;
         //std::cout << "interfaceObject geometry was extracted successfully" << std::endl;
         std::cout << "\n------------- END OF SEARCH -----------------" << std::endl;
     }
@@ -173,7 +169,7 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
 
     mRotationMatrixOfBeam = _RotationMatrix;
 
-    std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
+    //std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
 
 }
 
@@ -183,7 +179,7 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
                     EquationIdVectorType& rOriginIds,
                     EquationIdVectorType& rDestinationIds,
                     MapperLocalSystem::PairingStatus& rPairingStatus) const
-{ std::cout << "CalculateAll is running here" << std::endl;
+{ //std::cout << "CalculateAll is running here" << std::endl;
     if (mInterfaceInfos.size() > 0) {
         double distance;
         double min_distance = std::numeric_limits<double>::max();
@@ -237,16 +233,16 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
         }
 
         mInterfaceInfos[found_idx]->GetValue(rOriginIds, MapperInterfaceInfo::InfoType::Dummy);
-        std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww " << std::endl;
-        std::cout << "found_idx is : " << found_idx << std::endl;
-        std::cout << "My OriginIDs in this interface Info are: " << rOriginIds << std::endl;
+        //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww " << std::endl;
+        //std::cout << "found_idx is : " << found_idx << std::endl;
+        //std::cout << "My OriginIDs in this interface Info are: " << rOriginIds << std::endl;
 
         KRATOS_DEBUG_ERROR_IF_NOT(mpNode) << "Members are not intitialized!" << std::endl;
 
         if (rDestinationIds.size() != 1) rDestinationIds.resize(1);
         rDestinationIds[0] = mpNode->GetValue(INTERFACE_EQUATION_ID);
 
-        std::cout << "My DestinationIDs in this interface Info are: " << rDestinationIds << std::endl;
+        //std::cout << "My DestinationIDs in this interface Info are: " << rDestinationIds << std::endl;
     }
     else ResizeToZero(rLocalMappingMatrix, rOriginIds, rDestinationIds, rPairingStatus);
 }
@@ -314,11 +310,14 @@ void BeamMapper<MapperDefinitions::MPISparseSpaceType,
 
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
-                                                                       const Variable< array_1d<double, 3> >& rOriginVariablesRotations)
-{
+                                                                       const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                                                                       const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
+{   size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {
-        // Calculates rotation matrices
+    {   
+        std::cout << "----------- LOCAL SYSTEM " << i << std::endl;
+        i++;
+
         if( r_local_sys->HasInterfaceInfo())
         {
             MatrixType _rotationMatrix_G_B(3, 3);
@@ -327,14 +326,20 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             VectorType _hermitianShapeValues(4);
             VectorType _hermitanDerShapeValues(4);
             GeometryType _r_geom;
+            NodePointerType _pNode;
 
             r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
                                                                _translationVector_B_P,
                                                                _linearShapeValues,
                                                                _hermitianShapeValues,
                                                                _hermitanDerShapeValues,
-                                                               _r_geom);
-            
+                                                               _r_geom,
+                                                               _pNode);
+
+            std::cout << "The coordinates of the surface mesh node are : " << _pNode->Coordinates() << std::endl;            
+            std::cout << "The _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl;
+            KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
+
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             VectorType displacementNode1_G(3); //Expresses in global coordinates
             VectorType displacementNode2_G(3); //Expresses in global coordinates
@@ -412,14 +417,14 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
                 _DOF_Vector(i + 9) = rotationNode2_B(i);
             }
 
-            std::cout << "_ShapeFunctionsMatrix is : " << _ShapeFunctionsMatrix << std::endl;
-            std::cout << "_DOF_Vector is : " << _DOF_Vector << std::endl;
+            //std::cout << "_ShapeFunctionsMatrix is : " << _ShapeFunctionsMatrix << std::endl;
+            //std::cout << "_DOF_Vector is : " << _DOF_Vector << std::endl;
             
             VectorType _DisplacementsRotationsP(6);
             TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector, _DisplacementsRotationsP);
 
-            std::cout << "Interpolated displacements and rotations are : " << _DisplacementsRotationsP << std::endl;
-            std::cout << "-------------------------- END OF INTERPOLATION ---------------------------" << std::endl; 
+            //std::cout << "Interpolated displacements and rotations are : " << _DisplacementsRotationsP << std::endl;
+            //std::cout << "-------------------------- END OF INTERPOLATION ---------------------------" << std::endl; 
 
             VectorType axisX(3, 0.0);
             VectorType axisY(3, 0.0);
@@ -465,16 +470,27 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             TDenseSpace::Mult(MatrixProduct, _translationVector_B_P, secondProduct );
             TDenseSpace::Mult(_rotationMatrix_G_B, TranslationVector_P, thirdProduct );
 
-            phi_G( 0 ) = firstProduct( 0 ) + secondProduct( 0 ) + thirdProduct( 0 ) + _translationVector_B_P( 0 );
-            phi_G( 1 ) = firstProduct( 1 ) + secondProduct( 1 ) + thirdProduct( 1 ) + _translationVector_B_P( 1 );
-            phi_G( 2 ) = firstProduct( 2 ) + secondProduct( 2 ) + thirdProduct( 2 ) + _translationVector_B_P( 2 ); 
+            phi_G( 0 ) = firstProduct( 0 ) - secondProduct( 0 ) + thirdProduct( 0 ) + _translationVector_B_P( 0 );
+            phi_G( 1 ) = firstProduct( 1 ) - secondProduct( 1 ) + thirdProduct( 1 ) + _translationVector_B_P( 1 );
+            phi_G( 2 ) = firstProduct( 2 ) - secondProduct( 2 ) + thirdProduct( 2 ) + _translationVector_B_P( 2 ); 
 
             displacement( 0 ) = phi_G( 0 ) - _X( 0 );
             displacement( 1 ) = phi_G( 1 ) - _X( 1 );
             displacement( 2 ) = phi_G( 2 ) - _X( 2 );
 
+            std::cout << "phi_G is : " << phi_G << std::endl;
+
+            std::cout << "_X is : " << _X << std::endl;
+
             std::cout << "The final displacement is : " << displacement << std::endl;
 
+            size_t c = 0;
+            for( const auto& var_ext : var_comps )
+            {
+                const auto& var_destination_disp = KratosComponents<ComponentVariableType>::Get(rDestinationVariableDisplacement.Name() + var_ext);
+                _pNode->FastGetSolutionStepValue(var_destination_disp) = displacement( c );
+                c++;
+            }
         }
     }
 }
@@ -514,7 +530,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags Map
 
     KRATOS_ERROR_IF_NOT(mpIntefaceCommunicator) << "mpInterfaceCommunicator is a nullptr" << std::endl;
     const MapperInterfaceInfoUniquePointerType p_ref_interface_info = GetMapperInterfaceInfo();
-    std::cout << "Calculating shape function values" << std::endl;
+    //std::cout << "Calculating shape function values" << std::endl;
     mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
                                                   MappingOptions,
                                                   p_ref_interface_info);

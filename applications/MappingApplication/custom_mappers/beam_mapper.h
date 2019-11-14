@@ -214,18 +214,24 @@ public:
     }
 
     void CalculateRotationMatrixInterfaceInfos(MatrixType& _rotationMatrix_G_B,
-                                               VectorType& _translationVector_G_B,
+                                               VectorType& _translationVector_B_P,
                                                VectorType& _linearShapeValues,
                                                VectorType& _hermitianShapeValues,
                                                VectorType& _hermitanDerShapeValues,
-                                               GeometryType& r_geom) override
+                                               GeometryType& r_geom,
+                                               NodePointerType& pNode) override
     {
         for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
             r_interface_info->ComputeRotationMatrixInterfaceObject();
-            r_interface_info->GetValue(_rotationMatrix_G_B, _translationVector_G_B, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
+            r_interface_info->GetValue(_rotationMatrix_G_B, _translationVector_B_P, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(r_geom);
+            
+            //rNode = (*mpNode);
+            pNode = mpNode;
         }
     }
+
+
 
     /// Turn back information as a string.
     std::string PairingInfo(const int EchoLevel) const override;
@@ -279,6 +285,10 @@ public:
     typedef VariableComponent< VectorComponentAdaptor<array_1d<double, 3> > > ComponentVariableType;
     typedef InterfaceObject::GeometryType GeometryType;
     typedef InterfaceObject::GeometryPointerType GeometryPointerType;
+
+    typedef InterfaceObject::NodeType NodeType;
+    typedef InterfaceObject::NodePointerType NodePointerType;
+
     ///@}
     ///@name Life Cycle
     ///@{
@@ -454,7 +464,8 @@ private:
     void InitializeInterface(Kratos::Flags MappingOptions = Kratos::Flags());
 
     void InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
-                                    const Variable< array_1d<double, 3> >& rOriginVariablesRotations);
+                                    const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                                    const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
 
     void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 
@@ -469,10 +480,10 @@ private:
 
     void MapInternal(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                      const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
-                     const Variable< array_1d<double, 3> >& rDestinationVariable,
+                     const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement,
                      Kratos::Flags MappingOptions)
     {   
-        InitializeInformationBeams(rOriginVariablesDisplacements, rOriginVariablesRotations);
+        InitializeInformationBeams(rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariableDisplacement);
         //RotateOriginVariablesLinear(rOriginVariablesDisplacements, rOriginVariablesRotations); 
 
         //VectorType displacementNode1_B(3);

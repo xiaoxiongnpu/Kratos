@@ -124,13 +124,11 @@ void UpdateSystemVectorFromModelPart(TVectorType& rVector,
                         ModelPart& rModelPart,
                         const TVarType& rVariable,
                         const Kratos::Flags& rMappingOptions)
-{   std::cout << "Aqui estoy: UpdateSystemVectorFromModelPart" << std::endl;
-    // Here we construct a function pointer to not have the if all the time inside the loop
+{   // Here we construct a function pointer to not have the if all the time inside the loop
     const auto fill_fct = MapperUtilities::GetFillFunction<TVarType>(rMappingOptions);
 
     const int num_local_nodes = rModelPart.GetCommunicator().LocalMesh().NumberOfNodes();
     const auto nodes_begin = rModelPart.GetCommunicator().LocalMesh().NodesBegin();
-    std::cout << "num_local_nodes : " << num_local_nodes << std::endl;
 
     #pragma omp parallel for
     for (int i=0; i<num_local_nodes; i++) {

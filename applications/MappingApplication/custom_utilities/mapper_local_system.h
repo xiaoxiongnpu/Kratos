@@ -54,6 +54,7 @@ public:
     typedef Vector VectorType;
     typedef std::vector<int> EquationIdVectorType; // int bcs of mpi
 
+    typedef InterfaceObject::NodeType NodeType;
     typedef InterfaceObject::NodePointerType NodePointerType;
     typedef InterfaceObject::GeometryType GeometryType; 
     typedef InterfaceObject::GeometryPointerType GeometryPointerType;
@@ -185,7 +186,8 @@ public:
                                                        VectorType& _linearShapeValues,
                                                        VectorType& _hermitianShapeValues,
                                                        VectorType& _hermitanDerShapeValues,
-                                                       GeometryType& r_geom){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
+                                                       GeometryType& r_geom,
+                                                       NodePointerType& pNode){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
 
 protected:
     ///@name Protected Life Cycle

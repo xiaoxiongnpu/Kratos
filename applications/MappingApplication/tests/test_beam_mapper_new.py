@@ -4,8 +4,10 @@ import KratosMultiphysics as KM
 import KratosMultiphysics.MappingApplication as KratosMapping
 import KratosMultiphysics.KratosUnittest as KratosUnittest
 
-mdpa_file_name_beam    = "mdpa_files/beam_mesh"
-mdpa_file_name_surface = "mdpa_files/surface_mesh"
+import math
+
+mdpa_file_name_beam    = "mdpa_files/beam_new"
+mdpa_file_name_surface = "mdpa_files/surface_new"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -33,6 +35,19 @@ def WriteGiDOutput(model_part):
     gid_output.PrintOutput()
     gid_output.ExecuteFinalizeSolutionStep()
     gid_output.ExecuteFinalize()
+
+def WriteVtkOutput(model_part):
+    default_parameters = KM.Parameters("""{
+        "file_format"                        : "binary",
+        "output_precision"                   : 7,
+        "output_control_type"                : "step",
+        "output_sub_model_parts"             : false,
+        "save_output_files_in_folder"        : false,
+        "nodal_solution_step_data_variables" : ["DISPLACEMENT"]
+    }""")
+
+    vtk_io = KM.VtkOutput(model_part, default_parameters)
+    vtk_io.PrintOutput()
 
 class TestBeamMapper(KratosUnittest.TestCase):
     def setUp(self):
@@ -72,8 +87,16 @@ class TestBeamMapper(KratosUnittest.TestCase):
         self.mapper = KratosMapping.MapperFactory.CreateMapper(self.model_part_beam, self.model_part_surface, mapper_settings)
 
         for node in self.model_part_beam.Nodes:
-            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, 10*node.X)
-            node.SetSolutionStepValue(KM.ROTATION_X, 10*node.X)
+            lenght_beam = 100
+            alfa = 1.0472  # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            r = lenght_beam / alfa
+            theta_Z = - node.X / r 
+            node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0)
+            node.SetSolutionStepValue(KM.ROTATION_X, 0)
+            node.SetSolutionStepValue(KM.ROTATION_Y, 0)
+            node.SetSolutionStepValue(KM.ROTATION_Z, theta_Z )
             
         self.mapper.Map(KM.DISPLACEMENT, KM.ROTATION, KM.DISPLACEMENT)
         #self.mapper.Map(KM.ROTATION, KM.DISPLACEMENT)
@@ -85,6 +108,9 @@ class TestBeamMapper(KratosUnittest.TestCase):
 
         #WriteGiDOutput(self.model_part_beam)
         #WriteGiDOutput(self.model_part_surface)
+
+        WriteVtkOutput(self.model_part_beam)
+        WriteVtkOutput(self.model_part_surface)
 
 
 if __name__ == '__main__':
