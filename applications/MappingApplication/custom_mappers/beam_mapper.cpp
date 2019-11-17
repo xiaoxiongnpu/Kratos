@@ -496,6 +496,107 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
 }
 
 template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorrotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+                                                                                  const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                                                                                  const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
+{
+    size_t i = 0;
+    for( auto& r_local_sys : mMapperLocalSystems )
+    {   
+        std::cout << "----------- LOCAL SYSTEM " << i << std::endl;
+        i++;
+
+        if( r_local_sys->HasInterfaceInfo())
+        {
+            MatrixType _rotationMatrix_G_B(3, 3);
+            VectorType _translationVector_B_P(3);
+            VectorType _linearShapeValues(2);
+            VectorType _hermitianShapeValues(4);
+            VectorType _hermitanDerShapeValues(4);
+            GeometryType _r_geom;
+            NodePointerType _pNode;
+
+            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
+                                                               _translationVector_B_P,
+                                                               _linearShapeValues,
+                                                               _hermitianShapeValues,
+                                                               _hermitanDerShapeValues,
+                                                               _r_geom,
+                                                               _pNode);
+
+            std::cout << "The coordinates of the surface mesh node are : " << _pNode->Coordinates() << std::endl;            
+            std::cout << "The _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl;
+            KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
+
+            const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+            VectorType displacementNode1_G(3); //Expresses in global coordinates
+            VectorType displacementNode2_G(3); //Expresses in global coordinates
+            VectorType rotationNode1_G(3); //Expresses in global coordinates
+            VectorType rotationNode2_G(3); //Expresses in global coordinates
+
+            VectorType displacementNode1_B(3); //Expresses in beam coordinates
+            VectorType displacementNode2_B(3); //Expresses in beam coordinates
+            VectorType rotationNode1_B(3); //Expresses in beam coordinates
+            VectorType rotationNode2_B(3); //Expresses in beam coordinates
+
+            size_t k = 0;
+
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_origin_disp = KratosComponents<ComponentVariableType>::Get(rOriginVariablesDisplacements.Name() + var_ext);
+                displacementNode1_G(k) = _r_geom[0].FastGetSolutionStepValue(var_origin_disp);
+                displacementNode2_G(k) = _r_geom[1].FastGetSolutionStepValue(var_origin_disp);
+
+
+                const auto& var_origin_rot = KratosComponents<ComponentVariableType>::Get(rOriginVariablesRotations.Name() + var_ext);
+                rotationNode1_G(k) = _r_geom[0].FastGetSolutionStepValue(var_origin_rot);
+                rotationNode2_G(k) = _r_geom[1].FastGetSolutionStepValue(var_origin_rot);
+                k++;
+            }
+            //std::cout << "displacement of node 1 is" << displacementNode1 << std::endl;
+            //std::cout << "displacement of node 2 is" << displacementNode2 << std::endl;
+            //std::cout << "rotation of node 1 is" << rotationNode1 << std::endl;
+            //std::cout << "rotation of node 2 is" << rotationNode2 << std::endl; 
+
+            MatrixType _rotationMatrix_B_G( 3, 3 );
+            double determinant;
+            MathUtils<double>::InvertMatrix3(_rotationMatrix_G_B, _rotationMatrix_B_G, determinant );
+            
+            // Transforming the displacements to the BCS
+            TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
+            TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
+
+            // Transforming the rotations to the BCS
+            double angle1 = norm_2(rotationNode1_G);
+            VectorType n1 = rotationNode1_G / angle1;
+            MatrixType Rotation_G_1(3, 3);
+            CalculateRotationMatrixWithAngle(n1, angle1, Rotation_G_1);
+            MatrixType Rotation_B_1(3, 3);
+            MathUtils<double>::BtDBProductOperation(Rotation_B_1, Rotation_G_1,_rotationMatrix_G_B);
+
+            double angle2 = norm_2(rotationNode2_G);
+            VectorType n2 = rotationNode2_G / angle2;
+            MatrixType Rotation_G_2(3, 3);
+            CalculateRotationMatrixWithAngle(n2, angle2, Rotation_G_2);
+            MatrixType Rotation_B_2(3, 3);
+            MathUtils<double>::BtDBProductOperation(Rotation_B_2, Rotation_G_2,_rotationMatrix_G_B);
+
+            // Calculating phi_d 
+            VectorType e_x_d(3);
+            e_x_d = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
+            std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
+            std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
+            std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
+            std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
+            std::cout << "e_x_d = " << e_x_d << std::endl;
+            std::cout << "----------------------------------------------------" << std::endl;
+
+        }
+    }
+
+}
+
+template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix)
 {
     rRotationMatrix(0, 0) = cos( rAngle ) + pow(rAxis(0), 2) * (1 - cos( rAngle ));

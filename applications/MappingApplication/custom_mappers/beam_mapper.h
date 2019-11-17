@@ -343,7 +343,8 @@ public:
               const Variable< array_1d<double, 3> >& rDestinationVariable, 
               Kratos::Flags MappingOptions)
     {
-        MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
     }
 
     void Map( const Variable<double>& rOriginVariable, const Variable<double>& rDestinationVariable,
@@ -466,6 +467,10 @@ private:
     void InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                     const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
+    
+    void InitializeInformationBeamsCorrotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+                                    const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                                    const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
 
     void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 
@@ -484,6 +489,14 @@ private:
                      Kratos::Flags MappingOptions)
     {   
         InitializeInformationBeams(rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariableDisplacement);
+    }
+
+    void MapInternalCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+                               const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
+                               const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement,
+                               Kratos::Flags MappingOptions)
+    {
+        InitializeInformationBeamsCorrotation(rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariableDisplacement);
     }
     
     void CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix);
