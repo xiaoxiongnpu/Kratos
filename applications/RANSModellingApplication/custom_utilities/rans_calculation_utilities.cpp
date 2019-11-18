@@ -20,6 +20,26 @@ namespace Kratos
 {
 namespace RansCalculationUtilities
 {
+long double SoftMax(const long double Value1, const long double Value2, const long double ExponentValue)
+{
+    long double max_value, negative_difference;
+    if (Value1 > Value2)
+    {
+        max_value = Value1;
+        negative_difference = (Value2 - Value1);
+    }
+    else
+    {
+        max_value = Value2;
+        negative_difference = (Value1 - Value2);
+    }
+
+    const long double soft_max =
+        (std::log2l(1.0 + std::exp2l(negative_difference * ExponentValue)) / ExponentValue) + max_value;
+
+    return std::max(soft_max, max_value);
+}
+
 void CalculateGeometryData(const GeometryType& rGeometry,
                            const GeometryData::IntegrationMethod& rIntegrationMethod,
                            Vector& rGaussWeights,
