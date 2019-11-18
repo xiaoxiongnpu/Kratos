@@ -566,7 +566,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorrotatio
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
 
-            // Transforming the rotations to the BCS
+            // Transforming the nodal rotations to the BCS
             double angle1 = norm_2(rotationNode1_G);
             VectorType n1 = rotationNode1_G / angle1;
             MatrixType Rotation_G_1(3, 3);
@@ -581,15 +581,39 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorrotatio
             MatrixType Rotation_B_2(3, 3);
             MathUtils<double>::BtDBProductOperation(Rotation_B_2, Rotation_G_2,_rotationMatrix_G_B);
 
-            // Calculating phi_d 
+            // Calculating R_d for Phi_d 
             VectorType e_x_d(3);
             e_x_d = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
-            std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
-            std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
-            std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
-            std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
-            std::cout << "e_x_d = " << e_x_d << std::endl;
-            std::cout << "----------------------------------------------------" << std::endl;
+            //std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
+            //std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
+            //std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
+            //std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
+            //std::cout << "e_x_d = " << e_x_d << std::endl;
+            //std::cout << "----------------------------------------------------" << std::endl;
+            e_x_d /= norm_2(e_x_d);
+            VectorType e_x(3, 0.0), n_d(3, 0.0);
+            MatrixType R_d(3, 3), _I(3, 3, 0.0), _R(3, 3, 0.0), I_2nT(3, 3, 0.0);
+            e_x(0) = 1.0;
+            _I(0,0) = 1.0;
+            _I(1,1) = 1.0;
+            _I(2,2) = 1.0;
+            _R(0, 0) = -1.0;
+            _R(1, 1) = 1.0;
+            _R(2, 2) = 1.0;
+            n_d =  e_x + e_x_d;
+            n_d /= norm_2(n_d);
+            I_2nT = _I - 2 * MathUtils<double>::TensorProduct3(n_d, n_d);
+            R_d = prod(I_2nT, _R);
+            //std::cout << "Rd is = " << R_d << std::endl;
+
+            // Calculating theta_s
+            MatrixType Rl1_Rs(3, 3), Rl2_Rs(3, 3), R_d_T(3, 3);
+            MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
+            Rl1_Rs = prod(R_d_T, Rotation_B_1);
+            Rl2_Rs = prod(R_d_T, Rotation_B_2);
+
+
+
 
         }
     }
@@ -610,6 +634,110 @@ void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( Ve
     rRotationMatrix(2, 0) = rAxis(0)*rAxis(2)*(1-cos(rAngle)) - rAxis(1)*sin(rAngle);
     rRotationMatrix(2, 1) = rAxis(1)*rAxis(2)*(1-cos(rAngle)) + rAxis(0)*sin(rAngle);
     rRotationMatrix(2, 2) = cos(rAngle) + pow(rAxis(2),2)*(1-cos(rAngle));
+}
+
+template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector) {
+    // see Non-linear Modeling and Analysis of Solids and Structures (Steen Krenk 2009) P52
+    double angle = rotationMatrix(0, 0) + rotationMatrix(1, 1) + rotationMatrix(2, 2) - 1.0;
+    angle /= 2.0;
+    if (angle > 1.0)
+        angle = 1.0;
+    else if (angle < -1.0)
+        angle = -1.0;
+
+    angle = acos( angle ); // between 0 and pi
+
+    const double EPS = 1E-6;
+    const double PI = 3.1416;
+    if (angle < EPS) {
+        rotationVector(0) = 0.0;
+        rotationVector(1) = 0.0;
+        rotationVector(2) = 0.0;
+
+        return;
+    } else if ((PI - angle) < EPS) {
+        const double product11 = (rotationMatrix(0, 0) + 1.0) / 2.0;
+        const double product22 = (rotationMatrix(1, 1) + 1.0) / 2.0;
+        const double product33 = (rotationMatrix(2, 2) + 1.0) / 2.0;
+        const double product12 = (rotationMatrix(0, 1) + 1.0) / 2.0;
+        const double product23 = (rotationMatrix(1, 2) + 1.0) / 2.0;
+        const double product13 = (rotationMatrix(0, 2) + 1.0) / 2.0;
+        const double tmp1 = sqrt(product11);
+        const double tmp2 = sqrt(product22);
+        const double tmp3 = sqrt(product33);
+
+        { // case 1 +++:
+            rotationVector(0) = tmp1;
+            rotationVector(1) = tmp2;
+            rotationVector(2) = tmp3;
+            const double tmp12 = rotationVector(0) * rotationVector(1);
+            const double tmp13 = rotationVector(0) * rotationVector(2);
+            const double tmp23 = rotationVector(1) * rotationVector(2);
+            if (fabs(tmp12) < EPS || fabs(tmp12 - product12) < fabs(tmp12 + product12))
+                if (fabs(tmp13) < EPS || fabs(tmp13 - product13) < fabs(tmp13 + product13))
+                    if (fabs(tmp23) < EPS || fabs(tmp23 - product23) < fabs(tmp23 + product23)) {
+                        rotationVector(0) *= PI;
+                        rotationVector(1) *= PI;
+                        rotationVector(2) *= PI;
+                        return;
+                    }
+        }
+        { // case 2 +--:
+            rotationVector(0) = tmp1;
+            rotationVector(1) = -tmp2;
+            rotationVector(2) = -tmp3;
+            const double tmp12 = rotationVector(0) * rotationVector(1);
+            const double tmp13 = rotationVector(0) * rotationVector(2);
+            const double tmp23 = rotationVector(1) * rotationVector(2);
+            if (fabs(tmp12) < EPS || fabs(tmp12 - product12) < fabs(tmp12 + product12))
+                if (fabs(tmp13) < EPS || fabs(tmp13 - product13) < fabs(tmp13 + product13))
+                    if (fabs(tmp23) < EPS || fabs(tmp23 - product23) < fabs(tmp23 + product23)) {
+                        rotationVector(0) *= PI;
+                        rotationVector(1) *= PI;
+                        rotationVector(2) *= PI;
+                        return;
+                    }
+        }
+        { // case 3 -+-:
+            rotationVector(0) = -tmp1;
+            rotationVector(1) = tmp2;
+            rotationVector(2) = -tmp3;
+            const double tmp12 = rotationVector(0) * rotationVector(1);
+            const double tmp13 = rotationVector(0) * rotationVector(2);
+            const double tmp23 = rotationVector(1) * rotationVector(2);
+            if (fabs(tmp12) < EPS || fabs(tmp12 - product12) < fabs(tmp12 + product12))
+                if (fabs(tmp13) < EPS || fabs(tmp13 - product13) < fabs(tmp13 + product13))
+                    if (fabs(tmp23) < EPS || fabs(tmp23 - product23) < fabs(tmp23 + product23)) {
+                        rotationVector(0) *= PI;
+                        rotationVector(1) *= PI;
+                        rotationVector(2) *= PI;
+                        return;
+                    }
+        }
+        { // case 4 --+:
+            rotationVector(0) = -tmp1;
+            rotationVector(1) = -tmp2;
+            rotationVector(2) = tmp3;
+            const double tmp12 = rotationVector(0) * rotationVector(1);
+            const double tmp13 = rotationVector(0) * rotationVector(2);
+            const double tmp23 = rotationVector(1) * rotationVector(2);
+            if (fabs(tmp12) < EPS || fabs(tmp12 - product12) < fabs(tmp12 + product12))
+                if (fabs(tmp13) < EPS || fabs(tmp13 - product13) < fabs(tmp13 + product13))
+                    if (fabs(tmp23) < EPS || fabs(tmp23 - product23) < fabs(tmp23 + product23)) {
+                        rotationVector(0) *= PI;
+                        rotationVector(1) *= PI;
+                        rotationVector(2) *= PI;
+                        return;
+                    }
+        }
+        assert(false);
+    }
+
+    double tmp = angle / 2.0 / sin(angle);
+    rotationVector(0) = -(rotationMatrix(1, 2) - rotationMatrix(2, 1)) * tmp;
+    rotationVector(1) =  (rotationMatrix(0, 2) - rotationMatrix(2, 0)) * tmp;
+    rotationVector(2) = -(rotationMatrix(0, 1) - rotationMatrix(1, 0)) * tmp;
 }
 
 template<class TSparseSpace, class TDenseSpace>

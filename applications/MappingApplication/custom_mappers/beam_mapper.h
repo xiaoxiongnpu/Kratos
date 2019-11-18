@@ -501,6 +501,8 @@ private:
     
     void CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix);
 
+    void getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector);
+  
     MapperInterfaceInfoUniquePointerType GetMapperInterfaceInfo() const 
     {                                                                     
         return Kratos::make_unique<BeamMapperInterfaceInfo>();
