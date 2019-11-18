@@ -612,12 +612,84 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorrotatio
             Rl1_Rs = prod(R_d_T, Rotation_B_1);
             Rl2_Rs = prod(R_d_T, Rotation_B_2);
 
+            VectorType v_Rl1_Rs(3), v_Rl2_Rs(3);
+            getRotationVector(Rl1_Rs, v_Rl1_Rs);
+            getRotationVector(Rl2_Rs, v_Rl2_Rs);
 
+            double theta_s = 0.5 * (v_Rl1_Rs(0) + v_Rl2_Rs(0));
+            MatrixType Rs(3, 3);
+            VectorType e_x_s(3, 0.0);
+            e_x_s(0) = 1.0;
+            CalculateRotationMatrixWithAngle(e_x_s, theta_s, Rs);
 
+            // Calculating rotation vector l on node 1 and 2 of the beam
+            MatrixType Rl1(3, 3), Rl2(3, 3), Rs_T(3, 3);
+            VectorType v_Rl1(3), v_Rl2(3);
+            MathUtils<double>::InvertMatrix3(Rs, Rs_T, determinant);
+            Rl1 = prod(Rl1_Rs, Rs_T);
+            Rl2 = prod(Rl2_Rs, Rs_T);
+            getRotationVector(Rl1, v_Rl1);
+            getRotationVector(Rl2, v_Rl2); 
 
+            MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
+
+            _ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3);
+            
+            _ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(4 , 10) = -_hermitanDerShapeValues(3);
+            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
+
+            VectorType _DOF_Vector_l(12);
+            for (size_t i = 0; i < 3; i++){
+                _DOF_Vector_l(i) = 0.0;
+                _DOF_Vector_l(i + 3) = v_Rl1(i);
+                _DOF_Vector_l(i + 6) = 0.0;
+                _DOF_Vector_l(i + 9) = v_Rl2(i);
+            }
+
+            VectorType _DisplacementsRotations_L(6);
+            TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector_l, _DisplacementsRotations_L);
+
+            // Constructing td (Rd is already calculated at this point)
+            VectorType td(3);
+            td(0) = _linearShapeValues(0) * displacementNode1_B(0) + _linearShapeValues(1) * displacementNode2_B(0);
+            td(1) = _linearShapeValues(0) * displacementNode1_B(1) + _linearShapeValues(1) * displacementNode2_B(1);
+            td(2) = _linearShapeValues(0) * displacementNode1_B(2) + _linearShapeValues(1) * displacementNode2_B(2);
+
+            // Constructing phi_l
+            VectorType axis_l(3), t_l(3);
+            MatrixType rotationMatrix_l(3, 3);
+            t_l(0) = _DisplacementsRotations_L(0);
+            t_l(1) = _DisplacementsRotations_L(1);
+            t_l(2) = _DisplacementsRotations_L(2);
+            axis_l(0) = _DisplacementsRotations_L(3);
+            axis_l(1) = _DisplacementsRotations_L(4);
+            axis_l(2) = _DisplacementsRotations_L(5); 
+            double angle_l = sqrt( pow(_DisplacementsRotations_L(3), 2) + pow(_DisplacementsRotations_L(4), 2) + pow(_DisplacementsRotations_L(5), 2) );
+            axis_l = axis_l/angle_l;
+
+            CalculateRotationMatrixWithAngle(axis_l, angle_l, rotationMatrix_l);
+            
+
+            
         }
     }
-
 }
 
 template<class TSparseSpace, class TDenseSpace>
