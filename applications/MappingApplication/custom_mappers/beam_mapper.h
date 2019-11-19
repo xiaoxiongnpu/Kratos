@@ -9,9 +9,8 @@
 //
 //  Main authors:    Philipp Bucher, Jordi Cotela
 //
-// See Master-Thesis P.Bucher
-// "Development and Implementation of a Parallel
-//  Framework for Non-Matching Grid Mapping"
+// See Master-Thesis E. G. Loera Villeda
+// "  "
 
 #if !defined(KRATOS_BEAM_MAPPER_H_INCLUDED )
 #define  KRATOS_BEAM_MAPPER_H_INCLUDED
@@ -468,7 +467,7 @@ private:
                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                     const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
     
-    void InitializeInformationBeamsCorrotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
+    void InitializeInformationBeamsCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                     const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
 
@@ -496,7 +495,7 @@ private:
                                const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement,
                                Kratos::Flags MappingOptions)
     {
-        InitializeInformationBeamsCorrotation(rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariableDisplacement);
+        InitializeInformationBeamsCorotation(rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariableDisplacement);
     }
     
     void CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix);
