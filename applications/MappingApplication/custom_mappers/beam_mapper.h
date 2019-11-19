@@ -342,8 +342,20 @@ public:
               const Variable< array_1d<double, 3> >& rDestinationVariable, 
               Kratos::Flags MappingOptions)
     {
-        //MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //if (MappingOptions.Is(MapperFlags::LINEAR_ALGORITHM))
+        //{
+        //    MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //}
+        //else if (MappingOptions.Is(MapperFlags::CORROTATIONAL_ALGORITHM))
+        //{
+        //    MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //}
+        //else
+        //{
+        //    MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        //}
         MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+             
     }
 
     void Map( const Variable<double>& rOriginVariable, const Variable<double>& rDestinationVariable,
@@ -449,12 +461,6 @@ private:
 
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerOrigin;
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerDestination;
-
-    VectorType displacementNode1;
-    VectorType displacementNode2;
-    VectorType rotationNode1;
-    VectorType rotationNode2;
-    VectorType displacementNode1Rot; 
 
     ///@name Private Operations
     ///@{
