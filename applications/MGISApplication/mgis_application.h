@@ -10,7 +10,7 @@
 //  License: BSD License
 //   license: MGISApplication/license.txt
 //
-//  Main authors:  Vicente Mataix Ferrandiz
+//  Main authors:  Thomas Helfer, Vicente Mataix Ferrandiz
 //
 
 #if !defined(KRATOS_MGIS_APPLICATION_H_INCLUDED )
@@ -27,6 +27,7 @@
 
 // Application includes
 #include "mgis_application_variables.h"
+#include "custom_advanced_constitutive/mgis_constitutive_law_factory.h"
 
 namespace Kratos
 {
@@ -187,38 +188,37 @@ private:
     ///@name Member Variables
     ///@{
 
-    ///@}
-    ///@name Private Operators
-    ///@{
+    /* CONSTITUTIVE LAWS */
 
+  const MGISConstitutiveLawFactory mMGISConstitutiveLawFactory;
 
-    ///@}
-    ///@name Private Operations
-    ///@{
+  ///@}
+  ///@name Private Operators
+  ///@{
 
+  ///@}
+  ///@name Private Operations
+  ///@{
 
-    ///@}
-    ///@name Private  Access
-    ///@{
+  ///@}
+  ///@name Private  Access
+  ///@{
 
+  ///@}
+  ///@name Private Inquiry
+  ///@{
 
-    ///@}
-    ///@name Private Inquiry
-    ///@{
+  ///@}
+  ///@name Un accessible methods
+  ///@{
 
+  /// Assignment operator.
+  KratosMGISApplication &operator=(KratosMGISApplication const &rOther);
 
-    ///@}
-    ///@name Un accessible methods
-    ///@{
+  /// Copy constructor.
+  KratosMGISApplication(KratosMGISApplication const &rOther);
 
-    /// Assignment operator.
-    KratosMGISApplication& operator=(KratosMGISApplication const& rOther);
-
-    /// Copy constructor.
-    KratosMGISApplication(KratosMGISApplication const& rOther);
-
-
-    ///@}
+  ///@}
 
 }; // Class KratosMGISApplication
 

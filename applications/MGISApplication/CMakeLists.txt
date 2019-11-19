@@ -14,7 +14,8 @@ include_directories( ${CMAKE_SOURCE_DIR}/applications/MGISApplication )
 set( KRATOS_MGIS_APPLICATION_CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/mgis_application.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mgis_application_variables.cpp
-
+  ${CMAKE_CURRENT_SOURCE_DIR}/custom_advanced_constitutive/mgis_constitutive_law_factory.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/custom_advanced_constitutive/mgis_constitutive_law.cpp
   # CUSTOM UTILITIES
 
   # CUSTOM PROCESSES

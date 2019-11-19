@@ -10,7 +10,7 @@
 //  License: BSD License
 //   license: MGISApplication/license.txt
 //
-//  Main authors:  Vicente Mataix Ferrandiz
+//  Main authors:  Thomas Helfer, Vicente Mataix Ferrandiz
 //
 
 // System includes
@@ -38,6 +38,9 @@ void KratosMGISApplication::Register()
     // Calling base class register to register Kratos components
     KratosApplication::Register();
     KRATOS_INFO("") << "Initializing KratosMGISApplication... " << std::endl;
+
+    KRATOS_REGISTER_CONSTITUTIVE_LAW("MGISConstitutiveLawFactory", mMGISConstitutiveLawFactory);
+
 }
 
 }  // namespace Kratos.
