@@ -86,7 +86,9 @@ double CalculateGamma(const double C_mu,
                       const double turbulent_kinematic_viscosity)
 {
     return RansCalculationUtilities::SoftPositive(
-        C_mu * f_mu * turbulent_kinetic_energy / turbulent_kinematic_viscosity);
+        C_mu * f_mu * turbulent_kinetic_energy /
+        RansCalculationUtilities::SoftMax(turbulent_kinematic_viscosity,
+                                          std::numeric_limits<double>::epsilon()));
 }
 
 template double CalculateSourceTerm<2>(const BoundedMatrix<double, 2, 2>&, const double, const double);
