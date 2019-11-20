@@ -576,8 +576,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             CalculateRotationMatrixWithAngle(n1, angle1, Rotation_G_1);
             MatrixType Rotation_B_1(3, 3);
             MathUtils<double>::BtDBProductOperation(Rotation_B_1, Rotation_G_1,_rotationMatrix_G_B);
-            std::cout << "angle1 = " << angle1 << std::endl;
-            std::cout << "n1 = " << n1 << std::endl;
+            //std::cout << "angle1 = " << angle1 << std::endl;
+            //std::cout << "n1 = " << n1 << std::endl;
             std::cout << "Rotation_G_1 = " << Rotation_G_1 << std::endl;
             std::cout << "Rotation_B_1 = " << Rotation_B_1 << std::endl;
             
@@ -591,25 +591,25 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             CalculateRotationMatrixWithAngle(n2, angle2, Rotation_G_2);
             MatrixType Rotation_B_2(3, 3);
             MathUtils<double>::BtDBProductOperation(Rotation_B_2, Rotation_G_2,_rotationMatrix_G_B);
-            std::cout << "angle2 = " << angle2 << std::endl;
-            std::cout << "n2 = " << n2 << std::endl;
+            //std::cout << "angle2 = " << angle2 << std::endl;
+            //std::cout << "n2 = " << n2 << std::endl;
             std::cout << "Rotation_G_2 = " << Rotation_G_2 << std::endl;
             std::cout << "Rotation_B_2 = " << Rotation_B_2 << std::endl;
 
             // Calculating R_d  and t_d for Phi_d 
             VectorType e_x_d_G(3), e_x_d_B(3);
             e_x_d_G = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
-            std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
-            std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
-            std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
-            std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
+            //std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
+            //std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
+            //std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
+            //std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
             e_x_d_G /= norm_2(e_x_d_G);
-            std::cout << "e_x_d_G = " << e_x_d_G << std::endl;
-            std::cout << "this takes me to the beam C.S. _rotationMatrix_B_G = " << _rotationMatrix_B_G << std::endl; 
-            std::cout << " _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl; 
+            //std::cout << "e_x_d_G = " << e_x_d_G << std::endl;
+            //std::cout << "this takes me to the beam C.S. _rotationMatrix_B_G = " << _rotationMatrix_B_G << std::endl; 
+            //std::cout << " _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl; 
             TDenseSpace::Mult(_rotationMatrix_B_G, e_x_d_G, e_x_d_B); // transforming e_x_d to the beam coordinate system
             e_x_d_B /= norm_2(e_x_d_B);
-            std::cout << "e_x_d_B = " << e_x_d_B << std::endl;
+            //std::cout << "e_x_d_B = " << e_x_d_B << std::endl;
             
             VectorType e_x(3, 0.0), n_d(3, 0.0);
             MatrixType R_d(3, 3), _I(3, 3, 0.0), _R(3, 3, 0.0), I_2nT(3, 3, 0.0);
@@ -622,6 +622,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             _R(2, 2) = 1.0;
             n_d =  e_x + e_x_d_B;
             n_d /= norm_2(n_d);
+            std::cout << "n_d = " << n_d << std::endl;
+            std::cout << "n_d * n_d_T = " << MathUtils<double>::TensorProduct3(n_d, n_d) << std::endl;
             I_2nT = _I - 2 * MathUtils<double>::TensorProduct3(n_d, n_d);
             R_d = prod(I_2nT, _R);
             std::cout << "Rd is = " << R_d << std::endl;
@@ -654,7 +656,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             Rotation_B_COR(1, 2) = corotateZAxis(1);
             Rotation_B_COR(2, 2) = corotateZAxis(2);
             
-            std::cout << "The other version of R_d is = " << Rotation_B_COR << std::endl;
+            //std::cout << "The other version of R_d is = " << Rotation_B_COR << std::endl;
             //MathUtils<double>::InvertMatrix3(Rotation_B_COR, Rotation_COR_B, determinant);
             //MatrixType Rotation_COR_1(3, 3), Rotation_COR_2(3, 3);
             //Rotation_COR_1 = prod(Rotation_COR_B, Rotation_B_1);
@@ -665,16 +667,19 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
             Rs_Rl1 = prod(R_d_T, Rotation_B_1); // Rl1 * Rs = R_d_T * Phi_1, displacements cancel out
             Rs_Rl2 = prod(R_d_T, Rotation_B_2); // Rl2 * Rs = R_d_T * Phi_2, displacements cancel out
-
+            std::cout << "R_s_Rl1 = " << Rs_Rl1 << std::endl;
+            std::cout << "R_s_Rl2 = " << Rs_Rl2 << std::endl; 
             VectorType v_Rs_Rl1(3), v_Rs_Rl2(3);
             getRotationVector(Rs_Rl1, v_Rs_Rl1);
             getRotationVector(Rs_Rl2, v_Rs_Rl2);
+            std::cout << "v_Rs_Rl1 = " << v_Rs_Rl1 << std::endl;
+            std::cout << "v_Rs_Rl2 = " << v_Rs_Rl2 << std::endl;
 
             double theta_s = (v_Rs_Rl1(0) + v_Rs_Rl2(0)) / 2;
             MatrixType R_s(3, 3);
             VectorType e_x_s(3, 0.0);
             e_x_s(0) = 1.0;
-            std::cout << "theta_s = " << theta_s << std::endl;
+            //std::cout << "theta_s = " << theta_s << std::endl;
             CalculateRotationMatrixWithAngle(e_x_s, theta_s, R_s);
             std::cout << "R_s = " << R_s << std::endl;
 
@@ -682,9 +687,9 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             MatrixType Rl1(3, 3), Rl2(3, 3), R_s_T(3, 3);
             VectorType v_Rl1(3), v_Rl2(3);
             MathUtils<double>::InvertMatrix3(R_s, R_s_T, determinant);
-            std::cout << " R_s_T  = " << R_s_T << std::endl;
-            std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
-            std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
+            //std::cout << " R_s_T  = " << R_s_T << std::endl;
+            //std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
+            //std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
             Rl1 = prod(R_s_T,Rs_Rl1);
             Rl2 = prod(R_s_T,Rs_Rl2);
             std::cout << " Rl1  = " << Rl1 << std::endl;
@@ -718,6 +723,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2);
             _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
 
+            std::cout << "Shape functions matrix = " << _ShapeFunctionsMatrix << std::endl;
             VectorType _DOF_Vector_l(12);
             for (size_t i = 0; i < 3; i++){
                 _DOF_Vector_l(i) = 0.0;
@@ -741,22 +747,26 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             axis_l(0) = _DisplacementsRotations_L(3);
             axis_l(1) = _DisplacementsRotations_L(4);
             axis_l(2) = _DisplacementsRotations_L(5); 
-            //double angle_l = sqrt( pow(_DisplacementsRotations_L(3), 2) + pow(_DisplacementsRotations_L(4), 2) + pow(_DisplacementsRotations_L(5), 2) );
-            //axis_l = axis_l/angle_l;
-            VectorType local_X(3, 0.0), local_Y(3, 0.0), local_Z(3, 0.0);
-            local_X(0) = 1.0;
-            local_Y(1) = 1.0;
-            local_Z(2) = 1.0;
+            double angle_l = sqrt( pow(_DisplacementsRotations_L(3), 2) + pow(_DisplacementsRotations_L(4), 2) + pow(_DisplacementsRotations_L(5), 2) );
+            axis_l = axis_l/angle_l;
+            //VectorType local_X(3, 0.0), local_Y(3, 0.0), local_Z(3, 0.0);
+            //local_X(0) = 1.0;
+            //local_Y(1) = 1.0;
+            //local_Z(2) = 1.0;
 
-            //CalculateRotationMatrixWithAngle(axis_l, angle_l, R_l); // R_l
-            CalculateRotationMatrixWithAngle(local_X, _DisplacementsRotations_L(3), R_x); // R_l
-            CalculateRotationMatrixWithAngle(local_Y, _DisplacementsRotations_L(4), R_y); // R_l
-            CalculateRotationMatrixWithAngle(local_Z, _DisplacementsRotations_L(5), R_z); // R_l
-            R_l_temp = prod(R_x, R_y);
-            R_l = prod(R_z, R_l_temp);
+            CalculateRotationMatrixWithAngle(axis_l, angle_l, R_l); // R_l
+            //CalculateRotationMatrixWithAngle(local_X, _DisplacementsRotations_L(3), R_x); // R_l
+            //CalculateRotationMatrixWithAngle(local_Y, _DisplacementsRotations_L(4), R_y); // R_l
+            //CalculateRotationMatrixWithAngle(local_Z, _DisplacementsRotations_L(5), R_z); // R_l
+            //R_l_temp = prod(R_x, R_y);
+            //R_l = prod(R_z, R_l_temp);
             
             // Calculating R_P and t_P
             MatrixType R_P(3, 3), R_P_temp(3, 3);
+            std::cout << "------ Before multiplying -------- " << std::endl;
+            std::cout << "R_d = " << R_d << std::endl;
+            std::cout << "R_s = " << R_s << std::endl;
+            std::cout << "R_l = " << R_l << std::endl;
             R_P_temp = prod(R_d, R_s);
             R_P = prod(R_P_temp, R_l);
 
