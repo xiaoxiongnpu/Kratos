@@ -6,8 +6,14 @@ import KratosMultiphysics.KratosUnittest as KratosUnittest
 
 import math
 
-mdpa_file_name_beam    = "mdpa_files/beam_mesh"
-mdpa_file_name_surface = "mdpa_files/surface_mesh"
+#mdpa_file_name_beam    = "mdpa_files/beam_mesh"
+#mdpa_file_name_surface = "mdpa_files/surface_mesh"
+
+mdpa_file_name_beam    = "mdpa_files/line_10_elements"
+mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
+
+#mdpa_file_name_beam    = "mdpa_files/beam_new"
+#mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -88,8 +94,8 @@ class TestBeamMapper(KratosUnittest.TestCase):
 
         for node in self.model_part_beam.Nodes:
             lenght_beam = 100
-            alfa = 1 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
-            beta = 2
+            alfa = 0.0000001 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            beta = 1.0472
             r = lenght_beam / alfa
             theta_X = (beta * node.X) / lenght_beam
             theta_Z = - node.X / r 
