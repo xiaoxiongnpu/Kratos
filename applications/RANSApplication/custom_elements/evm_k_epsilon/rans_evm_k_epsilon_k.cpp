@@ -385,11 +385,12 @@ void RansEvmKEpsilonKElement<TDim, TNumNodes>::CalculateElementData(
     KRATOS_TRY
 
     const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
+    const double soft_max_exponent = rCurrentProcessInfo[RANS_SOFT_MAX_EXPONENT];
 
     const double nu_t = this->EvaluateInPoint(TURBULENT_VISCOSITY, rShapeFunctions);
     const double tke = this->EvaluateInPoint(TURBULENT_KINETIC_ENERGY, rShapeFunctions);
     const double nu = this->EvaluateInPoint(KINEMATIC_VISCOSITY, rShapeFunctions);
-    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, 1.0, tke, nu_t);
+    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, 1.0, tke, nu_t, soft_max_exponent);
 
     rData.TurbulentKinematicViscosity = nu_t;
     rData.TurbulentKineticEnergy = tke;
@@ -421,8 +422,9 @@ double RansEvmKEpsilonKElement<TDim, TNumNodes>::CalculateReactionTerm(
     const ProcessInfo& rCurrentProcessInfo,
     const int Step) const
 {
+    const double exponent = rCurrentProcessInfo[RANS_SOFT_MAX_EXPONENT];
     return RansCalculationUtilities::SoftPositive(
-        rData.Gamma + (2.0 / 3.0) * rData.VelocityDivergence);
+        rData.Gamma + (2.0 / 3.0) * rData.VelocityDivergence, exponent);
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>

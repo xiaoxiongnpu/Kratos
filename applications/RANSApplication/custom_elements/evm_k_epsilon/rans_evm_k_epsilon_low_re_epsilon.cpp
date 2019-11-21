@@ -390,6 +390,7 @@ void RansEvmKEpsilonLowReEpsilonElement<TDim, TNumNodes>::CalculateElementData(
     const double c1 = rCurrentProcessInfo[TURBULENCE_RANS_C1];
     const double c2 = rCurrentProcessInfo[TURBULENCE_RANS_C2];
     const double c_mu = rCurrentProcessInfo[TURBULENCE_RANS_C_MU];
+    const double soft_max_exponent = rCurrentProcessInfo[RANS_SOFT_MAX_EXPONENT];
 
     const double nu = this->EvaluateInPoint(KINEMATIC_VISCOSITY, rShapeFunctions);
     const double nu_t = this->EvaluateInPoint(TURBULENT_VISCOSITY, rShapeFunctions);
@@ -398,7 +399,7 @@ void RansEvmKEpsilonLowReEpsilonElement<TDim, TNumNodes>::CalculateElementData(
         this->EvaluateInPoint(TURBULENT_ENERGY_DISSIPATION_RATE, rShapeFunctions);
     const double y_plus = this->EvaluateInPoint(RANS_Y_PLUS, rShapeFunctions);
     const double f_mu = EvmKepsilonModelUtilities::CalculateFmu(y_plus);
-    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, f_mu, tke, nu_t);
+    const double gamma = EvmKepsilonModelUtilities::CalculateGamma(c_mu, f_mu, tke, nu_t, soft_max_exponent);
     const double f2 = EvmKepsilonModelUtilities::CalculateF2(tke, nu, epsilon);
     const double wall_distance = this->EvaluateInPoint(DISTANCE, rShapeFunctions);
 

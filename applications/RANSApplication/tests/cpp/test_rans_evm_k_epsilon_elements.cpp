@@ -189,13 +189,14 @@ void CalculateStreamlineAndCrossWindDiffusionParameters(double& rChi,
     const double bossak_gamma =
         TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
     const double dynamic_tau = rProcessInfo[DYNAMIC_TAU];
+    const double soft_max_exponent = rProcessInfo[RANS_SOFT_MAX_EXPONENT];
     double tau, element_length;
     StabilizedConvectionDiffusionReactionUtilities::CalculateStabilizationTau(
         tau, element_length, velocity, contravariant_metric_tensor, reaction,
         effective_kinematic_viscosity, bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
     StabilizedConvectionDiffusionReactionUtilities::CalculateCrossWindDiffusionParameters(
         rChi, rSD, rCD, velocity_magnitude, tau, effective_kinematic_viscosity, reaction,
-        bossak_alpha, bossak_gamma, delta_time, element_length, dynamic_tau);
+        bossak_alpha, bossak_gamma, delta_time, element_length, dynamic_tau, soft_max_exponent);
 }
 
 void EvmKElement2D3N_SetUp(ModelPart& rModelPart)
@@ -264,6 +265,7 @@ void CheckEvmElementTestData(const Element& rElement, const ProcessInfo& rProces
         EffectiveKinematicViscosity<EvmElement>(rElement, rProcessInfo);
     KRATOS_CHECK(effective_kinematic_viscosity > 0.1 && effective_kinematic_viscosity < 100.0);
     const double reaction = ReactionTerm<EvmElement>(rElement, rProcessInfo);
+    KRATOS_WATCH(reaction);
     KRATOS_CHECK(reaction > 0.1 && reaction < 100.0);
     const double dynamic_reaction = DynamicReactionTerm<EvmElement>(rElement, rProcessInfo);
     KRATOS_CHECK(dynamic_reaction > 0.1 && dynamic_reaction < 100.0);
@@ -288,6 +290,7 @@ void EvmKElement2D3N_AssignTestData(ModelPart& rModelPart)
     rModelPart.GetProcessInfo()[DYNAMIC_TAU] = 0.1;
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C_MU] = 0.09;
     rModelPart.GetProcessInfo()[TURBULENT_KINETIC_ENERGY_SIGMA] = 0.98;
+    rModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] = 1.0/std::numeric_limits<double>::epsilon();
     auto& node1 = rModelPart.GetNode(1);
     node1.FastGetSolutionStepValue(KINEMATIC_VISCOSITY) = 0.24;
     node1.FastGetSolutionStepValue(RANS_AUXILIARY_VARIABLE_1) = 0.21;
@@ -322,6 +325,7 @@ void EvmEpsilonElement2D3N_AssignTestData(ModelPart& rModelPart)
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C2] = 1.92;
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C_MU] = 0.09;
     rModelPart.GetProcessInfo()[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA] = 1.3;
+    rModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] = 1.0/std::numeric_limits<double>::epsilon();
     auto& node1 = rModelPart.GetNode(1);
     node1.FastGetSolutionStepValue(KINEMATIC_VISCOSITY) = 0.24;
     node1.FastGetSolutionStepValue(RANS_AUXILIARY_VARIABLE_2) = 0.21;

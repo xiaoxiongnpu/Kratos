@@ -11,10 +11,10 @@
 //
 
 // System includes
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <string>
-#include <cmath>
 
 // External includes
 
@@ -274,6 +274,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
     const double inv_von_karman = 1.0 / rCurrentProcessInfo[WALL_VON_KARMAN];
     const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
+    const double soft_max_exponent = rCurrentProcessInfo[RANS_SOFT_MAX_EXPONENT];
 
     const double eps = std::numeric_limits<double>::epsilon();
 
@@ -297,7 +298,8 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
         {
             const double u_tau = RansCalculationUtilities::SoftMax(
                 c_mu_25 * std::sqrt(std::max(tke, 0.0)),
-                wall_velocity_magnitude / (inv_von_karman * std::log(y_plus) + beta));
+                wall_velocity_magnitude / (inv_von_karman * std::log(y_plus) + beta),
+                soft_max_exponent);
             const double value = rho * std::pow(u_tau, 2) * weight / wall_velocity_magnitude;
 
             for (size_t a = 0; a < r_geometry.PointsNumber(); ++a)

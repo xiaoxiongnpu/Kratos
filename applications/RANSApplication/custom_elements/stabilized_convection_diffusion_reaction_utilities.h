@@ -106,7 +106,8 @@ inline void CalculateCrossWindDiffusionParameters(double& rChi,
                                                   const double Gamma,
                                                   const double DeltaTime,
                                                   const double ElementLength,
-                                                  const double DynamicTau)
+                                                  const double DynamicTau,
+                                                  const double SoftMaxExponent)
 {
     const double reaction_dynamics =
         Reaction + DynamicTau * (1 - Alpha) / (Gamma * DeltaTime);
@@ -121,13 +122,13 @@ inline void CalculateCrossWindDiffusionParameters(double& rChi,
     value -= (EffectiveKinematicViscosity + Tau * std::pow(VelocityMagnitude, 2));
     value += psi_two;
 
-    rStreamLineDiffusionCoeff = RansCalculationUtilities::SoftPositive(value);
+    rStreamLineDiffusionCoeff = RansCalculationUtilities::SoftPositive(value, SoftMaxExponent);
 
     value = 0.5 * std::abs(psi_one) * ElementLength;
     value -= EffectiveKinematicViscosity;
     value += psi_two;
 
-    rCrossWindDiffusionCoeff = RansCalculationUtilities::SoftPositive(value);
+    rCrossWindDiffusionCoeff = RansCalculationUtilities::SoftPositive(value, SoftMaxExponent);
 }
 } // namespace StabilizedConvectionDiffusionReactionUtilities
 

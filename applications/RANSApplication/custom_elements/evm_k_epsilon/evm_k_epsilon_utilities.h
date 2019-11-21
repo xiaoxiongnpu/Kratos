@@ -56,7 +56,8 @@ double CalculateSourceTerm(const BoundedMatrix<double, TDim, TDim>& rVelocityGra
 double CalculateGamma(const double C_mu,
                       const double f_mu,
                       const double turbulent_kinetic_energy,
-                      const double turbulent_kinematic_viscosity);
+                      const double turbulent_kinematic_viscosity,
+                      const double soft_max_exponent);
 
 } // namespace EvmKepsilonModelUtilities
 

@@ -29,6 +29,7 @@
 // Application includes
 #include "custom_utilities/rans_calculation_utilities.h"
 #include "stabilized_convection_diffusion_reaction_utilities.h"
+#include "rans_application_variables.h"
 
 namespace Kratos
 {
@@ -732,6 +733,7 @@ public:
         const double bossak_gamma =
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
         const double dynamic_tau = rCurrentProcessInfo[DYNAMIC_TAU];
+        const double soft_max_exponent = rCurrentProcessInfo[RANS_SOFT_MAX_EXPONENT];
 
         array_1d<double, 3> variable_gradient;
         const Variable<double>& primal_variable = this->GetPrimalVariable();
@@ -798,7 +800,7 @@ public:
                 StabilizedConvectionDiffusionReactionUtilities::CalculateCrossWindDiffusionParameters(
                     chi, k1, k2, velocity_magnitude, tau,
                     effective_kinematic_viscosity, reaction, bossak_alpha,
-                    bossak_gamma, delta_time, element_length, dynamic_tau);
+                    bossak_gamma, delta_time, element_length, dynamic_tau, soft_max_exponent);
 
                 positivity_preserving_coefficient = residual * chi / (variable_gradient_norm * velocity_magnitude_square);
             }

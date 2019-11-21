@@ -83,10 +83,11 @@ double CalculateSourceTerm(const BoundedMatrix<double, TDim, TDim>& rVelocityGra
 double CalculateGamma(const double C_mu,
                       const double f_mu,
                       const double turbulent_kinetic_energy,
-                      const double turbulent_kinematic_viscosity)
+                      const double turbulent_kinematic_viscosity,
+                      const double exponent_value)
 {
     return RansCalculationUtilities::SoftPositive(
-        C_mu * f_mu * turbulent_kinetic_energy / turbulent_kinematic_viscosity);
+        C_mu * f_mu * turbulent_kinetic_energy / turbulent_kinematic_viscosity, exponent_value);
 }
 
 template double CalculateSourceTerm<2>(const BoundedMatrix<double, 2, 2>&, const double, const double);
