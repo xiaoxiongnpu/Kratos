@@ -12,11 +12,11 @@ import math
 #mdpa_file_name_beam    = "mdpa_files/line_10_elements"
 #mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
 
-#mdpa_file_name_beam    = "mdpa_files/beam_new"
-#mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
+mdpa_file_name_beam    = "mdpa_files/beam_new"
+mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
 
-mdpa_file_name_beam    = "mdpa_files/mini_test/line"
-mdpa_file_name_surface = "mdpa_files/mini_test/surface"
+#mdpa_file_name_beam    = "mdpa_files/mini_test/line"
+#mdpa_file_name_surface = "mdpa_files/mini_test/surface"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -95,28 +95,28 @@ class TestBeamMapper(KratosUnittest.TestCase):
 
         self.mapper = KratosMapping.MapperFactory.CreateMapper(self.model_part_beam, self.model_part_surface, mapper_settings)
 
-        #for node in self.model_part_beam.Nodes:
-        #    lenght_beam = 100
-        #    alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
-        #    beta = 1.0472
-        #    r = lenght_beam / alfa
-        #    theta_X = (beta * node.X) / lenght_beam
-        #    theta_Z = - node.X / r 
-        #    node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
-        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
-        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
-        #    node.SetSolutionStepValue(KM.ROTATION_X, theta_X )
-        #    node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
-        #    node.SetSolutionStepValue(KM.ROTATION_Z, theta_Z )
+        for node in self.model_part_beam.Nodes:
+            lenght_beam = 100
+            alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            beta = 1.0472
+            r = lenght_beam / alfa
+            theta_X = (beta * node.X) / lenght_beam
+            theta_Z = - node.X / r 
+            node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
+            node.SetSolutionStepValue(KM.ROTATION_X, theta_X )
+            node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
+            node.SetSolutionStepValue(KM.ROTATION_Z, theta_Z )
 
         # Easy test
-        for node in self.model_part_beam.Nodes:
-            node.SetSolutionStepValue(KM.DISPLACEMENT_X, -node.X)
-            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, node.X)
-            node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
-            node.SetSolutionStepValue(KM.ROTATION_X, (math.pi/(2*10)) * node.X )
-            node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
-            node.SetSolutionStepValue(KM.ROTATION_Z, (math.pi/ 10 ) * node.X )
+        #for node in self.model_part_beam.Nodes:
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_X, -node.X)
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Y, node.X)
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
+        #    node.SetSolutionStepValue(KM.ROTATION_X, (math.pi/(2*10)) * node.X )
+        #    node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
+        #    node.SetSolutionStepValue(KM.ROTATION_Z, (math.pi/ 10 ) * node.X )
             
         self.mapper.Map(KM.DISPLACEMENT, KM.ROTATION, KM.DISPLACEMENT)
 
