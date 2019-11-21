@@ -165,6 +165,13 @@ private:
     ///@name Member Variables
     ///@{
 
+    Vector mrOldValues;
+    Vector mrNewValues;
+    Vector mrDeltaValues;
+
+    double mDeltaNorm;
+    double mSolutionNorm;
+
     ///@}
     ///@name Operations
     ///@{
@@ -182,7 +189,57 @@ private:
 
     void UpdateConvergenceVariable() override
     {
+        const double soft_max_exponent = this->mrModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT];
+        Communicator& r_communicator = this->mrModelPart.GetCommunicator();
+
+        ModelPart::NodesContainerType& r_nodes = r_communicator.LocalMesh().Nodes();
+
+        const int number_of_nodes = r_nodes.size();
+
+        ResizeVector(mrOldValues, number_of_nodes);
+        ResizeVector(mrNewValues, number_of_nodes);
+        ResizeVector(mrDeltaValues, number_of_nodes);
+
+        RansVariableUtilities::GetNodalVariablesVector(mrOldValues, r_nodes, TURBULENT_VISCOSITY);
         this->ExecuteAuxiliaryProcesses();
+        RansVariableUtilities::GetNodalVariablesVector(mrNewValues, r_nodes, TURBULENT_VISCOSITY);
+        noalias(mrDeltaValues) = mrNewValues - mrOldValues;
+
+        double current_delta_norm{0.0}, current_solution_norm{0.0};
+// using soft max for the time being as a test
+#pragma omp parallel for reduction(+: current_delta_norm, current_solution_norm)
+        for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+        {
+            NodeType& r_node = *(r_nodes.begin() + i_node);
+            const double nu_t = mrOldValues[i_node] + mrDeltaValues[i_node] * this->mRelaxationFactor;
+            const double soft_max = RansCalculationUtilities::SoftMax(
+                nu_t, std::numeric_limits<double>::epsilon(), soft_max_exponent);
+            current_delta_norm += std::pow(soft_max - mrOldValues[i_node], 2);
+            current_solution_norm += std::pow(soft_max, 2);
+            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = soft_max;
+        }
+
+        mDeltaNorm = current_delta_norm;
+        mSolutionNorm = current_solution_norm;
+
+        r_communicator.SynchronizeVariable(TURBULENT_VISCOSITY);
+
+        if (this->mEchoLevel > 0)
+        {
+            const double min_nu_t = RansVariableUtilities::GetMinimumScalarValue(
+                this->mrModelPart, TURBULENT_VISCOSITY);
+            const double max_nu_t = RansVariableUtilities::GetMaximumScalarValue(
+                this->mrModelPart, TURBULENT_VISCOSITY);
+            KRATOS_INFO(this->Info())
+                << "TURBULENT_VISCOSITY is bounded between [ " << min_nu_t
+                << ", " << max_nu_t << " ].\n";
+        }
+    }
+
+    void CalculateConvergenceNorms(double& rDeltaNorm, double& rSolutionNorm) override
+    {
+        rDeltaNorm = mDeltaNorm;
+        rSolutionNorm = mSolutionNorm;
     }
 
     void UpdateEffectiveViscosity()
@@ -198,6 +255,14 @@ private:
             const double nu_t = r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY);
 
             r_node.FastGetSolutionStepValue(VISCOSITY) = nu_t + nu;
+        }
+    }
+
+    void ResizeVector(Vector& rVector, const std::size_t Size)
+    {
+        if (rVector.size() != Size)
+        {
+            rVector.resize(Size);
         }
     }
 

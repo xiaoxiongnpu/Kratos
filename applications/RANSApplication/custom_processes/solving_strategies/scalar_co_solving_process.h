@@ -78,8 +78,19 @@ public:
             "max_iterations"                    : 10,
             "echo_level"                        : 0,
             "relaxation_factor"                 : 1.0,
-            "number_of_parent_solve_iterations" : 0
+            "number_of_parent_solve_iterations" : 0,
+            "soft_max_exponent"                 : "inverse_epsilon"
         })");
+
+        if (rParameters.Has("soft_max_exponent"))
+        {
+            if (rParameters["soft_max_exponent"].IsDouble())
+            {
+                default_parameters.RemoveValue("soft_max_exponent");
+                default_parameters.AddEmptyValue("soft_max_exponent");
+                default_parameters["soft_max_exponent"].SetDouble(0.0);
+            }
+        }
 
         rParameters.ValidateAndAssignDefaults(default_parameters);
 
@@ -89,6 +100,31 @@ public:
         mRelaxationFactor = rParameters["relaxation_factor"].GetDouble();
         mMaxIterations = rParameters["max_iterations"].GetInt();
         mSkipIterations = rParameters["number_of_parent_solve_iterations"].GetInt();
+
+        if (rParameters["soft_max_exponent"].IsString())
+        {
+            if (rParameters["soft_max_exponent"].GetString() == "inverse_epsilon")
+            {
+                mrModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] =
+                    1.0 / std::numeric_limits<double>::epsilon();
+            }
+            else
+            {
+                KRATOS_ERROR
+                    << "Undefined \"soft_max_exponent\"=\"" +
+                           rParameters["soft_max_exponent"].GetString() +
+                           "\". Allowed a double value or \"inverse_epsilon\"\n";
+            }
+        }
+        else if (rParameters["soft_max_exponent"].IsDouble())
+        {
+            mrModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] =
+                rParameters["soft_max_exponent"].GetDouble();
+        }
+        else
+        {
+            KRATOS_ERROR << "something.";
+        }
 
         mCurrentParentIteration = 0;
     }
@@ -195,6 +231,7 @@ protected:
     ModelPart& mrModelPart;
     int mEchoLevel;
     bool mIsCoSolvingProcessActive;
+    double mRelaxationFactor;
     ///@}
     ///@name Operations
     ///@{
@@ -217,6 +254,13 @@ protected:
     {
         KRATOS_ERROR << "Calling the base class "
                         "ScalarCoSolvingProcess::UpdateConvergenceVariable. "
+                        "Please override it in derrived class.";
+    }
+
+    virtual void CalculateConvergenceNorms(double& rDeltaNorm, double& rSolutionNorm)
+    {
+        KRATOS_ERROR << "Calling the base class "
+                        "ScalarCoSolvingProcess::CalculateConvergenceNorms. "
                         "Please override it in derrived class.";
     }
 
@@ -256,18 +300,11 @@ protected:
             ModelPart::NodesContainerType& r_nodes = r_communicator.LocalMesh().Nodes();
             const ProcessInfo& r_current_process_info = mrModelPart.GetProcessInfo();
 
-            Vector old_values(r_nodes.size());
-            Vector new_values(r_nodes.size());
-            Vector delta_values(r_nodes.size());
-
             int iteration_format_length =
                 static_cast<int>(std::log10(this->mMaxIterations)) + 1;
 
             while (!is_converged && iteration <= this->mMaxIterations)
             {
-                RansVariableUtilities::GetNodalVariablesVector(
-                    old_values, r_nodes, this->mrConvergenceVariable);
-
                 for (int i = 0;
                      i < static_cast<int>(this->mrSolvingStrategiesList.size()); ++i)
                 {
@@ -284,25 +321,16 @@ protected:
 
                 this->UpdateConvergenceVariable();
 
-                RansVariableUtilities::GetNodalVariablesVector(
-                    new_values, r_nodes, this->mrConvergenceVariable);
-                noalias(delta_values) = new_values - old_values;
-
                 // This vector stores norms of the residual
                 // index - 0 : increase_norm
                 // index - 1 : solution_norm
                 // index - 3 : number of nodes
                 std::vector<double> residual_norms(3);
-                residual_norms[0] = std::pow(norm_2(delta_values), 2);
-                residual_norms[1] = std::pow(norm_2(new_values), 2);
+                this->CalculateConvergenceNorms(residual_norms[0], residual_norms[1]);
                 residual_norms[2] = static_cast<double>(r_nodes.size());
+
                 const std::vector<double>& total_residual_norms =
                     r_communicator.GetDataCommunicator().SumAll(residual_norms);
-
-                noalias(new_values) = old_values + delta_values * mRelaxationFactor;
-                RansVariableUtilities::SetNodalVariables(
-                    r_nodes, new_values, this->mrConvergenceVariable);
-                r_communicator.SynchronizeVariable(this->mrConvergenceVariable);
 
                 double convergence_relative =
                     total_residual_norms[0] /
@@ -391,7 +419,6 @@ private:
     int mCurrentParentIteration;
     double mConvergenceAbsoluteTolerance;
     double mConvergenceRelativeTolerance;
-    double mRelaxationFactor;
 
     ///@}
     ///@name Operations
