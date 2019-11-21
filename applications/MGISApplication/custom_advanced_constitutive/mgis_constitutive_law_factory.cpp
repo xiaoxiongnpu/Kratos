@@ -13,61 +13,55 @@
 // System includes
 
 // External includes
+#include "MGIS/LibrariesManager.hxx"
 #include "MGIS/Behaviour/Hypothesis.hxx"
 #include "MGIS/Behaviour/Behaviour.hxx"
 
 // Project includes
+#include "custom_advanced_constitutive/mgis_constitutive_law.h"
 #include "custom_advanced_constitutive/mgis_constitutive_law_factory.h"
 
-namespace Kratos
-{
-ConstitutiveLaw::Pointer MGISConstitutiveLawFactory::Create(Kratos::Parameters NewParameters) const
-{
-  using mgis::behaviour::Behaviour;
-  const auto hypothesis = NewParameters.Has("hypothesis")
-                              ? mgis::behaviour::fromString(NewParameters["hypothesis"].GetString())
-                              : mgis::behaviour::Hypothesis::TRIDIMENSIONAL;
-  const auto& library = NewParameters["library"].GetString();
-  const auto& name = NewParameters["behaviour"].GetString();
-  // mgis behaviour
-  auto b = Kratos::shared_ptr<Behaviour>{};
-  // finite strain behaviour options, if any
-  if (NewParameters.Has("stress_measure") || NewParameters.Has("tangent_operator")) {
-    using FiniteStrainBehaviourOptions = mgis::behaviour::FiniteStrainBehaviourOptions;
-    auto opts = FiniteStrainBehaviourOptions{};
-    if (NewParameters.Has("stress_measure")) {
-      const auto sm = NewParameters["stress_measure"].GetString();
-      if (sm == "Cauchy") {
-        opts.stress_measure = FiniteStrainBehaviourOptions::StressMeasure::CAUCHY;
-      } else if ((sm == "PK2") || (sm == "first_Piola_Kirchhoff_stress")) {
-        opts.stress_measure = FiniteStrainBehaviourOptions::StressMeasure::PK1;
-      } else if ((sm == "PK2") || (sm == "second_Piola_Kirchhoff_stress")) {
-        opts.stress_measure = FiniteStrainBehaviourOptions::StressMeasure::PK2;
-      } else {
-        KRATOS_ERROR << "MGISConstitutiveLawFactory::Create: invalid stress measure '" << sm
-                     << "'\n";
-      }
-    }
-    if (NewParameters.Has("tangent_operator")) {
-      const auto to = NewParameters["tangent_operator"].GetString();
-      if (to == "DSIG_DF") {
-        opts.tangent_operator = FiniteStrainBehaviourOptions::TangentOperator::DSIG_DF;
-      } else if (to == "DPK1_DF") {
-        opts.tangent_operator = FiniteStrainBehaviourOptions::TangentOperator::DPK1_DF;
-      } else if (to == "DS_DEGL") {
-        opts.tangent_operator = FiniteStrainBehaviourOptions::TangentOperator::DS_DEGL;
-      } else {
-        KRATOS_ERROR << "MGISConstitutiveLawFactory::Create: invalid tangent operator '" << to
-                     << "'\n";
-      }
-    }
-    // loading the behaviour
-    b = make_shared<Behaviour>(mgis::behaviour::load(opts, library, name, hypothesis));
-  } else {
-    // loading the behaviour
-    b = make_shared<Behaviour>(mgis::behaviour::load(library, name, hypothesis));
-  }
-  //   return KratosComponents<ConstitutiveLaw>::Get(name).Clone();
-}
+namespace Kratos {
 
-} // namespace Kratos
+  ConstitutiveLaw::Pointer MGISConstitutiveLawFactory::Create(
+      Kratos::Parameters NewParameters) const {
+    using mgis::behaviour::Behaviour;
+    using mgis::behaviour::FiniteStrainBehaviourOptions;
+    const auto hypothesis =
+        NewParameters.Has("hypothesis")
+            ? mgis::behaviour::fromString(NewParameters["hypothesis"].GetString())
+            : mgis::behaviour::Hypothesis::TRIDIMENSIONAL;
+    const auto& library = NewParameters["library"].GetString();
+    const auto& name = NewParameters["behaviour"].GetString();
+    // mgis behaviour
+    auto b = Kratos::shared_ptr<Behaviour>{};
+    const auto btype = [&library, &name] {
+      auto& lm = mgis::LibrariesManager::get();
+      /* - 0 : general behaviour
+       * - 1 : strain based behaviour *
+       * - 2 : standard finite strain behaviour *
+       * - 3 : cohesive zone model */
+      switch (lm.getBehaviourType(library, name)) {
+        case 0:
+          return Behaviour::GENERALBEHAVIOUR;
+        case 1:
+          return Behaviour::STANDARDSTRAINBASEDBEHAVIOUR;
+        case 2:
+          return Behaviour::STANDARDFINITESTRAINBEHAVIOUR;
+        case 3:
+          return Behaviour::COHESIVEZONEMODEL;
+      }
+      KRATOS_ERROR << "MGISConstitutiveLawFactory::Create: unsupported behaviour type\n";
+    }();
+    if (btype == Behaviour::STANDARDFINITESTRAINBEHAVIOUR) {
+      auto opts = FiniteStrainBehaviourOptions{};
+      opts.stress_measure = FiniteStrainBehaviourOptions::StressMeasure::PK2;
+      opts.tangent_operator = FiniteStrainBehaviourOptions::TangentOperator::DS_DEGL;
+      b = Kratos::make_shared<Behaviour>(mgis::behaviour::load(opts, library, name, hypothesis));
+    } else {
+      b = Kratos::make_shared<Behaviour>(mgis::behaviour::load(library, name, hypothesis));
+    }
+    return Kratos::make_shared<MGISConstitutiveLaw>(b);
+  }  // end of MGISConstitutiveLawFactory::Create
+
+}  // end of  namespace Kratos

@@ -53,8 +53,7 @@ namespace Kratos {
    * @author Riccardo Rossi
    * @author Vicente Mataix Ferrandiz
    */
-  class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) MGISConstitutiveLaw
-      : public ConstitutiveLaw {
+  class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) MGISConstitutiveLaw : public ConstitutiveLaw {
    public:
     ///@name Type Definitions
     ///@{
@@ -145,8 +144,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void CalculateMaterialResponsePK1(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void CalculateMaterialResponsePK1(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Computes the material response:
@@ -154,8 +152,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void CalculateMaterialResponsePK2(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void CalculateMaterialResponsePK2(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Computes the material response:
@@ -163,8 +160,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void CalculateMaterialResponseKirchhoff(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void CalculateMaterialResponseKirchhoff(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Computes the material response:
@@ -172,38 +168,33 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void CalculateMaterialResponseCauchy(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void CalculateMaterialResponseCauchy(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Initialize the material response in terms of 1st Piola-Kirchhoff
      * stresses
      * @see Parameters
      */
-    void InitializeMaterialResponsePK1(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void InitializeMaterialResponsePK1(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Initialize the material response in terms of 2nd Piola-Kirchhoff
      * stresses
      * @see Parameters
      */
-    void InitializeMaterialResponsePK2(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void InitializeMaterialResponsePK2(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Initialize the material response in terms of Kirchhoff stresses
      * @see Parameters
      */
-    void InitializeMaterialResponseKirchhoff(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void InitializeMaterialResponseKirchhoff(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Initialize the material response in terms of Cauchy stresses
      * @see Parameters
      */
-    void InitializeMaterialResponseCauchy(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void InitializeMaterialResponseCauchy(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
       * @brief Updates the material response:
@@ -211,8 +202,7 @@ namespace Kratos {
       * @param rValues The internal values of the law
       * @see   Parameters
       */
-    void FinalizeMaterialResponsePK1(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void FinalizeMaterialResponsePK1(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Updates the material response:
@@ -220,8 +210,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void FinalizeMaterialResponsePK2(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void FinalizeMaterialResponsePK2(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Updates the material response:
@@ -229,8 +218,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void FinalizeMaterialResponseKirchhoff(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void FinalizeMaterialResponseKirchhoff(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief Updates the material response:
@@ -238,8 +226,7 @@ namespace Kratos {
      * @param rValues The internal values of the law
      * @see   Parameters
      */
-    void FinalizeMaterialResponseCauchy(
-        ConstitutiveLaw::Parameters& rValues) override;
+    void FinalizeMaterialResponseCauchy(ConstitutiveLaw::Parameters& rValues) override;
 
     /**
      * @brief It calculates the value of a specified variable (double case)
@@ -327,6 +314,29 @@ namespace Kratos {
     ///@}
     ///@name Private Operations
     ///@{
+
+    /**
+     * @brief integrate the behaviour over the time step.
+     * @param rValues The internal values of the law
+     * @see   Parameters
+     * @note  This method does not update the stress and
+     * the tangent operator on the Kratos side. This must
+     * be done in the calling methods
+     * (`CalculateMaterialResponseCauchy` for example)
+     * which are responsible for converting the stress and
+     * the tangent operator returned by `MGIS` (which is
+     * respectively the second Piola-Kirchhoff stress and
+     * its derivative with respect to the Green-Lagrange
+     * strain.
+     */
+    void Integrate(ConstitutiveLaw::Parameters& rValues);
+
+    /**
+     * @brief update the material state.
+     * @param rValues The internal values of the law
+     * @see   Parameters
+     */
+    void Update(ConstitutiveLaw::Parameters& rValues);
 
     ///@}
     ///@name Private  Access
