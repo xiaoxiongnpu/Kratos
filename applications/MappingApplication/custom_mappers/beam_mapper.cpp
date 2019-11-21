@@ -615,46 +615,46 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             std::cout << "Rotation_G_2 = " << Rotation_G_2 << std::endl;
             std::cout << "Rotation_B_2 = " << Rotation_B_2 << std::endl;
 
-            //// Calculating R_d  and t_d for Phi_d 
-            //VectorType e_x_d_G(3), e_x_d_B(3);
-            //e_x_d_G = _r_geom[0].Coordinates() + displacementNode1_G - (_r_geom[1].Coordinates() + displacementNode2_G); // this vector is described in global system 
-            ////std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
-            ////std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
-            ////std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
-            ////std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
-            //e_x_d_G /= norm_2(e_x_d_G);
+            // Calculating R_d  and t_d for Phi_d 
+            VectorType e_x_d_G(3), e_x_d_B(3);
+            e_x_d_G = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
+            //std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
+            //std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
+            //std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
+            //std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
+            e_x_d_G /= norm_2(e_x_d_G);
             //std::cout << "e_x_d_G = " << e_x_d_G << std::endl;
-            ////std::cout << "this takes me to the beam C.S. _rotationMatrix_B_G = " << _rotationMatrix_B_G << std::endl; 
-            ////std::cout << " _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl; 
-            //TDenseSpace::Mult(_rotationMatrix_B_G, e_x_d_G, e_x_d_B); // transforming e_x_d to the beam coordinate system
-            //e_x_d_B /= norm_2(e_x_d_B);
+            //std::cout << "this takes me to the beam C.S. _rotationMatrix_B_G = " << _rotationMatrix_B_G << std::endl; 
+            //std::cout << " _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl; 
+            TDenseSpace::Mult(_rotationMatrix_B_G, e_x_d_G, e_x_d_B); // transforming e_x_d to the beam coordinate system
+            e_x_d_B /= norm_2(e_x_d_B);
             //std::cout << "e_x_d_B = " << e_x_d_B << std::endl;
-            //
-            //VectorType e_x(3, 0.0), n_d(3, 0.0);
-            //MatrixType R_d(3, 3), _I(3, 3, 0.0), _R(3, 3, 0.0), I_2nT(3, 3, 0.0);
-            //e_x(0) = 1.0;
-            //_I(0,0) = 1.0;
-            //_I(1,1) = 1.0;
-            //_I(2,2) = 1.0;
-            //_R(0, 0) = -1.0;
-            //_R(1, 1) = 1.0;
-            //_R(2, 2) = 1.0;
-            //n_d =  e_x + e_x_d_B;
-            //n_d /= norm_2(n_d);
-            ////std::cout << "n_d = " << n_d << std::endl;
-            ////std::cout << "n_d * n_d_T = " << MathUtils<double>::TensorProduct3(n_d, n_d) << std::endl;
-            //I_2nT = _I - 2 * MathUtils<double>::TensorProduct3(n_d, n_d);
-            //R_d = prod(I_2nT, _R);
-            //std::cout << "Rd is = " << R_d << std::endl;
-           //
-            //VectorType t_d(3);
-            //t_d(0) = _linearShapeValues(0) * displacementNode1_B(0) + _linearShapeValues(1) * displacementNode2_B(0);
-            //t_d(1) = _linearShapeValues(0) * displacementNode1_B(1) + _linearShapeValues(1) * displacementNode2_B(1);
-            //t_d(2) = _linearShapeValues(0) * displacementNode1_B(2) + _linearShapeValues(1) * displacementNode2_B(2);
-            //std::cout << "td is = " << t_d << std::endl;
-//
-            //// First, transform the nodal rotations (expresed in the Beam Coordinate System) to the Co-rotational Coordinate System
-            //// Calculating Co-rotate basis vectors
+            
+            VectorType e_x(3, 0.0), n_d(3, 0.0);
+            MatrixType R_d(3, 3), _I(3, 3, 0.0), _R(3, 3, 0.0), I_2nT(3, 3, 0.0);
+            e_x(0) = 1.0;
+            _I(0,0) = 1.0;
+            _I(1,1) = 1.0;
+            _I(2,2) = 1.0;
+            _R(0, 0) = -1.0;
+            _R(1, 1) = 1.0;
+            _R(2, 2) = 1.0;
+            n_d =  e_x + e_x_d_B;
+            n_d /= norm_2(n_d);
+            //std::cout << "n_d = " << n_d << std::endl;
+            //std::cout << "n_d * n_d_T = " << MathUtils<double>::TensorProduct3(n_d, n_d) << std::endl;
+            I_2nT = _I - 2 * MathUtils<double>::TensorProduct3(n_d, n_d);
+            R_d = prod(I_2nT, _R);
+            std::cout << "Rd is = " << R_d << std::endl;
+           
+            VectorType t_d(3);
+            t_d(0) = _linearShapeValues(0) * displacementNode1_B(0) + _linearShapeValues(1) * displacementNode2_B(0);
+            t_d(1) = _linearShapeValues(0) * displacementNode1_B(1) + _linearShapeValues(1) * displacementNode2_B(1);
+            t_d(2) = _linearShapeValues(0) * displacementNode1_B(2) + _linearShapeValues(1) * displacementNode2_B(2);
+            std::cout << "td is = " << t_d << std::endl;
+
+            // First, transform the nodal rotations (expresed in the Beam Coordinate System) to the Co-rotational Coordinate System
+            // Calculating Co-rotate basis vectors
             //VectorType corotateXAxis(3), corotateYAxis(3), corotateZAxis(3);
             //corotateXAxis = e_x_d_B; // Expresed in local system
             //corotateYAxis(0) = -2.0 * n_d(0) * n_d(1);
@@ -681,153 +681,160 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             ////Rotation_COR_1 = prod(Rotation_COR_B, Rotation_B_1);
             ////Rotation_COR_2 = prod(Rotation_COR_B, Rotation_B_2);
 //
-            //// Calculating R_s
-            //MatrixType Rs_Rl1(3, 3), Rs_Rl2(3, 3), R_d_T(3, 3);
-            //MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
-            //Rs_Rl1 = prod(R_d_T, Rotation_B_1); // Rl1 * Rs = R_d_T * Phi_1, displacements cancel out
-            //Rs_Rl2 = prod(R_d_T, Rotation_B_2); // Rl2 * Rs = R_d_T * Phi_2, displacements cancel out
-            ////std::cout << "Rl1_Rs = " << Rs_Rl1 << std::endl;
-            ////std::cout << "Rl2_Rs = " << Rs_Rl2 << std::endl; 
-            //VectorType v_Rs_Rl1(3), v_Rs_Rl2(3);
-            //getRotationVector(Rs_Rl1, v_Rs_Rl1);
-            //getRotationVector(Rs_Rl2, v_Rs_Rl2);
-            //std::cout << "v_Rs_Rl1 = " << v_Rs_Rl1 << std::endl;
-            //std::cout << "v_Rs_Rl2 = " << v_Rs_Rl2 << std::endl;
-//
-            //double theta_s = (v_Rs_Rl1(0) + v_Rs_Rl2(0)) / 2;
-            //MatrixType R_s(3, 3);
-            //VectorType e_x_s(3, 0.0);
-            //e_x_s(0) = 1.0;
-            ////std::cout << "theta_s = " << theta_s << std::endl;
-            //CalculateRotationMatrixWithAngle(e_x_s, theta_s, R_s);
-            //std::cout << "R_s = " << R_s << std::endl;
-//
-            //// Calculating rotation vector l on node 1 and 2 of the beam
-            //MatrixType Rl1(3, 3), Rl2(3, 3), R_s_T(3, 3);
-            //VectorType v_Rl1(3), v_Rl2(3);
-            //MathUtils<double>::InvertMatrix3(R_s, R_s_T, determinant);
-            ////std::cout << " R_s_T  = " << R_s_T << std::endl;
-            ////std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
-            ////std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
-            //Rl1 = prod(R_s_T, Rs_Rl1);
-            //Rl2 = prod(R_s_T, Rs_Rl2);
-            ////std::cout << " Rl1  = " << Rl1 << std::endl;
-            ////std::cout << " Rl2  = " << Rl2 << std::endl;
-            //getRotationVector(Rl1, v_Rl1);
-            //getRotationVector(Rl2, v_Rl2); 
-            //std::cout << " v_Rl1  = " << v_Rl1 << std::endl;
-            //std::cout << " v_Rl2  = " << v_Rl2 << std::endl;
-//
-            //MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
-            //VectorType corBeamVector(3, 0.0);
-            //corBeamVector = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
-            //double length_beamVector = norm_2(corBeamVector);            
-//
-            //_ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
-            //_ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
-            //_ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
-            //_ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1) * length_beamVector;
-            //_ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
-            //_ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3) * length_beamVector;
-            //_ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
-            //_ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1) * length_beamVector;
-            //_ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
-            //_ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3) * length_beamVector;
-            //
-            //_ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
-            //_ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
-            //_ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0) / length_beamVector;
-            //_ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
-            //_ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2) / length_beamVector;
-            //_ShapeFunctionsMatrix(4 , 10) = -_hermitanDerShapeValues(3);
-            //_ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0) / length_beamVector;
-            //_ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
-            //_ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2) / length_beamVector;
-            //_ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
-//
-            ////std::cout << "Shape functions matrix = " << _ShapeFunctionsMatrix << std::endl;
-            //VectorType _DOF_Vector_l(12);
-            //for (size_t i = 0; i < 3; i++){
-            //    _DOF_Vector_l(i) = 0.0;
-            //    _DOF_Vector_l(i + 3) = v_Rl1(i);
-            //    _DOF_Vector_l(i + 6) = 0.0;
-            //    _DOF_Vector_l(i + 9) = v_Rl2(i);
-            //}
-            ////std::cout << "Vector DOF_l is : " << _DOF_Vector_l << std::endl;
-//
-            //VectorType _DisplacementsRotations_L(6);
-            //TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector_l, _DisplacementsRotations_L);
-//
-            //std::cout << "displacements and rotations for phi l are : _DisplacementsRotations_L = " << _DisplacementsRotations_L << std::endl;
-//
-            //// Constructing phi_l
-            //VectorType axis_l(3), t_l(3);
-            //MatrixType R_l(3, 3), R_l_temp(3, 3), R_x(3, 3), R_y(3, 3), R_z(3, 3);
-            //t_l(0) = _DisplacementsRotations_L(0); // t_l
-            //t_l(1) = _DisplacementsRotations_L(1); // t_l
-            //t_l(2) = _DisplacementsRotations_L(2); // t_l
-            //axis_l(0) = _DisplacementsRotations_L(3);
-            //axis_l(1) = _DisplacementsRotations_L(4);
-            //axis_l(2) = _DisplacementsRotations_L(5); 
-            //double angle_l = norm_2(axis_l);
+            // Calculating R_s
+            MatrixType Rs_Rl1(3, 3), Rs_Rl2(3, 3), R_d_T(3, 3);
+            MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
+            Rs_Rl1 = prod(R_d_T, Rotation_B_1); // somehow, R_d is the transpose of real R_d 
+            Rs_Rl2 = prod(R_d_T, Rotation_B_2); // somehow, R_d is the transpose of real R_d 
+            std::cout << "Rs_Rl1 = " << Rs_Rl1 << std::endl;
+            std::cout << "Rs_Rl2 = " << Rs_Rl2 << std::endl; 
+            VectorType v_Rs_Rl1(3), v_Rs_Rl2(3);
+            getRotationVector(Rs_Rl1, v_Rs_Rl1);
+            getRotationVector(Rs_Rl2, v_Rs_Rl2);
+            std::cout << "v_Rs_Rl1 = " << v_Rs_Rl1 << std::endl;
+            std::cout << "v_Rs_Rl2 = " << v_Rs_Rl2 << std::endl;
+
+            double theta_s = (v_Rs_Rl1(0) + v_Rs_Rl2(0)) / 2;
+            MatrixType R_s(3, 3);
+            VectorType e_x_s(3, 0.0);
+            e_x_s(0) = 1.0;
+            //std::cout << "theta_s = " << theta_s << std::endl;
+            CalculateRotationMatrixWithAngle(e_x_s, theta_s, R_s);
+            std::cout << "R_s = " << R_s << std::endl;
+
+            // Calculating rotation vector l on node 1 and 2 of the beam
+            MatrixType Rl1(3, 3), Rl2(3, 3), R_s_T(3, 3);
+            VectorType v_Rl1(3), v_Rl2(3);
+            MathUtils<double>::InvertMatrix3(R_s, R_s_T, determinant);
+            //std::cout << " R_s_T  = " << R_s_T << std::endl;
+            //std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
+            //std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
+            Rl1 = prod(R_s_T, Rs_Rl1);
+            Rl2 = prod(R_s_T, Rs_Rl2);
+            //std::cout << " Rl1  = " << Rl1 << std::endl;
+            //std::cout << " Rl2  = " << Rl2 << std::endl;
+            getRotationVector(Rl1, v_Rl1);
+            getRotationVector(Rl2, v_Rl2); 
+            std::cout << " v_Rl1  = " << v_Rl1 << std::endl;
+            std::cout << " v_Rl2  = " << v_Rl2 << std::endl;
+
+            ////////////////////////
+
+            MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
+            VectorType corBeamVector(3, 0.0);
+            corBeamVector = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
+            double length_beamVector = norm_2(corBeamVector);            
+
+            _ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1) * length_beamVector;
+            _ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3) * length_beamVector;
+            _ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
+            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1) * length_beamVector;
+            _ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
+            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3) * length_beamVector;
+            
+            _ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
+            _ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0) / length_beamVector;
+            _ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2) / length_beamVector;
+            _ShapeFunctionsMatrix(4 , 10) = _hermitanDerShapeValues(3);
+            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0) / length_beamVector;
+            _ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
+            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2) / length_beamVector;
+            _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
+
+            //std::cout << "Shape functions matrix = " << _ShapeFunctionsMatrix << std::endl;
+            VectorType _DOF_Vector_l(12);
+            for (size_t i = 0; i < 3; i++){
+                _DOF_Vector_l(i) = 0.0;
+                _DOF_Vector_l(i + 3) = v_Rl1(i);
+                _DOF_Vector_l(i + 6) = 0.0;
+                _DOF_Vector_l(i + 9) = v_Rl2(i);
+            }
+            //std::cout << "Vector DOF_l is : " << _DOF_Vector_l << std::endl;
+
+            VectorType _DisplacementsRotations_L(6);
+            TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector_l, _DisplacementsRotations_L);
+
+            std::cout << "displacements and rotations for phi l are : _DisplacementsRotations_L = " << _DisplacementsRotations_L << std::endl;
+
+            // Constructing phi_l
+            VectorType axis_l(3), t_l(3);
+            MatrixType R_l(3, 3), R_l_temp(3, 3), R_x(3, 3), R_y(3, 3), R_z(3, 3);
+            t_l(0) = _DisplacementsRotations_L(0); // t_l
+            t_l(1) = _DisplacementsRotations_L(1); // t_l
+            t_l(2) = _DisplacementsRotations_L(2); // t_l
+            axis_l(0) = _DisplacementsRotations_L(3);
+            axis_l(1) = _DisplacementsRotations_L(4);
+            axis_l(2) = _DisplacementsRotations_L(5); 
+            double angle_l = norm_2(axis_l);
             //axis_l = axis_l/angle_l;
-//
+            CalculateRotationMatrixWithAngle(e_1, axis_l(0), Rx);
+            CalculateRotationMatrixWithAngle(e_2, axis_l(1), Ry);
+            CalculateRotationMatrixWithAngle(e_3, axis_l(2), Rz);
+            R_temp = prod(Rx, Ry);
+            R_l = prod(Rz, R_temp);
+
             //CalculateRotationMatrixWithAngle(axis_l, angle_l, R_l); // R_l
-            //std::cout << "t_d = " << t_d << std::endl;
-            //std::cout << "t_s = none " << std::endl;
-            //std::cout << "t_l = " << t_l << std::endl;
-//
-            //// Calculating R_P and t_P
-            //MatrixType R_P(3, 3), R_P_temp(3, 3);
-            //std::cout << "R_d = " << R_d << std::endl;
-            //std::cout << "R_s = " << R_s << std::endl;
-            //std::cout << "R_l = " << R_l << std::endl;
-            //R_P_temp = prod(R_d, R_s);
-            //R_P = prod(R_P_temp, R_l);
-//
-            //VectorType t_P(3), t_P_temp(3, 0.0);
-            //TDenseSpace::Mult(R_P_temp, t_l, t_P_temp);
-            //t_P = t_P_temp + t_d;
-//
-            //std::cout << "R_P is : " << R_P << std::endl;
-            //std::cout << "t_P is : " << t_P << std::endl;
-//
-            //// Rigid body operation 
-            //// phi_G( X ) = R_G_B * R_P * (R_G_B ^ T) * X - R_G_B * R_P * (R_G_B ^ T) * t_B_P + R_G_B * t_B + t_B_P
-//
-            //MatrixType MatrixProduct(3, 3); 
-            //MathUtils<double>::BDBtProductOperation(MatrixProduct, R_P, _rotationMatrix_G_B);
-            //
-            //VectorType firstProduct(3), secondProduct(3), thirdProduct(3), phi_G(3), displacement(3), _X(3);
-//
-            //_X( 0 ) = (r_local_sys->Coordinates())[ 0 ];
-            //_X( 1 ) = (r_local_sys->Coordinates())[ 1 ];
-            //_X( 2 ) = (r_local_sys->Coordinates())[ 2 ];
-            //TDenseSpace::Mult(MatrixProduct, _X, firstProduct );
-            //TDenseSpace::Mult(MatrixProduct, _translationVector_B_P, secondProduct );
-            //TDenseSpace::Mult(_rotationMatrix_G_B, t_P, thirdProduct );
-//
-            //phi_G( 0 ) = firstProduct( 0 ) - secondProduct( 0 ) + thirdProduct( 0 ) + _translationVector_B_P( 0 );
-            //phi_G( 1 ) = firstProduct( 1 ) - secondProduct( 1 ) + thirdProduct( 1 ) + _translationVector_B_P( 1 );
-            //phi_G( 2 ) = firstProduct( 2 ) - secondProduct( 2 ) + thirdProduct( 2 ) + _translationVector_B_P( 2 ); 
-//
-            //displacement( 0 ) = phi_G( 0 ) - _X( 0 );
-            //displacement( 1 ) = phi_G( 1 ) - _X( 1 );
-            //displacement( 2 ) = phi_G( 2 ) - _X( 2 );
-//
-            //std::cout << "phi_G is : " << phi_G << std::endl;
-//
-            //std::cout << "_X is : " << _X << std::endl;
-//
-            //std::cout << "The final displacement is : " << displacement << std::endl;
-//
-            //size_t c = 0;
-            //for( const auto& var_ext : var_comps )
-            //{
-            //    const auto& var_destination_disp = KratosComponents<ComponentVariableType>::Get(rDestinationVariableDisplacement.Name() + var_ext);
-            //    _pNode->FastGetSolutionStepValue(var_destination_disp) = displacement( c );
-            //    c++;
-            //}
+            std::cout << "t_d = " << t_d << std::endl;
+            std::cout << "t_s = none " << std::endl;
+            std::cout << "t_l = " << t_l << std::endl;
+
+            // Calculating R_P and t_P
+            MatrixType R_P(3, 3), R_P_temp(3, 3);
+            std::cout << "R_d = " << R_d << std::endl;
+            std::cout << "R_s = " << R_s << std::endl;
+            std::cout << "R_l = " << R_l << std::endl;
+            R_P_temp = prod(R_d, R_s);
+            R_P = prod(R_P_temp, R_l);
+
+            VectorType t_P(3), t_P_temp(3, 0.0);
+            TDenseSpace::Mult(R_P_temp, t_l, t_P_temp);
+            t_P = t_P_temp + t_d;
+
+            std::cout << "R_P is : " << R_P << std::endl;
+            std::cout << "t_P is : " << t_P << std::endl;
+
+            // Rigid body operation 
+            // phi_G( X ) = R_G_B * R_P * (R_G_B ^ T) * X - R_G_B * R_P * (R_G_B ^ T) * t_B_P + R_G_B * t_B + t_B_P
+
+            MatrixType MatrixProduct(3, 3); 
+            MathUtils<double>::BDBtProductOperation(MatrixProduct, R_P, _rotationMatrix_G_B);
+            
+            VectorType firstProduct(3), secondProduct(3), thirdProduct(3), phi_G(3), displacement(3), _X(3);
+
+            _X( 0 ) = (r_local_sys->Coordinates())[ 0 ];
+            _X( 1 ) = (r_local_sys->Coordinates())[ 1 ];
+            _X( 2 ) = (r_local_sys->Coordinates())[ 2 ];
+            TDenseSpace::Mult(MatrixProduct, _X, firstProduct );
+            TDenseSpace::Mult(MatrixProduct, _translationVector_B_P, secondProduct );
+            TDenseSpace::Mult(_rotationMatrix_G_B, t_P, thirdProduct );
+
+            phi_G( 0 ) = firstProduct( 0 ) - secondProduct( 0 ) + thirdProduct( 0 ) + _translationVector_B_P( 0 );
+            phi_G( 1 ) = firstProduct( 1 ) - secondProduct( 1 ) + thirdProduct( 1 ) + _translationVector_B_P( 1 );
+            phi_G( 2 ) = firstProduct( 2 ) - secondProduct( 2 ) + thirdProduct( 2 ) + _translationVector_B_P( 2 ); 
+
+            displacement( 0 ) = phi_G( 0 ) - _X( 0 );
+            displacement( 1 ) = phi_G( 1 ) - _X( 1 );
+            displacement( 2 ) = phi_G( 2 ) - _X( 2 );
+
+            std::cout << "phi_G is : " << phi_G << std::endl;
+
+            std::cout << "_X is : " << _X << std::endl;
+
+            std::cout << "The final displacement is : " << displacement << std::endl;
+
+            size_t c = 0;
+            for( const auto& var_ext : var_comps )
+            {
+                const auto& var_destination_disp = KratosComponents<ComponentVariableType>::Get(rDestinationVariableDisplacement.Name() + var_ext);
+                _pNode->FastGetSolutionStepValue(var_destination_disp) = displacement( c );
+                c++;
+            }
         }
     }
 }
