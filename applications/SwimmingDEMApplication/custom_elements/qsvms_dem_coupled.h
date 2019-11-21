@@ -237,12 +237,12 @@ public:
 
     void CalculateLaplacianMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo);
 
-    void GetAdvectiveVelDivergence(double & rAdvVelDiv, const BoundedMatrix<double, NumNodes, Dim >& rShapeDeriv);
+    void GetAdvectiveVelDivergence(double & rAdvVelDiv, const BoundedMatrix<double, NumNodes, Dim >& rDN_DX);
 
     void CalculateLaplacianLumpedMassMatrix(MatrixType& rLHSMatrix, const double Mass);
 
     void AddRHSLaplacian(VectorType& F,
-                        const BoundedMatrix<double, NumNodes, Dim>& rShapeDeriv,
+                        const BoundedMatrix<double, NumNodes, Dim>& rDN_DX,
                         const double Weight);
 
     void AddMassRHS(VectorType& F,
@@ -270,23 +270,23 @@ public:
 
     void EvaluateTimeDerivativeInPoint(double& rResult,
                                        const Variable< double >& rVariable,
-                                       const array_1d< double,  NumNodes >& rShapeFunc,
+                                       const array_1d< double,  NumNodes >& rN,
                                        const double& DeltaTime,
                                        const std::vector<double>& rSchemeWeigths);
 
     void GetModifiedConvectionOperator(array_1d< double,  NumNodes >& rResult,
                                        array_1d< double, 3 > & rVelocity,
                                        const double & rVelocityDiv,
-                                       const typename TElementData::ShapeFunctionsType& rShapeFunc,
-                                       const typename TElementData::ShapeDerivativesType& rShapeDeriv);
+                                       const typename TElementData::ShapeFunctionsType& rN,
+                                       const typename TElementData::ShapeDerivativesType& rDN_DX);
 
-    void GetAdvectiveVel(array_1d< double, 3 > & rAdvVel,const typename TElementData::ShapeFunctionsType& rShapeFunc);
+    void GetAdvectiveVel(array_1d< double, 3 > & rAdvVel,const typename TElementData::ShapeFunctionsType& rN);
 
     void MassProjTerm(const TElementData& rData, double &rMassRHS) const override;
 
     void EvaluateGradientOfScalarInPoint(array_1d< double, 3 >& rResult,
                                          const typename TElementData::NodalScalarData& variable,
-                                         const typename TElementData::ShapeDerivativesType& rShapeDeriv) const;
+                                         const typename TElementData::ShapeDerivativesType& rDN_DX) const;
 
     int Check(const ProcessInfo &rCurrentProcessInfo) override;
 

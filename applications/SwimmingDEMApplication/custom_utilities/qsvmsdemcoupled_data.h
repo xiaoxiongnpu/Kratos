@@ -45,6 +45,8 @@ using NodalVectorData = typename FluidElementData<TDim,TNumNodes, false>::NodalV
 NodalScalarData FluidFraction;
 NodalScalarData FluidFractionRate;
 
+NodalVectorData FluidFractionGradient;
+
 double ElementSize;
 
 ///@}
@@ -54,24 +56,27 @@ double ElementSize;
 void Initialize(const Element& rElement, const ProcessInfo& rProcessInfo) override
 {
     // Base class Initialize manages constitutive law parameters
-    QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Initialize(rElement,rProcessInfo);
     const Geometry< Node<3> >& r_geometry = rElement.GetGeometry();
     this->FillFromNodalData(FluidFraction, FLUID_FRACTION, r_geometry);
     this->FillFromNodalData(FluidFractionRate, FLUID_FRACTION_RATE, r_geometry);
+    this->FillFromNodalData(FluidFractionGradient, FLUID_FRACTION_GRADIENT, r_geometry);
+    QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Initialize(rElement,rProcessInfo);
 
-    ElementSize = ElementSizeCalculator<TDim,TNumNodes>::MinimumElementSize(r_geometry);
+    ElementSize = ElementSizeCalculator<TDim,TNumNodes>::AverageElementSize(r_geometry);
 }
 
 static int Check(const Element& rElement, const ProcessInfo& rProcessInfo)
 {
-    QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Check(rElement, rProcessInfo);
+
 
     const Geometry< Node<3> >& r_geometry = rElement.GetGeometry();
     for (unsigned int i = 0; i < TNumNodes; i++)
     {
         KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(FLUID_FRACTION, r_geometry[i]);
         KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(FLUID_FRACTION_RATE, r_geometry[i]);
+        KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(FLUID_FRACTION_GRADIENT, r_geometry[i]);
     }
+    QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Check(rElement, rProcessInfo);
 
     return 0;
 }

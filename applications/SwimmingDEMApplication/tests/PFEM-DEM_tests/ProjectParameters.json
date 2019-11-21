@@ -102,7 +102,6 @@
 }],
 
 "processes" :{
-
     "auxiliar_process_list" : [{
         "python_module" : "from_json_check_result_process",
         "kratos_module" : "KratosMultiphysics",
@@ -349,7 +348,7 @@
     "do_search_neighbours" : true,
     "type_of_dem_inlet" : "VelocityImposed",
     "type_of_dem_inlet_comment" : "VelocityImposed or ForceImposed",
-    "translational_integration_scheme" : "Hybrid_Bashforth"
+    "translational_integration_scheme" : "Symplectic_Euler"
 },
 
 "dem_parameters" : {

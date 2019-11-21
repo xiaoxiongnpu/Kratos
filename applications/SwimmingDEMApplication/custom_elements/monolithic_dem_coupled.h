@@ -1547,7 +1547,7 @@ protected:
     /// Add mass-like stabilization terms to LHS.
     /**
      * This function is only used in ASGS. For OSS, we avoid computing these
-     * terms, as they shoud cancel out with the dynamic part of the projection
+     * terms, as they should cancel out with the dynamic part of the projection
      * (which is not computed either)
      * @param rLHSMatrix Left hand side of the velocity-pressure system
      * @param Density Density on integration point
@@ -1581,7 +1581,6 @@ protected:
         double FluidFraction;
         this->EvaluateInPoint(FluidFraction, FLUID_FRACTION, rShapeFunc);
 //Z
-        if(this->Id() == 35) KRATOS_WATCH(AGradN * Density)
 
         // Note: Dof order is (vx,vy,[vz,]p) for each node
         for (unsigned int i = 0; i < TNumNodes; ++i)

@@ -98,7 +98,11 @@ class ApplyCustomBodyForceProcess(KratosMultiphysics.Process):
             vel_value = Vector(list(self.value_v[iterator]))
             press_value = self.value_p[iterator]
             node.SetSolutionStepValue(self.variable, var_value)
-            if np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) - min(radius) < 1e-3 or -np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) + max(radius) < 1e-3 or node.X == max(x) or node.Y == min(y) or node.X - node.Y < 1e-3 :
+            if node.X == 1.0 and node.Y == 0.0:
+                node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
+                node.Fix(KratosMultiphysics.PRESSURE)
+            if np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) - min(radius) < 1e-3 or -np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) + max(radius) < 1e-3 or node.X == max(x) or node.Y == min(y) or node.X - node.Y < 1e-3:
+            #if node.X == max(x) or node.Y == min(y) or node.X == min(x) or node.Y == min(y):
                 node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_X, vel_value[0])
                 node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_Y, vel_value[1])
                 node.Fix(KratosMultiphysics.VELOCITY_X)
@@ -106,9 +110,7 @@ class ApplyCustomBodyForceProcess(KratosMultiphysics.Process):
             # else:
             #     node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
             #     node.Fix(KratosMultiphysics.PRESSURE)
-            if node.X == 0.70711 and node.Y == 0.70711 and node.Z == 0.3:
-                node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
-                node.Fix(KratosMultiphysics.PRESSURE)
+
             iterator += 1
 
     def _SetFluidFractionField(self):

@@ -228,6 +228,9 @@ class SwimmingDEMSolver(PythonSolver):
         # update possible movements of the fluid mesh
         self.UpdateALEMeshMovement(self.time)
 
+        if self.derivative_recovery_counter.Tick(self.time > self.interaction_start_time and self.calculating_fluid_in_current_step):
+            self.recovery.Recover()
+
         # Solving the fluid part
         Say('Solving Fluid... (', self.fluid_solver.main_model_part.NumberOfElements(0), 'elements )\n')
         self.solve_system = not self.project_parameters["custom_fluid"]["fluid_already_calculated"].GetBool() and not self.stationarity
@@ -236,9 +239,6 @@ class SwimmingDEMSolver(PythonSolver):
             self.SolveFluidSolutionStep()
         else:
             Say("Skipping solving system for the fluid phase...\n")
-
-        if self.derivative_recovery_counter.Tick(self.time > self.interaction_start_time and self.calculating_fluid_in_current_step):
-            self.recovery.Recover()
 
         # Solving the disperse-phase component
         Say('Solving DEM... (', self.dem_solver.spheres_model_part.NumberOfElements(0), 'elements )')

@@ -38,7 +38,7 @@ class ErrorProjectionPostProcessTool(object):
         for Element in self.error_model_part.Elements:
             self.element_size.append(Element.GetGeometry().Length())
             iterator += 1
-        self.max_element = max(self.element_size)
+        self.max_element = np.sum(self.element_size)/iterator
         self.time.append(self.error_model_part.ProcessInfo[Kratos.TIME])
         self.v_error.append(velocity_error_projected)
         self.p_error.append(pressure_error_projected)

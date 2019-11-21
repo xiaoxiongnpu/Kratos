@@ -47,8 +47,6 @@ NodalVectorData MomentumProjection;
 
 NodalScalarData Pressure;
 NodalScalarData MassProjection;
-NodalScalarData FluidFraction;
-NodalScalarData FluidFractionRate;
 
 double Density;
 double DynamicViscosity;
@@ -79,8 +77,6 @@ virtual void Initialize(const Element& rElement, const ProcessInfo& rProcessInfo
     this->FillFromNodalData(MomentumProjection,ADVPROJ,r_geometry);
     this->FillFromNodalData(Pressure,PRESSURE,r_geometry);
     this->FillFromNodalData(MassProjection,DIVPROJ,r_geometry);
-    this->FillFromNodalData(FluidFraction, FLUID_FRACTION,r_geometry);
-    this->FillFromNodalData(FluidFractionRate, FLUID_FRACTION_RATE,r_geometry);
     this->FillFromProperties(Density,DENSITY,r_properties);
     this->FillFromProperties(DynamicViscosity,DYNAMIC_VISCOSITY,r_properties); //TODO: remove once we have a Smagorinky constitutive law
     this->FillFromElementData(CSmagorinsky,C_SMAGORINSKY,rElement); //TODO: remove once we have a Smagorinky constitutive law
@@ -110,8 +106,7 @@ static int Check(const Element& rElement, const ProcessInfo& rProcessInfo)
         KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(ADVPROJ,r_geometry[i]);
         KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(PRESSURE,r_geometry[i]);
         KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(DIVPROJ,r_geometry[i]);
-        KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(FLUID_FRACTION, r_geometry[i]);
-        KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(FLUID_FRACTION_RATE, r_geometry[i]);
+
     }
 
     KRATOS_CHECK_VARIABLE_KEY(DENSITY);
