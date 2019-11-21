@@ -663,19 +663,19 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             //Rotation_COR_2 = prod(Rotation_COR_B, Rotation_B_2);
 
             // Calculating R_s
-            MatrixType Rs_Rl1(3, 3), Rs_Rl2(3, 3), R_d_T(3, 3);
+            MatrixType Rl1_Rs(3, 3), Rl2_Rs(3, 3), R_d_T(3, 3);
             MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
-            Rs_Rl1 = prod(R_d_T, Rotation_B_1); // Rl1 * Rs = R_d_T * Phi_1, displacements cancel out
-            Rs_Rl2 = prod(R_d_T, Rotation_B_2); // Rl2 * Rs = R_d_T * Phi_2, displacements cancel out
-            std::cout << "R_s_Rl1 = " << Rs_Rl1 << std::endl;
-            std::cout << "R_s_Rl2 = " << Rs_Rl2 << std::endl; 
-            VectorType v_Rs_Rl1(3), v_Rs_Rl2(3);
-            getRotationVector(Rs_Rl1, v_Rs_Rl1);
-            getRotationVector(Rs_Rl2, v_Rs_Rl2);
-            std::cout << "v_Rs_Rl1 = " << v_Rs_Rl1 << std::endl;
-            std::cout << "v_Rs_Rl2 = " << v_Rs_Rl2 << std::endl;
+            Rl1_Rs = prod(R_d_T, Rotation_B_1); // Rl1 * Rs = R_d_T * Phi_1, displacements cancel out
+            Rl2_Rs = prod(R_d_T, Rotation_B_2); // Rl2 * Rs = R_d_T * Phi_2, displacements cancel out
+            std::cout << "Rl1_Rs = " << Rl1_Rs << std::endl;
+            std::cout << "Rl2_Rs = " << Rl2_Rs << std::endl; 
+            VectorType v_Rl1_Rs(3), v_Rl2_Rs(3);
+            getRotationVector(Rl1_Rs, v_Rl1_Rs);
+            getRotationVector(Rl2_Rs, v_Rl2_Rs);
+            std::cout << "v_Rl1_Rs = " << v_Rl1_Rs << std::endl;
+            std::cout << "v_Rl2_Rs = " << v_Rl2_Rs << std::endl;
 
-            double theta_s = (v_Rs_Rl1(0) + v_Rs_Rl2(0)) / 2;
+            double theta_s = (v_Rl1_Rs(0) + v_Rl2_Rs(0)) / 2;
             MatrixType R_s(3, 3);
             VectorType e_x_s(3, 0.0);
             e_x_s(0) = 1.0;
@@ -690,8 +690,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             //std::cout << " R_s_T  = " << R_s_T << std::endl;
             //std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
             //std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
-            Rl1 = prod(R_s_T,Rs_Rl1);
-            Rl2 = prod(R_s_T,Rs_Rl2);
+            Rl1 = prod(Rl1_Rs, R_s_T);
+            Rl2 = prod(Rl2_Rs, R_s_T);
             std::cout << " Rl1  = " << Rl1 << std::endl;
             std::cout << " Rl2  = " << Rl2 << std::endl;
             getRotationVector(Rl1, v_Rl1);
@@ -749,29 +749,20 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             axis_l(2) = _DisplacementsRotations_L(5); 
             double angle_l = sqrt( pow(_DisplacementsRotations_L(3), 2) + pow(_DisplacementsRotations_L(4), 2) + pow(_DisplacementsRotations_L(5), 2) );
             axis_l = axis_l/angle_l;
-            //VectorType local_X(3, 0.0), local_Y(3, 0.0), local_Z(3, 0.0);
-            //local_X(0) = 1.0;
-            //local_Y(1) = 1.0;
-            //local_Z(2) = 1.0;
 
             CalculateRotationMatrixWithAngle(axis_l, angle_l, R_l); // R_l
-            //CalculateRotationMatrixWithAngle(local_X, _DisplacementsRotations_L(3), R_x); // R_l
-            //CalculateRotationMatrixWithAngle(local_Y, _DisplacementsRotations_L(4), R_y); // R_l
-            //CalculateRotationMatrixWithAngle(local_Z, _DisplacementsRotations_L(5), R_z); // R_l
-            //R_l_temp = prod(R_x, R_y);
-            //R_l = prod(R_z, R_l_temp);
-            
+            std::cout << "t_l = " << t_l << std::endl;
             // Calculating R_P and t_P
             MatrixType R_P(3, 3), R_P_temp(3, 3);
             std::cout << "------ Before multiplying -------- " << std::endl;
             std::cout << "R_d = " << R_d << std::endl;
             std::cout << "R_s = " << R_s << std::endl;
             std::cout << "R_l = " << R_l << std::endl;
-            R_P_temp = prod(R_d, R_s);
-            R_P = prod(R_P_temp, R_l);
+            R_P_temp = prod(R_d, R_l);
+            R_P = prod(R_P_temp, R_s);
 
             VectorType t_P(3), t_P_temp(3, 0.0);
-            TDenseSpace::Mult(R_P_temp, t_l, t_P_temp);
+            TDenseSpace::Mult(R_d, t_l, t_P_temp);
             t_P = t_P_temp + t_d;
 
             std::cout << "R_P is : " << R_P << std::endl;

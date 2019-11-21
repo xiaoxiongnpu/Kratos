@@ -94,7 +94,7 @@ class TestBeamMapper(KratosUnittest.TestCase):
 
         for node in self.model_part_beam.Nodes:
             lenght_beam = 100
-            alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            alfa = 0.00000001 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
             beta = 1.0472
             r = lenght_beam / alfa
             theta_X = (beta * node.X) / lenght_beam
