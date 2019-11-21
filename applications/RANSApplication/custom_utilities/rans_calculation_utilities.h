@@ -35,11 +35,11 @@ using NodeType = ModelPart::NodeType;
 /// Geometry type (using with given NodeType)
 using GeometryType = Geometry<NodeType>;
 
-double SoftMax(const double Value1, const double Value2, const double ExponentValue = 5.0);
+double SoftMax(const double Value1, const double Value2, const double ExponentValue);
 
-inline long double SoftPositive(const long double Value)
+inline long double SoftPositive(const long double Value, const double ExponentValue)
 {
-    return SoftMax(Value, 0.0);
+    return SoftMax(Value, 0.0, ExponentValue);
 }
 
 void CalculateGeometryData(const GeometryType& rGeometry,
