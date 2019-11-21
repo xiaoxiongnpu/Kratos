@@ -386,26 +386,28 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             // Initializing matrix of shape functions
             MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
 
+            VectorType beamVector = _r_geom[1].Coordinates() - _r_geom[0].Coordinates();
+            double length_beamVector = norm_2(beamVector);
             _ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
             _ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
             _ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
-            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1) * length_beamVector;
             _ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
-            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3) * length_beamVector;
             _ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
-            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1) * length_beamVector;
             _ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
-            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3) * length_beamVector;
             
             _ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
             _ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
-            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0) / length_beamVector;
             _ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
-            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2) / length_beamVector;
             _ShapeFunctionsMatrix(4 , 10) = -_hermitanDerShapeValues(3);
-            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0) / length_beamVector;
             _ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
-            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2) / length_beamVector;
             _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3);
             
             VectorType _DOF_Vector(12);
@@ -700,27 +702,30 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             std::cout << " v_Rl2  = " << v_Rl2 << std::endl;
 
             MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
+            VectorType corBeamVector(3, 0.0);
+            corBeamVector = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
+            double length_beamVector = norm_2(corBeamVector);            
 
             _ShapeFunctionsMatrix(0 , 0) = _linearShapeValues(0);
             _ShapeFunctionsMatrix(0 , 6) = _linearShapeValues(1);
             _ShapeFunctionsMatrix(1 , 1) = _hermitianShapeValues(0);
-            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(1 , 5) = _hermitianShapeValues(1) * length_beamVector;
             _ShapeFunctionsMatrix(1 , 7) = _hermitianShapeValues(2);
-            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(1 , 11) = _hermitianShapeValues(3) * length_beamVector;
             _ShapeFunctionsMatrix(2 , 2) = _hermitianShapeValues(0);
-            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1);
+            _ShapeFunctionsMatrix(2 , 4) = -_hermitianShapeValues(1) * length_beamVector;
             _ShapeFunctionsMatrix(2 , 8) = _hermitianShapeValues(2);
-            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3);
+            _ShapeFunctionsMatrix(2 , 10) = -_hermitianShapeValues(3) * length_beamVector;
             
             _ShapeFunctionsMatrix(3 , 3) = _linearShapeValues(0);
             _ShapeFunctionsMatrix(3 , 9) = _linearShapeValues(1);
-            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(4 , 2) = -_hermitanDerShapeValues(0) / length_beamVector;
             _ShapeFunctionsMatrix(4 , 4) = _hermitanDerShapeValues(1);
-            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(4 , 8) = -_hermitanDerShapeValues(2) / length_beamVector;
             _ShapeFunctionsMatrix(4 , 10) = -_hermitanDerShapeValues(3);
-            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0);
+            _ShapeFunctionsMatrix(5 , 1) = _hermitanDerShapeValues(0) / length_beamVector;
             _ShapeFunctionsMatrix(5 , 5) = _hermitanDerShapeValues(1);
-            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2);
+            _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2) / length_beamVector;
             _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
 
             std::cout << "Shape functions matrix = " << _ShapeFunctionsMatrix << std::endl;

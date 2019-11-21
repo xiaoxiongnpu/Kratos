@@ -155,18 +155,28 @@ void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions,
         hermitianShapeFunctions.resize(4, false);
     }
 
+    //hermitianShapeFunctions[0] =  0.25 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 2.0 + rCoordinates[0]);
+    //hermitianShapeFunctions[1] =  0.125 * lenght_line * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
+    //hermitianShapeFunctions[2] =  0.25 * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 2.0 - rCoordinates[0]);
+    //hermitianShapeFunctions[3] =  -0.125 * lenght_line * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 1.0 - rCoordinates[0]);
+
     hermitianShapeFunctions[0] =  0.25 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 2.0 + rCoordinates[0]);
-    hermitianShapeFunctions[1] =  0.125 * lenght_line * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
+    hermitianShapeFunctions[1] =  0.125 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
     hermitianShapeFunctions[2] =  0.25 * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 2.0 - rCoordinates[0]);
-    hermitianShapeFunctions[3] =  -0.125 * lenght_line * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 1.0 - rCoordinates[0]);
+    hermitianShapeFunctions[3] =  -0.125  * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 1.0 - rCoordinates[0]);
 
     if(hermitianShapeFunctionsDer.size() != 4) {
         hermitianShapeFunctionsDer.resize(4, false);
     }
 
-    hermitianShapeFunctionsDer[0] = -(3 / (2 * lenght_line)) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
+    //hermitianShapeFunctionsDer[0] = -(3 / (2 * lenght_line)) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
+    //hermitianShapeFunctionsDer[1] = -0.25 * ( 1.0 - rCoordinates[0] ) * ( 1.0 + 3 * rCoordinates[0]) ;
+    //hermitianShapeFunctionsDer[2] = (3 / (2 * lenght_line)) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
+    //hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;
+
+    hermitianShapeFunctionsDer[0] = -(3 / 2) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
     hermitianShapeFunctionsDer[1] = -0.25 * ( 1.0 - rCoordinates[0] ) * ( 1.0 + 3 * rCoordinates[0]) ;
-    hermitianShapeFunctionsDer[2] = (3 / (2 * lenght_line)) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
+    hermitianShapeFunctionsDer[2] = (3 / 2) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
     hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;
     
     
