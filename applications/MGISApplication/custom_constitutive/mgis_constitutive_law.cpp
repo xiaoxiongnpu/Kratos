@@ -379,8 +379,8 @@ namespace Kratos {
   double& MGISConstitutiveLaw::CalculateValue(ConstitutiveLaw::Parameters& rParameterValues,
                                               const Variable<double>& rThisVariable,
                                               double& rValue) {
-    //     KRATOS_LOG(KRATOS_SEVERITY_WARNING) << "unimplemented feature, can't compute '"
-    //                                         << rThisVariable.Name() << "'\n";
+    KRATOS_WARNING("MGIS") << "unimplemented feature, can't compute '" << rThisVariable.Name()
+                           << "'\n";
     return (rValue);
   }
 
@@ -390,8 +390,8 @@ namespace Kratos {
   Vector& MGISConstitutiveLaw::CalculateValue(ConstitutiveLaw::Parameters& rParameterValues,
                                               const Variable<Vector>& rThisVariable,
                                               Vector& rValue) {
-    //     KRATOS_LOG(KRATOS_SEVERITY_WARNING) << "unimplemented feature, can't compute '"
-    //                                         << rThisVariable.Name() << "'\n";
+    KRATOS_WARNING("MGIS") << "unimplemented feature, can't compute '" << rThisVariable.Name()
+                           << "'\n";
     return (rValue);
   }
 
@@ -401,8 +401,8 @@ namespace Kratos {
   Matrix& MGISConstitutiveLaw::CalculateValue(ConstitutiveLaw::Parameters& rParameterValues,
                                               const Variable<Matrix>& rThisVariable,
                                               Matrix& rValue) {
-    //     KRATOS_LOG(KRATOS_SEVERITY_WARNING) << "unimplemented feature, can't compute '"
-    //                                         << rThisVariable.Name() << "'\n";
+    KRATOS_WARNING("MGIS") << "unimplemented feature, can't compute '" << rThisVariable.Name()
+                           << "'\n";
     return (rValue);
   }
 
