@@ -4,18 +4,6 @@ import KratosMultiphysics as Kratos
 import KratosMultiphysics.RANSApplication as KratosRANS
 from KratosMultiphysics.RANSApplication.turbulence_eddy_viscosity_model_configuration import TurbulenceEddyViscosityModelConfiguration
 
-from KratosMultiphysics.kratos_utilities import CheckIfApplicationsAvailable
-if not CheckIfApplicationsAvailable("FluidDynamicsApplication"):
-    msg = "k-epsilon turbulence model depends on the FluidDynamicsApplication which is not found."
-    msg += " Please re-install/compile with FluidDynamicsApplication"
-    raise Exception(msg)
-
-if (Kratos.IsDistributedRun()):
-    from KratosMultiphysics.RANSApplication.TrilinosExtension import MPIKEpsilonCoSolvingProcess as k_epsilon_co_solving_process
-else:
-    from KratosMultiphysics.RANSApplication import KEpsilonCoSolvingProcess as k_epsilon_co_solving_process
-
-
 class TurbulenceKEpsilonConfiguration(
         TurbulenceEddyViscosityModelConfiguration):
     def __init__(self, model, parameters):
@@ -175,16 +163,6 @@ class TurbulenceKEpsilonConfiguration(
         if (time >= self.ramp_up_time):
             self.fluid_model_part.ProcessInfo[
                 KratosRANS.IS_CO_SOLVING_PROCESS_ACTIVE] = True
-
-    def GetTurbulenceSolvingProcess(self):
-        if self.turbulence_model_process is None:
-            self.turbulence_model_process = k_epsilon_co_solving_process(
-                self.fluid_model_part,
-                self.model_settings["coupling_settings"])
-            Kratos.Logger.PrintInfo(self.__class__.__name__,
-                                    "Created turbulence solving process.")
-
-        return self.turbulence_model_process
 
     def GetFluidVelocityPressureConditionName(self):
         return "RansEvmKEpsilonVmsMonolithicWall"

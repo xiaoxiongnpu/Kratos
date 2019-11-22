@@ -18,8 +18,7 @@
 #include "add_trilinos_solving_processes_to_python.h"
 
 // Application includes
-#include "custom_processes/solving_strategies/k_epsilon_co_solving_process.h"
-#include "custom_processes/solving_strategies/scalar_co_solving_process.h"
+#include "custom_processes/solving_strategies/evm_co_solving_process.h"
 
 namespace Kratos
 {
@@ -33,20 +32,14 @@ void AddTrilinosSolvingProcessesToPython(pybind11::module& m)
     using MPISparseSpaceType = TrilinosSpace<Epetra_FECrsMatrix, Epetra_FEVector>;
     using MPILinearSolverType = LinearSolver<MPISparseSpaceType, LocalSpaceType>;
 
-    using MPIScalarCoSolvingProcessType =
-        ScalarCoSolvingProcess<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
-    py::class_<MPIScalarCoSolvingProcessType, MPIScalarCoSolvingProcessType::Pointer, Process>(
-        m, "MPIScalarCoSolvingProcess")
-        .def(py::init<ModelPart&, Parameters&, Variable<double>&>())
-        .def("AddStrategy", &MPIScalarCoSolvingProcessType::AddStrategy)
-        .def("AddAuxiliaryProcess", &MPIScalarCoSolvingProcessType::AddAuxiliaryProcess)
-        .def("SetParentSolvingStrategy", &MPIScalarCoSolvingProcessType::SetParentSolvingStrategy);
-
-    using MPIKEpsilonCoSolvingProcessType =
-        KEpsilonCoSolvingProcess<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
-    py::class_<MPIKEpsilonCoSolvingProcessType, MPIKEpsilonCoSolvingProcessType::Pointer, MPIScalarCoSolvingProcessType, Process>(
-        m, "MPIKEpsilonCoSolvingProcess")
-        .def(py::init<ModelPart&, Parameters&>());
+    using MPIEvmCoSolvingProcessType =
+        EvmCoSolvingProcess<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
+    py::class_<MPIEvmCoSolvingProcessType, MPIEvmCoSolvingProcessType::Pointer, Process>(
+        m, "MPIEvmCoSolvingProcess")
+        .def(py::init<ModelPart&, Parameters>())
+        .def("AddStrategy", &MPIEvmCoSolvingProcessType::AddStrategy)
+        .def("AddAuxiliaryProcess", &MPIEvmCoSolvingProcessType::AddAuxiliaryProcess)
+        .def("SetParentSolvingStrategy", &MPIEvmCoSolvingProcessType::SetParentSolvingStrategy);
 }
 
 } // namespace Python.

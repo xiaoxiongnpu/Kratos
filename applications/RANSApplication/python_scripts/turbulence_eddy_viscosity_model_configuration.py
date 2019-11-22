@@ -24,6 +24,7 @@ if (IsDistributedRun()
     from KratosMultiphysics.TrilinosApplication import TrilinosNewtonRaphsonStrategy as newton_raphson_strategy
     from KratosMultiphysics.RANSApplication.block_builder_and_solvers import TrilinosPeriodicBlockBuilderAndSolver as periodic_block_builder_and_solver
     from KratosMultiphysics.RANSApplication.block_builder_and_solvers import TrilinosBlockBuilderAndSolver as block_builder_and_solver
+    from KratosMultiphysics.RANSApplication.TrilinosExtension import MPIEvmCoSolvingProcess as k_epsilon_co_solving_process
 elif (not IsDistributedRun()):
     from KratosMultiphysics import python_linear_solver_factory as linear_solver_factory
     from KratosMultiphysics.RANSApplication import GenericResidualBasedSimpleSteadyScalarScheme as steady_scheme
@@ -33,6 +34,7 @@ elif (not IsDistributedRun()):
     from Kratos import ResidualBasedNewtonRaphsonStrategy as newton_raphson_strategy
     from KratosMultiphysics.RANSApplication.block_builder_and_solvers import PeriodicBlockBuilderAndSolver as periodic_block_builder_and_solver
     from KratosMultiphysics.RANSApplication.block_builder_and_solvers import BlockBuilderAndSolver as block_builder_and_solver
+    from KratosMultiphysics.RANSApplication import EvmCoSolvingProcess as k_epsilon_co_solving_process
 else:
     raise Exception("Distributed run requires TrilinosApplication")
 
@@ -271,6 +273,16 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
     def Finalize(self):
         for strategy in self.strategies_list:
             strategy.Clear()
+
+    def GetTurbulenceSolvingProcess(self):
+        if self.turbulence_model_process is None:
+            self.turbulence_model_process = k_epsilon_co_solving_process(
+                self.fluid_model_part,
+                self.model_settings["coupling_settings"])
+            Kratos.Logger.PrintInfo(self.__class__.__name__,
+                                    "Created turbulence solving process.")
+
+        return self.turbulence_model_process
 
     def __InitializePeriodicConditions(self, model_part, scalar_variable):
         properties = model_part.CreateNewProperties(

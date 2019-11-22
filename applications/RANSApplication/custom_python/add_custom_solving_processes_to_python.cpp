@@ -15,8 +15,7 @@
 #include "custom_python/add_custom_solving_processes_to_python.h"
 
 // Application includes
-#include "custom_processes/solving_strategies/k_epsilon_co_solving_process.h"
-#include "custom_processes/solving_strategies/scalar_co_solving_process.h"
+#include "custom_processes/solving_strategies/evm_co_solving_process.h"
 
 namespace Kratos
 {
@@ -31,20 +30,14 @@ void AddCustomSolvingProcessesToPython(pybind11::module& m)
     using LinearSolverType = LinearSolver<SparseSpaceType, LocalSpaceType>;
 
     // Adding solving strategies
-    using ScalarCoSolvingProcessType =
-        ScalarCoSolvingProcess<SparseSpaceType, LocalSpaceType, LinearSolverType>;
-    py::class_<ScalarCoSolvingProcessType, ScalarCoSolvingProcessType::Pointer, Process>(
-        m, "ScalarCoSolvingProcess")
-        .def(py::init<ModelPart&, Parameters&, Variable<double>&>())
-        .def("AddStrategy", &ScalarCoSolvingProcessType::AddStrategy)
-        .def("AddAuxiliaryProcess", &ScalarCoSolvingProcessType::AddAuxiliaryProcess)
-        .def("SetParentSolvingStrategy", &ScalarCoSolvingProcessType::SetParentSolvingStrategy);
-
-    using KEpsilonCoSolvingProcessType =
-        KEpsilonCoSolvingProcess<SparseSpaceType, LocalSpaceType, LinearSolverType>;
-    py::class_<KEpsilonCoSolvingProcessType, KEpsilonCoSolvingProcessType::Pointer, ScalarCoSolvingProcessType, Process>(
-        m, "KEpsilonCoSolvingProcess")
-        .def(py::init<ModelPart&, Parameters&>());
+    using EvmCoSolvingProcessType =
+        EvmCoSolvingProcess<SparseSpaceType, LocalSpaceType, LinearSolverType>;
+    py::class_<EvmCoSolvingProcessType, EvmCoSolvingProcessType::Pointer, Process>(
+        m, "EvmCoSolvingProcess")
+        .def(py::init<ModelPart&, Parameters>())
+        .def("AddStrategy", &EvmCoSolvingProcessType::AddStrategy)
+        .def("AddAuxiliaryProcess", &EvmCoSolvingProcessType::AddAuxiliaryProcess)
+        .def("SetParentSolvingStrategy", &EvmCoSolvingProcessType::SetParentSolvingStrategy);
 }
 
 } // namespace Python.

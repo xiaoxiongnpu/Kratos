@@ -361,6 +361,7 @@ void EvmLowReKElement2D3N_AssignTestData(ModelPart& rModelPart)
     rModelPart.GetProcessInfo()[DYNAMIC_TAU] = 0.1;
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C_MU] = 0.09;
     rModelPart.GetProcessInfo()[TURBULENT_KINETIC_ENERGY_SIGMA] = 0.98;
+    rModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] = 1.0/std::numeric_limits<double>::epsilon();
     auto& node1 = rModelPart.GetNode(1);
     node1.FastGetSolutionStepValue(DISTANCE) = 0.78;
     node1.FastGetSolutionStepValue(KINEMATIC_VISCOSITY) = 0.24;
@@ -401,6 +402,7 @@ void EvmLowReEpsilonElement2D3N_AssignTestData(ModelPart& rModelPart)
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C2] = 1.92;
     rModelPart.GetProcessInfo()[TURBULENCE_RANS_C_MU] = 0.09;
     rModelPart.GetProcessInfo()[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA] = 1.3;
+    rModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT] = 1.0/std::numeric_limits<double>::epsilon();
     auto& node1 = rModelPart.GetNode(1);
     node1.FastGetSolutionStepValue(DISTANCE) = 0.78;
     node1.FastGetSolutionStepValue(KINEMATIC_VISCOSITY) = 0.24;
