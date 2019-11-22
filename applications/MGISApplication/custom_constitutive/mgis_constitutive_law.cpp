@@ -226,9 +226,8 @@ namespace Kratos {
   }  // end of MGISConstitutiveLaw::WorkingSpaceDimension
 
   MGISConstitutiveLaw::SizeType MGISConstitutiveLaw::GetStrainSize() {
-    if (this->strain_measure == StrainMeasure_Deformation_Gradient) {
-      return mgis::behaviour::getTensorSize(this->behaviour->hypothesis);
-    } else if (this->strain_measure == StrainMeasure_Infinitesimal) {
+    if ((this->strain_measure == StrainMeasure_Deformation_Gradient)||
+	(this->strain_measure == StrainMeasure_Infinitesimal)) {
       return mgis::behaviour::getStensorSize(this->behaviour->hypothesis);
     }
     KRATOS_ERROR << "unsupported behaviour\n";
