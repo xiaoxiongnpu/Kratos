@@ -87,7 +87,7 @@ namespace Kratos {
     }  // end of ConvertStrainToMGIS
 
     template <class TVector>
-    static void ConvertStressToKratos(TVector& sk, double* const s) {
+    static void ConvertStressToKratos(TVector& sk, const double* const s) {
       // \note stress ordering conventions used by Kratos:
       // \f$ [ s11, s22, s33, s12, s23, s13 ] \f$ for 3D case and
       // \f$ [ s11, s22, s33, s12 ] \f$ for 2D case.
@@ -116,43 +116,44 @@ namespace Kratos {
 
     template <class Matrix>
     static void ConvertTangentOperatorToKratos(Matrix& Kk,
-                                               double* const K,
+                                               const double* const K,
                                                const mgis::behaviour::Hypothesis h) {
-      constexpr const double cste = 1.41421356237309504880;
-      if ((Kk.size1() == 3) && (Kk.size2() == 3) &&
+      constexpr const double icste = 0.70710678118654752440;
+      constexpr const double one_half = double(1) / 2;
+      if ((Kk.size1() == 6) && (Kk.size2() == 6) &&
           (h == mgis::behaviour::Hypothesis::TRIDIMENSIONAL)) {
         for (unsigned short i = 0; i != 6u; ++i) {
           for (unsigned short j = 0; j != 6u; ++j) {
             Kk(i, j) = K[i * 6 + j];
           }
         }
-        Kk(0, 3) *= cste;
-        Kk(1, 3) *= cste;
-        Kk(2, 3) *= cste;
-        Kk(0, 4) *= cste;
-        Kk(1, 4) *= cste;
-        Kk(2, 4) *= cste;
-        Kk(0, 5) *= cste;
-        Kk(1, 5) *= cste;
-        Kk(2, 5) *= cste;
-        Kk(3, 0) *= cste;
-        Kk(3, 1) *= cste;
-        Kk(3, 2) *= cste;
-        Kk(4, 0) *= cste;
-        Kk(4, 1) *= cste;
-        Kk(4, 2) *= cste;
-        Kk(5, 0) *= cste;
-        Kk(5, 1) *= cste;
-        Kk(5, 2) *= cste;
-        Kk(3, 3) *= 2;
-        Kk(3, 4) *= 2;
-        Kk(3, 5) *= 2;
-        Kk(4, 3) *= 2;
-        Kk(4, 4) *= 2;
-        Kk(4, 5) *= 2;
-        Kk(5, 3) *= 2;
-        Kk(5, 4) *= 2;
-        Kk(5, 5) *= 2;
+        Kk(0, 3) *= icste;
+        Kk(1, 3) *= icste;
+        Kk(2, 3) *= icste;
+        Kk(0, 4) *= icste;
+        Kk(1, 4) *= icste;
+        Kk(2, 4) *= icste;
+        Kk(0, 5) *= icste;
+        Kk(1, 5) *= icste;
+        Kk(2, 5) *= icste;
+        Kk(3, 0) *= icste;
+        Kk(3, 1) *= icste;
+        Kk(3, 2) *= icste;
+        Kk(4, 0) *= icste;
+        Kk(4, 1) *= icste;
+        Kk(4, 2) *= icste;
+        Kk(5, 0) *= icste;
+        Kk(5, 1) *= icste;
+        Kk(5, 2) *= icste;
+        Kk(3, 3) *= one_half;
+        Kk(3, 4) *= one_half;
+        Kk(3, 5) *= one_half;
+        Kk(4, 3) *= one_half;
+        Kk(4, 4) *= one_half;
+        Kk(4, 5) *= one_half;
+        Kk(5, 3) *= one_half;
+        Kk(5, 4) *= one_half;
+        Kk(5, 5) *= one_half;
         // 
         for (unsigned short i = 0; i != 6u; ++i) {
           std::swap(Kk(4, i), Kk(5, i));
@@ -161,10 +162,31 @@ namespace Kratos {
           std::swap(Kk(i, 4), Kk(i, 5));
         }
       } else {
-        KRATOS_ERROR << "invalid matrix size or unsupported hypothesis";
+        KRATOS_ERROR << "invalid matrix size (" << Kk.size1() << "," << Kk.size2()
+                     << ") or unsupported hypothesis";
       }
     }  // end of ConvertTangentOperatorToKratos
-  }
+
+    static void UpdateStress(ConstitutiveLaw::Parameters& rValues,
+                             const mgis::behaviour::BehaviourData& d) {
+      const auto& opts = rValues.GetOptions();
+      if (opts.Is(ConstitutiveLaw::COMPUTE_STRESS)) {
+        auto& s = rValues.GetStressVector();
+        ConvertStressToKratos(s, d.s1.thermodynamic_forces.data());
+      }
+    }
+
+    static void UpdateTangentOperator(ConstitutiveLaw::Parameters& rValues,
+                                      const mgis::behaviour::BehaviourData& d,
+                                      const mgis::behaviour::Hypothesis h) {
+      const auto& opts = rValues.GetOptions();
+      if (opts.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR)) {
+        auto& K = rValues.GetConstitutiveMatrix();
+        ConvertTangentOperatorToKratos(K, d.K.data(), h);
+      }
+    }  // end of updateTangentOperator
+
+  }  // end of namespace MGIS
 
   /******************************CONSTRUCTOR******************************************/
   /***********************************************************************************/
@@ -226,20 +248,11 @@ namespace Kratos {
     const auto& pi = rValues.GetProcessInfo();
     // getting the gradients
     if (this->strain_measure == StrainMeasure_Infinitesimal) {
-      if (opts.IsNot(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN)) {
-        if (this->behaviour->hypothesis == mgis::behaviour::Hypothesis::TRIDIMENSIONAL) {
-          const auto& Fk = rValues.GetDeformationGradientF();
-          auto& ek = rValues.GetStrainVector();
-          Matrix E = (prod(trans(Fk), Fk) - IdentityMatrix(3)) / 2;
-          ek = MathUtils<double>::StrainTensorToVector(E);
-          Kratos::MGIS::ConvertStrainToMGIS(this->data.s1.gradients.data(), ek);
-        } else {
-          KRATOS_ERROR << "the strain tensor must be provided by the element\n";
-        }
-      } else {
-        const auto& ek = rValues.GetStrainVector();
-        Kratos::MGIS::ConvertStrainToMGIS(this->data.s1.gradients.data(), ek);
+      if (opts.Is(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN)) {
+        KRATOS_ERROR << "the strain tensor must be provided by the element\n";
       }
+      const auto& ek = rValues.GetStrainVector();
+      Kratos::MGIS::ConvertStrainToMGIS(this->data.s1.gradients.data(), ek);
     } else if (this->strain_measure == StrainMeasure_Deformation_Gradient) {
       const auto& Fk = rValues.GetDeformationGradientF();
       Kratos::MGIS::ConvertDeformationGradientToMGIS(this->data.s1.gradients.data(), Fk,
@@ -260,7 +273,7 @@ namespace Kratos {
     }
     data.dt = pi[DELTA_TIME];
     auto data_view = mgis::behaviour::make_view(this->data);
-    if (mgis::behaviour::integrate(data_view, *(this->behaviour)) != 0) {
+    if (mgis::behaviour::integrate(data_view, *(this->behaviour)) == -1) {
       KRATOS_ERROR << "behaviour integration failed\n";
     }
   }  // end of MGISConstitutiveLaw::Integrate
@@ -270,29 +283,20 @@ namespace Kratos {
     mgis::behaviour::update(data);
   }  // end of MGISConstitutiveLaw::Update
 
-  void MGISConstitutiveLaw::CalculateMaterialResponsePK2(ConstitutiveLaw::Parameters& rValues) {
-    KRATOS_TRY;
-    const auto& opts = rValues.GetOptions();
-    this->Integrate(rValues);
-    if (opts.Is(ConstitutiveLaw::COMPUTE_STRESS)) {
-      // exporting the stress
-      auto& pk2 = rValues.GetStressVector();
-      Kratos::MGIS::ConvertStressToKratos(pk2, this->data.s1.thermodynamic_forces.data());
-    }
-    if (opts.Is(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR)) {
-      auto& K = rValues.GetConstitutiveMatrix();
-      Kratos::MGIS::ConvertTangentOperatorToKratos(K, this->data.K.data(),
-                                                   this->behaviour->hypothesis);
-    }
-    KRATOS_CATCH("");
-  }
-
   /***********************************************************************************/
   /***********************************************************************************/
 
   void MGISConstitutiveLaw::CalculateMaterialResponsePK1(ConstitutiveLaw::Parameters& rValues) {
     KRATOS_ERROR << "PK1 stress measure is not supported yet\n";
   }  // end of MGISConstitutiveLaw::CalculateMaterialResponsePK1
+
+  void MGISConstitutiveLaw::CalculateMaterialResponsePK2(ConstitutiveLaw::Parameters& rValues) {
+    KRATOS_TRY;
+    this->Integrate(rValues);
+    Kratos::MGIS::UpdateStress(rValues, this->data);
+    Kratos::MGIS::UpdateTangentOperator(rValues, this->data, this->behaviour->hypothesis);
+    KRATOS_CATCH("");
+  }
 
   /***********************************************************************************/
   /***********************************************************************************/
@@ -304,6 +308,8 @@ namespace Kratos {
       KRATOS_ERROR << "Kirchhoff stress measure is not supported yet\n";
     }
     this->Integrate(rValues);
+    Kratos::MGIS::UpdateStress(rValues, this->data);
+    Kratos::MGIS::UpdateTangentOperator(rValues, this->data, this->behaviour->hypothesis);
     KRATOS_CATCH("");
   }  // end of MGISConstitutiveLaw::CalculateMaterialResponseKirchhoff
 
@@ -316,6 +322,8 @@ namespace Kratos {
       KRATOS_ERROR << "Kirchhoff stress measure is not supported yet\n";
     }
     this->Integrate(rValues);
+    Kratos::MGIS::UpdateStress(rValues, this->data);
+    Kratos::MGIS::UpdateTangentOperator(rValues, this->data, this->behaviour->hypothesis);
     KRATOS_CATCH("");
   }  // end of MGISConstitutiveLaw::CalculateMaterialResponseCauchy
 
@@ -428,9 +436,9 @@ namespace Kratos {
       default:
         KRATOS_ERROR << "unsupported hypothesis\n";
     }
-    if (this->behaviour->btype == Behaviour::STANDARDSTRAINBASEDBEHAVIOUR) {
+    if (this->strain_measure == StrainMeasure_Infinitesimal) {
       rFeatures.mOptions.Set(INFINITESIMAL_STRAINS);
-    } else if (this->behaviour->btype == Behaviour::STANDARDFINITESTRAINBEHAVIOUR){
+    } else if (this->strain_measure == StrainMeasure_Deformation_Gradient){
       rFeatures.mOptions.Set(FINITE_STRAINS);
     } else {
       KRATOS_ERROR << "unsupported behaviour type\n";
