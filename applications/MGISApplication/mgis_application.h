@@ -27,7 +27,7 @@
 
 // Application includes
 #include "mgis_application_variables.h"
-#include "custom_advanced_constitutive/mgis_constitutive_law_factory.h"
+#include "custom_constitutive/mgis_constitutive_law_factory.h"
 
 namespace Kratos
 {
@@ -77,7 +77,7 @@ public:
     KratosMGISApplication();
 
     /// Destructor.
-    ~KratosMGISApplication() override {}
+    ~KratosMGISApplication() override;
 
 
     ///@}

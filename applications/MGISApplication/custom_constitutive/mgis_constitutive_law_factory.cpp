@@ -18,8 +18,8 @@
 #include "MGIS/Behaviour/Behaviour.hxx"
 
 // Project includes
-#include "custom_advanced_constitutive/mgis_constitutive_law.h"
-#include "custom_advanced_constitutive/mgis_constitutive_law_factory.h"
+#include "custom_constitutive/mgis_constitutive_law.h"
+#include "custom_constitutive/mgis_constitutive_law_factory.h"
 
 namespace Kratos {
 
@@ -51,7 +51,7 @@ namespace Kratos {
         case 3:
           return Behaviour::COHESIVEZONEMODEL;
       }
-      KRATOS_ERROR << "MGISConstitutiveLawFactory::Create: unsupported behaviour type\n";
+      KRATOS_ERROR << "unsupported behaviour type\n";
     }();
     if (btype == Behaviour::STANDARDFINITESTRAINBEHAVIOUR) {
       auto opts = FiniteStrainBehaviourOptions{};

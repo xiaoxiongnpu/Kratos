@@ -29,18 +29,16 @@
 namespace Kratos
 {
 
-KratosMGISApplication::KratosMGISApplication():
-    KratosApplication("MGISApplication")
-    {}
+  KratosMGISApplication::KratosMGISApplication() : KratosApplication("MGISApplication") {}
 
-void KratosMGISApplication::Register()
-{
+  void KratosMGISApplication::Register() {
     // Calling base class register to register Kratos components
     KratosApplication::Register();
     KRATOS_INFO("") << "Initializing KratosMGISApplication... " << std::endl;
 
     KRATOS_REGISTER_CONSTITUTIVE_LAW("MGISConstitutiveLawFactory", mMGISConstitutiveLawFactory);
+  }  // end of KratosMGISApplication::Register
 
-}
+  KratosMGISApplication::~KratosMGISApplication() = default;
 
 }  // namespace Kratos.
