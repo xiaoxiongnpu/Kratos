@@ -85,7 +85,8 @@ public:
             "echo_level"                        : 0,
             "relaxation_factor"                 : 1.0,
             "number_of_parent_solve_iterations" : 0,
-            "soft_max_exponent"                 : "inverse_epsilon"
+            "soft_max_exponent"                 : "inverse_epsilon",
+            "store_original_nu_t_in_non_historical_data_value_container": true
         })");
 
         if (rParameters.Has("soft_max_exponent"))
@@ -106,6 +107,10 @@ public:
         mRelaxationFactor = rParameters["relaxation_factor"].GetDouble();
         mMaxIterations = rParameters["max_iterations"].GetInt();
         mSkipIterations = rParameters["number_of_parent_solve_iterations"].GetInt();
+        mStoreOriginalValueInNonHistoricalDataValueContainer =
+            rParameters
+                ["store_original_nu_t_in_non_historical_data_value_container"]
+                    .GetBool();
 
         if (rParameters["soft_max_exponent"].IsString())
         {
@@ -160,6 +165,28 @@ public:
             SolveEquations();
     }
 
+    void ExecuteFinalizeSolutionStep() override
+    {
+        if (mStoreOriginalValueInNonHistoricalDataValueContainer)
+        {
+            NodesContainerType& r_nodes =
+                mrModelPart.GetCommunicator().LocalMesh().Nodes();
+            const int number_of_nodes = r_nodes.size();
+            ResizeVector(mrNewValues, number_of_nodes);
+            noalias(mrNewValues) = mrOldValues + mrDeltaValues * mRelaxationFactor;
+#pragma omp parallel for
+            for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+            {
+                NodeType& r_node = *(r_nodes.begin() + i_node);
+                r_node.SetValue(TURBULENT_VISCOSITY, mrNewValues[i_node]);
+            }
+
+            KRATOS_INFO_IF(this->Info(), mEchoLevel > 0)
+                << "Stored original TURBULENT_VISCOSITY in " + mrModelPart.Name() +
+                       "'s non-historical data value container.\n";
+        }
+    }
+
     ///@}
     ///@name Operators
     ///@{
@@ -172,8 +199,8 @@ public:
     {
         int value = BaseType::Check();
 
-        // KRATOS_CHECK(mrModelPart.HasNodalSolutionStepVariable(KINEMATIC_VISCOSITY));
-        // KRATOS_CHECK(mrModelPart.HasNodalSolutionStepVariable(TURBULENT_VISCOSITY));
+        KRATOS_ERROR_IF_NOT(mrModelPart.HasNodalSolutionStepVariable(KINEMATIC_VISCOSITY));
+        KRATOS_ERROR_IF_NOT(mrModelPart.HasNodalSolutionStepVariable(TURBULENT_VISCOSITY));
 
         for (auto strategy : mrSolvingStrategiesList)
             strategy->Check();
@@ -244,8 +271,8 @@ public:
         const double convergence_absolute =
             total_residual_norms[0] / total_residual_norms[2];
 
-        return (convergence_relative < this->mConvergenceRelativeTolerance ||
-                convergence_absolute < this->mConvergenceAbsoluteTolerance);
+        return (convergence_relative < mConvergenceRelativeTolerance ||
+                convergence_absolute < mConvergenceAbsoluteTolerance);
     }
 
     ///@}
@@ -298,6 +325,10 @@ private:
     std::vector<std::string> mrSolvingVariableNamesList;
     std::vector<Process::Pointer> mAuxiliaryProcessList;
 
+    Vector mrOldValues;
+    Vector mrNewValues;
+    Vector mrDeltaValues;
+
     double mRelaxationFactor;
     double mConvergenceAbsoluteTolerance;
     double mConvergenceRelativeTolerance;
@@ -307,11 +338,7 @@ private:
     int mSkipIterations;
     int mCurrentParentIteration;
 
-    bool mIsCoSolvingProcessActive;
-
-    Vector mrOldValues;
-    Vector mrNewValues;
-    Vector mrDeltaValues;
+    bool mStoreOriginalValueInNonHistoricalDataValueContainer;
 
     ///@}
     ///@name Operations
@@ -327,14 +354,14 @@ private:
     {
         for (Process::Pointer auxiliary_process : mAuxiliaryProcessList)
             auxiliary_process->ExecuteInitializeSolutionStep();
-        this->UpdateConvergenceVariable();
+        UpdateConvergenceVariable();
     }
 
     void UpdateConvergenceVariable()
     {
         const double soft_max_exponent =
-            this->mrModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT];
-        Communicator& r_communicator = this->mrModelPart.GetCommunicator();
+            mrModelPart.GetProcessInfo()[RANS_SOFT_MAX_EXPONENT];
+        Communicator& r_communicator = mrModelPart.GetCommunicator();
 
         ModelPart::NodesContainerType& r_nodes = r_communicator.LocalMesh().Nodes();
 
@@ -345,7 +372,7 @@ private:
         ResizeVector(mrDeltaValues, number_of_nodes);
 
         RansVariableUtilities::GetNodalVariablesVector(mrOldValues, r_nodes, TURBULENT_VISCOSITY);
-        this->ExecuteAuxiliaryProcesses();
+        ExecuteAuxiliaryProcesses();
         RansVariableUtilities::GetNodalVariablesVector(mrNewValues, r_nodes, TURBULENT_VISCOSITY);
         noalias(mrDeltaValues) = mrNewValues - mrOldValues;
 
@@ -354,8 +381,7 @@ private:
         for (int i_node = 0; i_node < number_of_nodes; ++i_node)
         {
             NodeType& r_node = *(r_nodes.begin() + i_node);
-            const double nu_t =
-                mrOldValues[i_node] + mrDeltaValues[i_node] * this->mRelaxationFactor;
+            const double nu_t = mrOldValues[i_node] + mrDeltaValues[i_node] * mRelaxationFactor;
             const double soft_max = RansCalculationUtilities::SoftMax(
                 nu_t, std::numeric_limits<double>::epsilon(), soft_max_exponent);
             r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = soft_max;
@@ -363,12 +389,12 @@ private:
 
         r_communicator.SynchronizeVariable(TURBULENT_VISCOSITY);
 
-        if (this->mEchoLevel > 0)
+        if (mEchoLevel > 0)
         {
             const double min_nu_t = RansVariableUtilities::GetMinimumScalarValue(
-                this->mrModelPart, TURBULENT_VISCOSITY);
+                mrModelPart, TURBULENT_VISCOSITY);
             const double max_nu_t = RansVariableUtilities::GetMaximumScalarValue(
-                this->mrModelPart, TURBULENT_VISCOSITY);
+                mrModelPart, TURBULENT_VISCOSITY);
             KRATOS_INFO(this->Info())
                 << "TURBULENT_VISCOSITY is bounded between [ " << min_nu_t
                 << ", " << max_nu_t << " ].\n";
@@ -377,7 +403,7 @@ private:
 
     void UpdateEffectiveViscosity()
     {
-        NodesContainerType& r_nodes = this->mrModelPart.Nodes();
+        NodesContainerType& r_nodes = mrModelPart.Nodes();
         int number_of_nodes = r_nodes.size();
 
 #pragma omp parallel for
@@ -407,9 +433,9 @@ private:
             mpParentSolvingStrategy->IsConverged())
         {
             mCurrentParentIteration = 0;
-            this->UpdateBeforeSolveEquations();
+            UpdateBeforeSolveEquations();
 
-            for (auto p_solving_strategy : this->mrSolvingStrategiesList)
+            for (auto p_solving_strategy : mrSolvingStrategiesList)
             {
                 p_solving_strategy->InitializeSolutionStep();
                 p_solving_strategy->Predict();
@@ -421,33 +447,32 @@ private:
             const ProcessInfo& r_current_process_info = mrModelPart.GetProcessInfo();
 
             int iteration_format_length =
-                static_cast<int>(std::log10(this->mMaxIterations)) + 1;
+                static_cast<int>(std::log10(mMaxIterations)) + 1;
 
-            while (!is_converged && iteration <= this->mMaxIterations)
+            while (!is_converged && iteration <= mMaxIterations)
             {
-                for (int i = 0;
-                     i < static_cast<int>(this->mrSolvingStrategiesList.size()); ++i)
+                for (int i = 0; i < static_cast<int>(mrSolvingStrategiesList.size()); ++i)
                 {
-                    auto p_solving_strategy = this->mrSolvingStrategiesList[i];
-                    auto scalar_variable_name = this->mrSolvingVariableNamesList[i];
+                    auto p_solving_strategy = mrSolvingStrategiesList[i];
+                    auto scalar_variable_name = mrSolvingVariableNamesList[i];
 
                     p_solving_strategy->SolveSolutionStep();
                     const unsigned int iterations =
                         r_current_process_info[NL_ITERATION_NUMBER];
-                    KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
+                    KRATOS_INFO_IF(this->Info(), mEchoLevel > 0)
                         << "Solving " << scalar_variable_name << " used "
                         << iterations << " iterations.\n";
                 }
 
-                this->UpdateConvergenceVariable();
+                UpdateConvergenceVariable();
 
-                is_converged = this->IsConverged();
+                is_converged = IsConverged();
 
-                if (this->mEchoLevel > 1 && is_converged)
+                if (mEchoLevel > 1 && is_converged)
                 {
                     std::stringstream conv_msg;
                     conv_msg << "[Itr.#" << std::setw(iteration_format_length)
-                             << iteration << "/" << this->mMaxIterations
+                             << iteration << "/" << mMaxIterations
                              << "] CONVERGENCE CHECK: TURBULENT_VISCOSITY"
                              << " *** CONVERGENCE IS ACHIEVED ***\n";
                     KRATOS_INFO(this->Info()) << conv_msg.str();
@@ -456,9 +481,9 @@ private:
                 iteration++;
             }
 
-            this->UpdateEffectiveViscosity();
+            UpdateEffectiveViscosity();
 
-            KRATOS_INFO_IF(this->Info(), !is_converged && this->mEchoLevel > 2)
+            KRATOS_INFO_IF(this->Info(), !is_converged && mEchoLevel > 2)
                 << "\n-------------------------------------------------------"
                 << "\n    INFO: Max coupling iterations reached.             "
                 << "\n          Please increase coupling max_iterations      "
@@ -467,7 +492,7 @@ private:
                 << "\n-------------------------------------------------------"
                 << "\n";
 
-            for (auto p_solving_strategy : this->mrSolvingStrategiesList)
+            for (auto p_solving_strategy : mrSolvingStrategiesList)
                 p_solving_strategy->FinalizeSolutionStep();
         }
         else
