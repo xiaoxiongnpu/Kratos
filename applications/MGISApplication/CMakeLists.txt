@@ -4,6 +4,7 @@ message("**** configuring KratosMGISApplication ****")
 
 ################### PYBIND11
 include(pybind11Tools)
+include(${CMAKE_SOURCE_DIR}/applications/MGISApplication/cmake_modules/mfront-behaviours.cmake)
 
 include_directories( ${CMAKE_SOURCE_DIR}/kratos )
 include_directories( ${CMAKE_SOURCE_DIR}/applications/StructuralMechanicsApplication )
@@ -14,6 +15,7 @@ include_directories( ${CMAKE_SOURCE_DIR}/applications/MGISApplication )
 set( KRATOS_MGIS_APPLICATION_CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/mgis_application.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mgis_application_variables.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/kratos_to_tfel_glossary_mapping.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/mgis_constitutive_law_factory.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/mgis_constitutive_law.cpp
   # CUSTOM UTILITIES
@@ -25,6 +27,7 @@ set( KRATOS_MGIS_APPLICATION_CORE_SOURCES
 ## generate variables with the testing sources
 if(${KRATOS_BUILD_TESTING} MATCHES ON)
   file(GLOB_RECURSE KRATOS_MGIS_APPLICATION_TESTING_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp_tests/*.cpp)
+  add_subdirectory(mfront)
 endif(${KRATOS_BUILD_TESTING} MATCHES ON)
 
 ## Define python interface sources

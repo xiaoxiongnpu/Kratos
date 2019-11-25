@@ -1,0 +1,3 @@
+kratos_mfront_behaviours_library(MGISKratosTest
+  Elasticity
+  SaintVenantKirchhoffElasticity)

@@ -1,0 +1,46 @@
+@DSL DefaultFiniteStrainDSL;
+@Behaviour SaintVenantKirchhoffElasticity;
+@Author T.Helfer;
+@Date 19 / 10 / 2013;
+@Description {
+  "La loi de SaintVenantKirchhoffElasticity est une extension "
+  "de la loi de Hooke au cas des grandes rotations. "
+  "Elle ne peut être utilisée que pour des petites déformations."
+}
+
+@Parameter stress E = 150e9;
+E.setGlossaryName("YoungModulus");
+@Parameter real ν = 0.3;
+ν.setGlossaryName("PoissonRatio");
+
+//! First Lamé coefficient
+@LocalVariable stress λ;
+//! Second Lamé coefficient
+@LocalVariable stress μ;
+//! Green-Lagrange strain
+@LocalVariable StrainStensor e;
+
+@InitLocalVariables {
+  λ = computeLambda(E, ν);
+  μ = computeMu(E, ν);
+}
+
+@PredictionOperator<DS_DEGL> {
+  static_cast<void>(smt);
+  Dt = λ ⋅ (I₂⊗I₂) + 2 ⋅ μ ⋅ I₄;
+}
+@Integrator {
+  e = computeGreenLagrangeTensor(F₁);
+  const auto π₂ = λ ⋅ trace(e) ⋅ I₂ + 2 ⋅ μ ⋅ e;
+  σ = convertSecondPiolaKirchhoffStressToCauchyStress(π₂, F₁);
+}
+
+@TangentOperator<DS_DEGL> {
+  static_cast<void>(smt);
+  Dt = λ ⋅ (I₂⊗I₂) + 2 ⋅ μ ⋅ I₄;
+}
+
+@InternalEnergy {
+  const auto tr = trace(e);
+  Psi_s = λ ⋅ tr ⋅ tr / 2 + μ ⋅ (e | e);
+}

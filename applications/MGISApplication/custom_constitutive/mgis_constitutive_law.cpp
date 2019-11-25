@@ -247,7 +247,7 @@ namespace Kratos {
     const auto& pi = rValues.GetProcessInfo();
     // getting the gradients
     if (this->strain_measure == StrainMeasure_Infinitesimal) {
-      if (opts.Is(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN)) {
+      if (!opts.Is(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN)) {
         KRATOS_ERROR << "the strain tensor must be provided by the element\n";
       }
       const auto& ek = rValues.GetStrainVector();
