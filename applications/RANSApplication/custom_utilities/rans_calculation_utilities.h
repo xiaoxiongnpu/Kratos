@@ -13,9 +13,6 @@
 #if !defined(KRATOS_RANS_APPLICATION_CALCULATION_UTILITIES_H_INCLUDED)
 #define KRATOS_RANS_APPLICATION_CALCULATION_UTILITIES_H_INCLUDED
 
-// System includes
-#include <cmath>
-
 // Project includes
 #include "geometries/geometry.h"
 #include "geometries/geometry_data.h"
