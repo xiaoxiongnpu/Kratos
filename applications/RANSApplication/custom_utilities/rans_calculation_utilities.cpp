@@ -34,9 +34,7 @@ double SoftMax(const double Value1, const double Value2, const double ExponentVa
         difference = (Value2 - Value1);
     }
 
-    return std::max(std::log2(1.0 + 1.0 / std::exp2(difference * ExponentValue)) / ExponentValue,
-                    0.0) +
-           max_value;
+    return std::log2(1.0 + 1.0 / std::exp2(difference * ExponentValue)) / ExponentValue + max_value;
 }
 
 void CalculateGeometryData(const GeometryType& rGeometry,
