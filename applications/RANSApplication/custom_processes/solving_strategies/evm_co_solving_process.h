@@ -15,8 +15,6 @@
 
 // System includes
 #include <cmath>
-#include <iostream>
-#include <string>
 #include <vector>
 
 // External includes
@@ -30,7 +28,6 @@
 #include "solving_strategies/strategies/solving_strategy.h"
 
 // Application includes
-#include "custom_elements/evm_k_epsilon/evm_k_epsilon_utilities.h"
 #include "custom_utilities/rans_calculation_utilities.h"
 #include "custom_utilities/rans_variable_utilities.h"
 #include "rans_application_variables.h"
@@ -41,7 +38,7 @@ namespace Kratos
 ///@{
 
 /// The base class for all EvmCoSolvingProcess in Kratos.
-/** The EvmCoSolvingProcess is the base class for all EvmCoSolvingProcess and defines a simple interface for them.
+/** The EvmCoSolvingProcess defines a simple interface for co-solving process for more than one equation
     Execute method is used to execute the EvmCoSolvingProcess algorithms. While the parameters of this method
   can be very different from one EvmCoSolvingProcess to other there is no way to create enough overridden
   versions of it. For this reason this method takes no argument and all EvmCoSolvingProcess parameters must
