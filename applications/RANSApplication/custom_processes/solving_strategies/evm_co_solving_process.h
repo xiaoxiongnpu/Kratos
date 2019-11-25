@@ -268,6 +268,21 @@ public:
         const double convergence_absolute =
             total_residual_norms[0] / total_residual_norms[2];
 
+        if (mEchoLevel > 1)
+        {
+            const int iteration_format_length =
+                static_cast<int>(std::log10(mMaxIterations)) + 1;
+
+            std::stringstream conv_check_msg;
+            conv_check_msg << "[Itr.#" << std::setw(iteration_format_length) << mCurrentIteration
+                           << "/" << mMaxIterations << "] CONVERGENCE CHECK: TURBULENT_VISCOSITY ratio = "
+                           << std::setprecision(3) << std::scientific << convergence_relative
+                           << "; exp. ratio = " << mConvergenceRelativeTolerance
+                           << "; abs = " << convergence_absolute
+                           << "; exp.abs = " << mConvergenceAbsoluteTolerance << "\n";
+            KRATOS_INFO(this->Info()) << conv_check_msg.str();
+        }
+
         return (convergence_relative < mConvergenceRelativeTolerance ||
                 convergence_absolute < mConvergenceAbsoluteTolerance);
     }
@@ -334,6 +349,7 @@ private:
     int mMaxIterations;
     int mSkipIterations;
     int mCurrentParentIteration;
+    int mCurrentIteration;
 
     bool mStoreOriginalValueInNonHistoricalDataValueContainer;
 
@@ -439,14 +455,14 @@ private:
             }
 
             bool is_converged = false;
-            int iteration = 1;
+            mCurrentIteration = 1;
 
             const ProcessInfo& r_current_process_info = mrModelPart.GetProcessInfo();
 
-            int iteration_format_length =
+            const int iteration_format_length =
                 static_cast<int>(std::log10(mMaxIterations)) + 1;
 
-            while (!is_converged && iteration <= mMaxIterations)
+            while (!is_converged && mCurrentIteration <= mMaxIterations)
             {
                 for (int i = 0; i < static_cast<int>(mrSolvingStrategiesList.size()); ++i)
                 {
@@ -469,13 +485,13 @@ private:
                 {
                     std::stringstream conv_msg;
                     conv_msg << "[Itr.#" << std::setw(iteration_format_length)
-                             << iteration << "/" << mMaxIterations
+                             << mCurrentIteration << "/" << mMaxIterations
                              << "] CONVERGENCE CHECK: TURBULENT_VISCOSITY"
                              << " *** CONVERGENCE IS ACHIEVED ***\n";
                     KRATOS_INFO(this->Info()) << conv_msg.str();
                 }
 
-                iteration++;
+                mCurrentIteration++;
             }
 
             UpdateEffectiveViscosity();
