@@ -67,18 +67,12 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
     const auto geom_family = p_geom->GetGeometryFamily();
     KRATOS_ERROR_IF(geom_family != GeometryData::Kratos_Linear) << "Invalid geometry of the Origin! The geometry should be a beam!" << std::endl;
 
-    //const bool is_full_projection = ProjectionUtilities::ComputeProjection(*p_geom, point_to_proj, mLocalCoordTol, shape_function_values, eq_ids, proj_dist, pairing_index, ComputeApproximation);
-
     // Calculating and storing the shape function values
     // Linear shape functions
     pairing_index = ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, linear_shape_function_values, eq_ids, proj_dist, ComputeApproximation);
     // Hermitian shape functions
     ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist, projection_point);
     const bool is_full_projection = (pairing_index == ProjectionUtilities::PairingIndex::Line_Inside);
-    
-    //std::cout << "rShapeFunctionValues : " << linear_shape_function_values << std::endl;
-    //std::cout << "rHermitianShapeFunctionValues : " << hermitian_shape_function_values << std::endl;
-    //std::cout << "rHermitianShapeFunctionValuesDerivatives : " << hermitian_shape_function_derivatives_values << std::endl;
     
 
     if (is_full_projection) {
@@ -118,15 +112,9 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         }
 
         mProjectionOfPoint = projection_point;
-        //std::cout << "the projected point defined in the GCS is : " << mProjectionOfPoint << std::endl; 
         
-        //mpInterfaceObject = &rInterfaceObject; // save a pointer that points to the beam element
-
         mpInterfaceObject = make_shared<InterfaceGeometryObject>(rInterfaceObject.pGetBaseGeometry());
 
-        //std::cout << "\n coordinate 1  " << (*g)[0].Coordinates() << std::endl;
-        //std::cout << "\n coordinate 2  " << (*g)[1].Coordinates() << std::endl;
-        //std::cout << "interfaceObject geometry was extracted successfully" << std::endl;
         std::cout << "\n------------- END OF SEARCH -----------------" << std::endl;
     }
     
@@ -146,6 +134,7 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
 
     auto temp_v = (*p_geom)[1].Coordinates() - (*p_geom)[0].Coordinates();
     double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
+    
     KRATOS_ERROR_IF(lengthX < 0.000001) << "Lenght of the beam is 0.0" << std::endl;
     
     axisX[0] = temp_v[0] / lengthX;
@@ -153,7 +142,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
     axisX[2] = temp_v[2] / lengthX;   
 
     if (axisX[0] == 1.0 && axisX[1] == 0.0 && axisX[2] == 0.0 ){
-        std::cout << "Case 1" << std::endl;
         axisY[0] = 0.0;
         axisY[1] = 1.0;
         axisY[2] = 0.0;
@@ -162,7 +150,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = 1.0;
     }
     else if (axisX[0] == 0.0 && axisX[1] == 1.0 && axisX[2] == 0.0 ){
-        std::cout << "Case 2" << std::endl;
         axisY[0] = 0.0;
         axisY[1] = 0.0;
         axisY[2] = 1.0;
@@ -171,7 +158,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = 0.0;
     }
     else if (axisX[0] == 0.0 && axisX[1] == 0.0 && axisX[2] == 1.0 ){
-        std::cout << "Case 3" << std::endl;
         axisY[0] = 0.0;
         axisY[1] = 1.0;
         axisY[2] = 0.0;
@@ -180,7 +166,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = 0.0;
     }
     else if (axisX[0] != 0.0 && axisX[1] != 0.0 && axisX[2] == 0.0 ){
-        std::cout << "Case 4" << std::endl;
         axisY[0] = -axisX[1];
         axisY[1] =  axisX[0];
         axisY[2] =  0.0;
@@ -189,7 +174,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
     }
     else if (axisX[0] != 0.0 && axisX[1] == 0.0 && axisX[2] != 0.0 ){
-        std::cout << "Case 5" << std::endl;
         axisY[0] = -axisX[2];
         axisY[1] =  0;
         axisY[2] =  axisX[0];
@@ -198,7 +182,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
     }
     else if (axisX[0] == 0.0 && axisX[1] != 0.0 && axisX[2] != 0.0){
-        std::cout << "Case 6" << std::endl;
         axisY[0] =  0;
         axisY[1] = -axisX[2];
         axisY[2] =  axisX[1];
@@ -207,7 +190,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
     }
     else{
-        std::cout << "Case 7" << std::endl;
         axisY[0] = 1;
         axisY[1] = 1;
         axisY[2] = (-axisX[0] - axisX[1]) / axisX[2];
@@ -221,10 +203,6 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
         axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
     }
 
-    std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
-    std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
-    std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
-
     MatrixType _RotationMatrix( 3, 3, 0.0 );
 
     for(std::size_t j = 0; j < 3; j++)
@@ -236,7 +214,7 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
 
     mRotationMatrixOfBeam = _RotationMatrix;
 
-    std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
+    //std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
 
 }
 
@@ -246,7 +224,7 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
                     EquationIdVectorType& rOriginIds,
                     EquationIdVectorType& rDestinationIds,
                     MapperLocalSystem::PairingStatus& rPairingStatus) const
-{ //std::cout << "CalculateAll is running here" << std::endl;
+{ 
     if (mInterfaceInfos.size() > 0) {
         double distance;
         double min_distance = std::numeric_limits<double>::max();
@@ -300,16 +278,12 @@ void BeamMapperLocalSystem::CalculateAll(MatrixType& rLocalMappingMatrix,
         }
 
         mInterfaceInfos[found_idx]->GetValue(rOriginIds, MapperInterfaceInfo::InfoType::Dummy);
-        //std::cout << "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww " << std::endl;
-        //std::cout << "found_idx is : " << found_idx << std::endl;
-        //std::cout << "My OriginIDs in this interface Info are: " << rOriginIds << std::endl;
 
         KRATOS_DEBUG_ERROR_IF_NOT(mpNode) << "Members are not intitialized!" << std::endl;
 
         if (rDestinationIds.size() != 1) rDestinationIds.resize(1);
         rDestinationIds[0] = mpNode->GetValue(INTERFACE_EQUATION_ID);
-
-        //std::cout << "My DestinationIDs in this interface Info are: " << rDestinationIds << std::endl;
+   
     }
     else ResizeToZero(rLocalMappingMatrix, rOriginIds, rDestinationIds, rPairingStatus);
 }
@@ -493,9 +467,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
             VectorType _DisplacementsRotationsP(6);
             TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector, _DisplacementsRotationsP);
 
-            //std::cout << "Interpolated displacements and rotations are : " << _DisplacementsRotationsP << std::endl;
-            //std::cout << "-------------------------- END OF INTERPOLATION ---------------------------" << std::endl; 
-
             VectorType axisX(3, 0.0);
             VectorType axisY(3, 0.0);
             VectorType axisZ(3, 0.0);
@@ -594,9 +565,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
                                                                _r_geom,
                                                                _pNode);
 
-            std::cout << "The coordinates of the surface mesh node are : " << _pNode->Coordinates() << std::endl;            
-            //std::cout << "The _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl;
-            std::cout << "Coordinates of the beam : node1 = " << _r_geom[0].Coordinates() << " , node2 = " << _r_geom[1].Coordinates() << std::endl;
             KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
 
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
@@ -690,17 +658,9 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             // Calculating R_d  and t_d for Phi_d 
             VectorType e_x_d_G(3), e_x_d_B(3);
             e_x_d_G = _r_geom[1].Coordinates() + displacementNode2_G - (_r_geom[0].Coordinates() + displacementNode1_G); // this vector is described in global system 
-            //std::cout << "_r_geom[0].Coordinates() = " << _r_geom[0] << std::endl;
-            //std::cout << "_r_geom[1].Coordinates() = " << _r_geom[1] << std::endl;
-            //std::cout << "displacementNode1_G =  " << displacementNode1_G << std::endl;
-            //std::cout << "displacementNode2_G =  " << displacementNode2_G << std::endl;
             e_x_d_G /= norm_2(e_x_d_G);
-            //std::cout << "e_x_d_G = " << e_x_d_G << std::endl;
-            //std::cout << "this takes me to the beam C.S. _rotationMatrix_B_G = " << _rotationMatrix_B_G << std::endl; 
-            //std::cout << " _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl; 
             TDenseSpace::Mult(_rotationMatrix_B_G, e_x_d_G, e_x_d_B); // transforming e_x_d to the beam coordinate system
             e_x_d_B /= norm_2(e_x_d_B);
-            //std::cout << "e_x_d_B = " << e_x_d_B << std::endl;
             
             VectorType e_x(3, 0.0), n_d(3, 0.0);
             MatrixType R_d(3, 3), _I(3, 3, 0.0), _R(3, 3, 0.0), I_2nT(3, 3, 0.0);
@@ -713,8 +673,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             _R(2, 2) = 1.0;
             n_d =  e_x + e_x_d_B;
             n_d /= norm_2(n_d);
-            //std::cout << "n_d = " << n_d << std::endl;
-            //std::cout << "n_d * n_d_T = " << MathUtils<double>::TensorProduct3(n_d, n_d) << std::endl;
             I_2nT = _I - 2 * MathUtils<double>::TensorProduct3(n_d, n_d);
             R_d = prod(I_2nT, _R);
             std::cout << "Rd is = " << R_d << std::endl;
@@ -725,52 +683,20 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             t_d(2) = _linearShapeValues(0) * displacementNode1_B(2) + _linearShapeValues(1) * displacementNode2_B(2);
             std::cout << "td is = " << t_d << std::endl;
 
-            // First, transform the nodal rotations (expresed in the Beam Coordinate System) to the Co-rotational Coordinate System
-            // Calculating Co-rotate basis vectors
-            //VectorType corotateXAxis(3), corotateYAxis(3), corotateZAxis(3);
-            //corotateXAxis = e_x_d_B; // Expresed in local system
-            //corotateYAxis(0) = -2.0 * n_d(0) * n_d(1);
-            //corotateYAxis(1) = 1.0 - 2.0 * n_d(1) * n_d(1); // diagonal
-            //corotateYAxis(2) = -2.0 * n_d(2) * n_d(1);
-            //corotateZAxis(0) = -2.0 * n_d(0) * n_d(2);
-            //corotateZAxis(1) = -2.0 * n_d(1) * n_d(2);
-            //corotateZAxis(2) = 1.0 - 2.0 * n_d(2) * n_d(2); // diagonal
-            //
-            //MatrixType Rotation_B_COR(3, 3), Rotation_COR_B(3, 3);
-            //Rotation_B_COR(0, 0) = corotateXAxis(0);
-            //Rotation_B_COR(1, 0) = corotateXAxis(1);
-            //Rotation_B_COR(2, 0) = corotateXAxis(2);
-            //Rotation_B_COR(0, 1) = corotateYAxis(0);
-            //Rotation_B_COR(1, 1) = corotateYAxis(1);
-            //Rotation_B_COR(2, 1) = corotateYAxis(2);
-            //Rotation_B_COR(0, 2) = corotateZAxis(0);
-            //Rotation_B_COR(1, 2) = corotateZAxis(1);
-            //Rotation_B_COR(2, 2) = corotateZAxis(2);
-            //
-            //std::cout << "The other version of R_d is = " << Rotation_B_COR << std::endl;
-            ////MathUtils<double>::InvertMatrix3(Rotation_B_COR, Rotation_COR_B, determinant);
-            ////MatrixType Rotation_COR_1(3, 3), Rotation_COR_2(3, 3);
-            ////Rotation_COR_1 = prod(Rotation_COR_B, Rotation_B_1);
-            ////Rotation_COR_2 = prod(Rotation_COR_B, Rotation_B_2);
-//
             // Calculating R_s
             MatrixType Rs_Rl1(3, 3), Rs_Rl2(3, 3), R_d_T(3, 3);
             MathUtils<double>::InvertMatrix3(R_d, R_d_T, determinant);
-            Rs_Rl1 = prod(R_d_T, Rotation_B_1); // somehow, R_d is the transpose of real R_d 
-            Rs_Rl2 = prod(R_d_T, Rotation_B_2); // somehow, R_d is the transpose of real R_d 
-            std::cout << "Rs_Rl1 = " << Rs_Rl1 << std::endl;
-            std::cout << "Rs_Rl2 = " << Rs_Rl2 << std::endl; 
+            Rs_Rl1 = prod(R_d_T, Rotation_B_1); 
+            Rs_Rl2 = prod(R_d_T, Rotation_B_2);
             VectorType v_Rs_Rl1(3), v_Rs_Rl2(3);
             getRotationVector(Rs_Rl1, v_Rs_Rl1);
             getRotationVector(Rs_Rl2, v_Rs_Rl2);
-            std::cout << "v_Rs_Rl1 = " << v_Rs_Rl1 << std::endl;
-            std::cout << "v_Rs_Rl2 = " << v_Rs_Rl2 << std::endl;
+
 
             double theta_s = (v_Rs_Rl1(0) + v_Rs_Rl2(0)) / 2;
             MatrixType R_s(3, 3);
             VectorType e_x_s(3, 0.0);
             e_x_s(0) = 1.0;
-            //std::cout << "theta_s = " << theta_s << std::endl;
             CalculateRotationMatrixWithAngle(e_x_s, theta_s, R_s);
             std::cout << "R_s = " << R_s << std::endl;
 
@@ -778,19 +704,12 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             MatrixType Rl1(3, 3), Rl2(3, 3), R_s_T(3, 3);
             VectorType v_Rl1(3), v_Rl2(3);
             MathUtils<double>::InvertMatrix3(R_s, R_s_T, determinant);
-            //std::cout << " R_s_T  = " << R_s_T << std::endl;
-            //std::cout << " Rs_Rl1  = " << Rs_Rl1 << std::endl;
-            //std::cout << " Rs_Rl2  = " << Rs_Rl2 << std::endl;
             Rl1 = prod(R_s_T, Rs_Rl1);
             Rl2 = prod(R_s_T, Rs_Rl2);
-            //std::cout << " Rl1  = " << Rl1 << std::endl;
-            //std::cout << " Rl2  = " << Rl2 << std::endl;
             getRotationVector(Rl1, v_Rl1);
             getRotationVector(Rl2, v_Rl2); 
             std::cout << " v_Rl1  = " << v_Rl1 << std::endl;
             std::cout << " v_Rl2  = " << v_Rl2 << std::endl;
-
-            ////////////////////////
 
             MatrixType _ShapeFunctionsMatrix(6, 12, 0.0);
             VectorType corBeamVector(3, 0.0);
@@ -819,7 +738,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             _ShapeFunctionsMatrix(5 , 7) = _hermitanDerShapeValues(2) / length_beamVector;
             _ShapeFunctionsMatrix(5 , 11) = _hermitanDerShapeValues(3); 
 
-            //std::cout << "Shape functions matrix = " << _ShapeFunctionsMatrix << std::endl;
             VectorType _DOF_Vector_l(12);
             for (size_t i = 0; i < 3; i++){
                 _DOF_Vector_l(i) = 0.0;
@@ -827,12 +745,9 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
                 _DOF_Vector_l(i + 6) = 0.0;
                 _DOF_Vector_l(i + 9) = v_Rl2(i);
             }
-            //std::cout << "Vector DOF_l is : " << _DOF_Vector_l << std::endl;
 
             VectorType _DisplacementsRotations_L(6);
             TDenseSpace::Mult(_ShapeFunctionsMatrix, _DOF_Vector_l, _DisplacementsRotations_L);
-
-            std::cout << "displacements and rotations for phi l are : _DisplacementsRotations_L = " << _DisplacementsRotations_L << std::endl;
 
             // Constructing phi_l
             VectorType axis_l(3), t_l(3);
@@ -851,7 +766,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             R_temp = prod(Rx, Ry);
             R_l = prod(Rz, R_temp);
 
-            //CalculateRotationMatrixWithAngle(axis_l, angle_l, R_l); // R_l
             std::cout << "t_d = " << t_d << std::endl;
             std::cout << "t_s = none " << std::endl;
             std::cout << "t_l = " << t_l << std::endl;
@@ -1055,17 +969,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Kratos::Flags Map
     mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
                                                   MappingOptions,
                                                   p_ref_interface_info);
-    //const int echo_level = mMapperSettings["echo_level"].GetInt();
-    
-    //KRATOS_WATCH("BEFORE Building MMatrix")
-    //MappingMatrixUtilities::BuildMappingMatrix<TSparseSpace, TDenseSpace>(
-    //    mpMappingMatrix,
-    //    mpInterfaceVectorContainerOrigin->pGetVector(),
-    //    mpInterfaceVectorContainerDestination->pGetVector(),
-    //    mpInterfaceVectorContainerOrigin->GetModelPart(),
-    //    mpInterfaceVectorContainerDestination->GetModelPart(),
-    //    mMapperLocalSystems,
-    //    echo_level);
 }
 
 // Extern template instantiation
