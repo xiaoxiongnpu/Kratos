@@ -18,6 +18,7 @@ class PfemFluidSolver(PythonSolver):
         {
             "solver_type": "pfem_fluid_solver",
             "model_part_name": "PfemFluidModelPart",
+            "physics_type" : "fluid",
             "domain_size": 2,
             "time_stepping"               : {
                 "automatic_time_step" : false,

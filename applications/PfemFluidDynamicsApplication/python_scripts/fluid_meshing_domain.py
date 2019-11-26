@@ -49,6 +49,7 @@ class FluidMeshingDomain(object):
                 "upper_point"      : [10,10,10],
                 "lower_point"      : [-10,-10,-10]
             },
+            "spatial_refining_box" : {},
             "refining_parameters":{
                "critical_size": 0.0,
                "threshold_variable": "PLASTIC_STRAIN",
@@ -244,9 +245,9 @@ class FluidMeshingDomain(object):
 
             bounding_box = self.settings["spatial_bounding_box"]
             if(bounding_box["use_bounding_box"].GetBool()):
-              self.MeshingParameters.SetUseBoundingBox(True) 
-              self.MeshingParameters.SetBoundingBoxLowerPoint(bounding_box["lower_point"][0].GetDouble(),bounding_box["lower_point"][1].GetDouble(),bounding_box["lower_point"][2].GetDouble()) 
-              self.MeshingParameters.SetBoundingBoxUpperPoint(bounding_box["upper_point"][0].GetDouble(),bounding_box["upper_point"][1].GetDouble(),bounding_box["upper_point"][2].GetDouble()) 
+              self.MeshingParameters.SetUseBoundingBox(True)
+              self.MeshingParameters.SetBoundingBoxLowerPoint(bounding_box["lower_point"][0].GetDouble(),bounding_box["lower_point"][1].GetDouble(),bounding_box["lower_point"][2].GetDouble())
+              self.MeshingParameters.SetBoundingBoxUpperPoint(bounding_box["upper_point"][0].GetDouble(),bounding_box["upper_point"][1].GetDouble(),bounding_box["upper_point"][2].GetDouble())
               self.MeshingParameters.SetBoundingBoxTimeInterval(bounding_box["initial_time"].GetDouble(),bounding_box["final_time"].GetDouble())
 
     #
