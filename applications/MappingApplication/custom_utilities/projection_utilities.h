@@ -64,7 +64,6 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
 
 void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions, 
                                     Vector &hermitianShapeFunctionsDer, 
-                                    double lenght_line, 
                                     const array_1d<double, 3>& rCoordinates);
 
 PairingIndex ProjectOnSurface(const GeometryType& rGeometry,

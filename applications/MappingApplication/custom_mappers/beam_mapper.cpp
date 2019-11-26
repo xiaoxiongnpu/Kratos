@@ -134,28 +134,96 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
 
 void BeamMapperInterfaceInfo::ComputeRotationMatrix()
 {
-    array_1d<double, 3> axisX;
-    array_1d<double, 3> axisY;
-    array_1d<double, 3> axisZ;
+    std::vector<double> axisX;
+    std::vector<double> axisY;
+    std::vector<double> axisZ;
+
+    axisX.resize(3);
+    axisY.resize(3);
+    axisZ.resize(3);
     
     const auto p_geom = mpInterfaceObject->pGetBaseGeometry();
 
     auto temp_v = (*p_geom)[1].Coordinates() - (*p_geom)[0].Coordinates();
     double lengthX = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1] + temp_v[2]*temp_v[2]);
-    axisX = (temp_v / lengthX); 
+    KRATOS_ERROR_IF(lengthX < 0.000001) << "Lenght of the beam is 0.0" << std::endl;
+    
+    axisX[0] = temp_v[0] / lengthX;
+    axisX[1] = temp_v[1] / lengthX;
+    axisX[2] = temp_v[2] / lengthX;   
+
+    if (axisX[0] == 1.0 && axisX[1] == 0.0 && axisX[2] == 0.0 ){
+        std::cout << "Case 1" << std::endl;
+        axisY[0] = 0.0;
+        axisY[1] = 1.0;
+        axisY[2] = 0.0;
+        axisZ[0] = 0.0;
+        axisZ[1] = 0.0;
+        axisZ[2] = 1.0;
+    }
+    else if (axisX[0] == 0.0 && axisX[1] == 1.0 && axisX[2] == 0.0 ){
+        std::cout << "Case 2" << std::endl;
+        axisY[0] = 0.0;
+        axisY[1] = 0.0;
+        axisY[2] = 1.0;
+        axisZ[0] = 1.0;
+        axisZ[1] = 0.0;
+        axisZ[2] = 0.0;
+    }
+    else if (axisX[0] == 0.0 && axisX[1] == 0.0 && axisX[2] == 1.0 ){
+        std::cout << "Case 3" << std::endl;
+        axisY[0] = 0.0;
+        axisY[1] = 1.0;
+        axisY[2] = 0.0;
+        axisZ[0] = 1.0;
+        axisZ[1] = 0.0;
+        axisZ[2] = 0.0;
+    }
+    else if (axisX[0] != 0.0 && axisX[1] != 0.0 && axisX[2] == 0.0 ){
+        std::cout << "Case 4" << std::endl;
+        axisY[0] = -axisX[1];
+        axisY[1] =  axisX[0];
+        axisY[2] =  0.0;
+        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+    }
+    else if (axisX[0] != 0.0 && axisX[1] == 0.0 && axisX[2] != 0.0 ){
+        std::cout << "Case 5" << std::endl;
+        axisY[0] = -axisX[2];
+        axisY[1] =  0;
+        axisY[2] =  axisX[0];
+        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+    }
+    else if (axisX[0] == 0.0 && axisX[1] != 0.0 && axisX[2] != 0.0){
+        std::cout << "Case 6" << std::endl;
+        axisY[0] =  0;
+        axisY[1] = -axisX[2];
+        axisY[2] =  axisX[1];
+        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+    }
+    else{
+        std::cout << "Case 7" << std::endl;
+        axisY[0] = 1;
+        axisY[1] = 1;
+        axisY[2] = (-axisX[0] - axisX[1]) / axisX[2];
+        double lenghtY = sqrt(axisY[0]*axisY[0] + axisY[1]*axisY[1] + axisY[2]*axisY[2]);
+        axisY[0] = axisY[0]/lenghtY;
+        axisY[1] = axisY[1]/lenghtY;
+        axisY[2] = axisY[2]/lenghtY;
         
-    double lengthY = sqrt(temp_v[0]*temp_v[0] + temp_v[1]*temp_v[1]);
-    axisY[0] = -temp_v[1] / lengthY;
-    axisY[1] =  temp_v[0] / lengthY;
-    axisY[2] =  0;
+        axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
+        axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
+        axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
+    }
 
-    axisZ[0] = axisX[1]*axisY[2] - axisX[2]*axisY[1]; 
-    axisZ[1] = axisX[2]*axisY[0] - axisX[0]*axisY[2];
-    axisZ[2] = axisX[0]*axisY[1] - axisX[1]*axisY[0];
-
-    //std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
-    //std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
-    //std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
+    std::cout << "The unitary vector of axis x is : " << axisX << std::endl;
+    std::cout << "The unitary vector of axis y is : " << axisY << std::endl;
+    std::cout << "The unitary vector of axis z is : " << axisZ << std::endl;
 
     MatrixType _RotationMatrix( 3, 3, 0.0 );
 
@@ -168,7 +236,7 @@ void BeamMapperInterfaceInfo::ComputeRotationMatrix()
 
     mRotationMatrixOfBeam = _RotationMatrix;
 
-    //std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
+    std::cout << "The mRotationMatrixOfBeam of this BeamMapper Interface Info is" << mRotationMatrixOfBeam << std::endl;
 
 }
 
@@ -528,7 +596,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
 
             std::cout << "The coordinates of the surface mesh node are : " << _pNode->Coordinates() << std::endl;            
             //std::cout << "The _rotationMatrix_G_B = " << _rotationMatrix_G_B << std::endl;
-            
+            std::cout << "Coordinates of the beam : node1 = " << _r_geom[0].Coordinates() << " , node2 = " << _r_geom[1].Coordinates() << std::endl;
             KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
 
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
@@ -578,15 +646,16 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             if (_angle1 != 0.0){
                 rotationNode1_G /= _angle1;
             }
+            std::cout << "rotationNode1_G : " << rotationNode1_G << std::endl;
             // For rotations in node 2
             CalculateRotationMatrixWithAngle(e_1, rotationNode2_G(0), Rx);
             CalculateRotationMatrixWithAngle(e_2, rotationNode2_G(1), Ry);
             CalculateRotationMatrixWithAngle(e_3, rotationNode2_G(2), Rz);
             R_temp = prod(Rx, Ry);
             R = prod(Rz, R_temp);
-            //std::cout << "RzRxRy in 2 is" << R << std::endl;
+            std::cout << "RzRxRy in 2 is" << R << std::endl;
             getRotationVector(R, rotationNode2_G);
-            //std::cout << "rotation vector of RzRxRy in 2 is : " << rotationNode2_G << std::endl;
+            std::cout << "rotation vector of RzRxRy in 2 is : " << rotationNode2_G << std::endl;
             double _angle2 = norm_2(rotationNode2_G);
             if (_angle2 != 0.0){
                 rotationNode2_G /= _angle2;
@@ -594,12 +663,15 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
 
             MatrixType _rotationMatrix_B_G( 3, 3 );
             double determinant;
+            std::cout << "_rotationMatrix_G_B : " << _rotationMatrix_G_B << std::endl;
             MathUtils<double>::InvertMatrix3(_rotationMatrix_G_B, _rotationMatrix_B_G, determinant );
-            
+            std::cout << "_rotationMatrix_B_G : " << _rotationMatrix_B_G << std::endl;
+            std::cout << "displacementNode1_G : " << displacementNode1_G << std::endl;
+            std::cout << "displacementNode2_G : " << displacementNode2_G << std::endl;
             // Transforming the displacements to the BCS
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
-
+            
             // Transforming the nodal rotations to the BCS
             MatrixType Rotation_G_1(3, 3);
             CalculateRotationMatrixWithAngle(rotationNode1_G, _angle1, Rotation_G_1);
@@ -771,7 +843,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             axis_l(0) = _DisplacementsRotations_L(3);
             axis_l(1) = _DisplacementsRotations_L(4);
             axis_l(2) = _DisplacementsRotations_L(5); 
-            double angle_l = norm_2(axis_l);
+
             //axis_l = axis_l/angle_l;
             CalculateRotationMatrixWithAngle(e_1, axis_l(0), Rx);
             CalculateRotationMatrixWithAngle(e_2, axis_l(1), Ry);
@@ -858,6 +930,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( Ve
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector) {
     // see Non-linear Modeling and Analysis of Solids and Structures (Steen Krenk 2009) P52
+    std::cout << "is error here?" << std::endl;
     double angle = rotationMatrix(0, 0) + rotationMatrix(1, 1) + rotationMatrix(2, 2) - 1.0;
 
     angle /= 2.0;

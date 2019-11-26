@@ -70,6 +70,7 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
                            double& rProjectionDistance,
                            const bool ComputeApproximation)
 {
+    std::cout << "Im in ProjectOnLine" << std::endl;
     Point projected_point;
 
     rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, projected_point));
@@ -77,6 +78,9 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
     array_1d<double, 3> local_coords;
     std::cout << "local coords : " << local_coords << std::endl;
     PairingIndex pairing_index;
+
+    bool a = rGeometry.IsInside(projected_point, local_coords, 1e-14);
+    std::cout << "IsInside() of line_3d_2 is = " << a << std::endl; 
 
     if (rGeometry.IsInside(projected_point, local_coords, 1e-14)) {
         std::cout << "1" << std::endl;
@@ -94,27 +98,27 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
         rGeometry.ShapeFunctionsValues(rShapeFunctionValues, local_coords);
         FillEquationIdVector(rGeometry, rEquationIds);
 
-    } else {
-        std::cout << "4 done" << std::endl;
-        // projection is ouside the line, searching the closest point
-        pairing_index = PairingIndex::Closest_Point;
-        const double dist_1 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[0]);
-        const double dist_2 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[1]);
-
-        rEquationIds.resize(1);
-        if (dist_1 < dist_2) {
-            KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[0].Has(INTERFACE_EQUATION_ID)) << rGeometry[0] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
-            rEquationIds[0] = rGeometry[0].GetValue(INTERFACE_EQUATION_ID);
-            rProjectionDistance = dist_1;
-        } else {
-            KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[1].Has(INTERFACE_EQUATION_ID)) << rGeometry[1] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
-            rEquationIds[0] = rGeometry[1].GetValue(INTERFACE_EQUATION_ID);
-            rProjectionDistance = dist_2;
-        }
-
-        rShapeFunctionValues.resize(1);
-        rShapeFunctionValues[0] = 1.0;
-    }
+    } //else {
+      //  std::cout << "4 done" << std::endl;
+      //  // projection is ouside the line, searching the closest point
+      //  pairing_index = PairingIndex::Closest_Point;
+      //  const double dist_1 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[0]);
+      //  const double dist_2 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[1]);
+//
+      //  rEquationIds.resize(1);
+      //  if (dist_1 < dist_2) {
+      //      KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[0].Has(INTERFACE_EQUATION_ID)) << rGeometry[0] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
+      //      rEquationIds[0] = rGeometry[0].GetValue(INTERFACE_EQUATION_ID);
+      //      rProjectionDistance = dist_1;
+      //  } else {
+      //      KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[1].Has(INTERFACE_EQUATION_ID)) << rGeometry[1] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
+      //      rEquationIds[0] = rGeometry[1].GetValue(INTERFACE_EQUATION_ID);
+      //      rProjectionDistance = dist_2;
+      //  }
+//
+      //  rShapeFunctionValues.resize(1);
+      //  rShapeFunctionValues[0] = 1.0;
+      //  }   
 
     return pairing_index;
 }
@@ -127,6 +131,7 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
                                     double& rProjectionDistance,
                                     Point& rProjectionOfPoint)
 {
+    std::cout << "Im in ProjectOnLineHermitian" << std::endl;
     rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, rProjectionOfPoint));
     std::cout << "Projection Distance : " << rProjectionDistance << std::endl;
     array_1d<double, 3> local_coords;
@@ -134,11 +139,11 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
     PairingIndex pairing_index;
 
     double lenght_line;
-    lenght_line = rGeometry.Length();
+    //lenght_line = rGeometry.Length();
 
     if (rGeometry.IsInside(rProjectionOfPoint, local_coords, 1e-14)) {
         pairing_index = PairingIndex::Line_Inside;
-        HermitianShapeFunctionsValues(rHermitianShapeFunctionValues, rHermitianShapeFunctionValuesDer, lenght_line, local_coords);
+        HermitianShapeFunctionsValues(rHermitianShapeFunctionValues, rHermitianShapeFunctionValuesDer, local_coords);
         // FillEquationIdVector(rGeometry, rEquationIds);
 
     } 
@@ -148,7 +153,6 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
 
 void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions, 
                                     Vector &hermitianShapeFunctionsDer, 
-                                    double lenght_line, 
                                     const array_1d<double, 3>& rCoordinates) 
 {
     if(hermitianShapeFunctions.size() != 4) {

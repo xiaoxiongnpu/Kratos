@@ -1,0 +1,55 @@
+Begin ModelPartData
+//  VARIABLE_NAME value
+End ModelPartData
+
+Begin Properties 0
+End Properties
+Begin Nodes
+    1   0.1067074440   0.0132277770   5.0290000000
+    2   0.1067074440   0.0132277770   4.4003750000
+    3   0.1067074440   0.0132277770   3.7717500000
+    4   0.1067074440   0.0132277770   3.1431250000
+    5   0.1067074440   0.0132277770   2.5145000000
+    6   0.1067074440   0.0132277770   1.8858750000
+    7   0.1067074440   0.0132277770   1.2572500000
+    8   0.1067074440   0.0132277770   0.6286250000
+    9   0.1067074440   0.0132277770   0.0000000000
+End Nodes
+
+
+Begin Elements Element3D2N// GUI group identifier: Add SubModelPart Auto1
+        1          0          9          8 
+        2          0          8          7 
+        3          0          7          6 
+        4          0          6          5 
+        5          0          5          4 
+        6          0          4          3 
+        7          0          3          2 
+        8          0          2          1 
+End Elements
+
+Begin SubModelPart GENERIC_Add_SubModelPart_Auto1 // Group Add SubModelPart Auto1 // Subtree GENERIC
+    Begin SubModelPartNodes
+            1
+            2
+            3
+            4
+            5
+            6
+            7
+            8
+            9
+    End SubModelPartNodes
+    Begin SubModelPartElements
+            1
+            2
+            3
+            4
+            5
+            6
+            7
+            8
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart

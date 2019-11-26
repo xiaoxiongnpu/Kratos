@@ -12,11 +12,14 @@ import math
 #mdpa_file_name_beam    = "mdpa_files/line_10_elements"
 #mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
 
-mdpa_file_name_beam    = "mdpa_files/beam_new"
-mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
+#mdpa_file_name_beam    = "mdpa_files/beam_new"
+#mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
 
 #mdpa_file_name_beam    = "mdpa_files/mini_test/line"
 #mdpa_file_name_surface = "mdpa_files/mini_test/surface"
+
+mdpa_file_name_beam    = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_line"
+mdpa_file_name_surface = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_Phase_6_Blade_Tri_015"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -96,18 +99,33 @@ class TestBeamMapper(KratosUnittest.TestCase):
         self.mapper = KratosMapping.MapperFactory.CreateMapper(self.model_part_beam, self.model_part_surface, mapper_settings)
 
         for node in self.model_part_beam.Nodes:
-            lenght_beam = 100
+            lenght_beam = 5.029
             alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
-            beta = 1.0472
+            beta = alfa
             r = lenght_beam / alfa
-            theta_X = (beta * node.X) / lenght_beam
-            theta_Z = - node.X / r 
-            node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
-            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
-            node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
-            node.SetSolutionStepValue(KM.ROTATION_X, theta_X )
-            node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
+            theta_Z = (beta * node.Z) / lenght_beam
+            theta_Y = - node.Z / r 
+            node.SetSolutionStepValue(KM.DISPLACEMENT_X, -r + r*math.cos(-theta_Y))
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Y, 0.0)
+            node.SetSolutionStepValue(KM.DISPLACEMENT_Z, r * math.sin(-theta_Y) - node.Z )
+            node.SetSolutionStepValue(KM.ROTATION_X, 0 )
+            node.SetSolutionStepValue(KM.ROTATION_Y, theta_Y )
             node.SetSolutionStepValue(KM.ROTATION_Z, theta_Z )
+
+        # test for normal beams
+        #for node in self.model_part_beam.Nodes:
+        #    lenght_beam = 100
+        #    alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+        #    beta = alfa
+        #    r = lenght_beam / alfa
+        #    theta_X = (beta * node.X) / lenght_beam
+        #    theta_Z = - node.X / r 
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
+        #    node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
+        #    node.SetSolutionStepValue(KM.ROTATION_X, theta_X )
+        #    node.SetSolutionStepValue(KM.ROTATION_Y, 0 )
+        #    node.SetSolutionStepValue(KM.ROTATION_Z, theta_Z )
 
         # Easy test
         #for node in self.model_part_beam.Nodes:
