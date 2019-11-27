@@ -21,8 +21,7 @@
 #include "includes/define_python.h"
 #include "custom_python/add_custom_utilities_to_python.h"
 
-#include "spaces/ublas_space.h"
-#include "linear_solvers/linear_solver.h"
+#include "custom_utilities/mgis_read_materials_utility.h"
 
 //Utilities
 
@@ -30,11 +29,18 @@ namespace Kratos
 {
 namespace Python
 {
-using namespace pybind11;
 
 void  AddCustomUtilitiesToPython(pybind11::module& m)
 {
-
+    namespace py = pybind11;
+    
+    // Read materials utility
+    py::class_<MGISReadMaterialsUtility, typename MGISReadMaterialsUtility::Pointer>(m, "MGISReadMaterialsUtility")
+    .def(py::init<Model&>())
+    .def(py::init<Parameters, Model&>())
+    .def("ReadMaterials",&MGISReadMaterialsUtility::ReadMaterials)
+    ;
+    
 }
 
 }  // namespace Python.

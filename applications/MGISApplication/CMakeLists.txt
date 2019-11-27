@@ -19,6 +19,7 @@ set( KRATOS_MGIS_APPLICATION_CORE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/mgis_constitutive_law_factory.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/custom_constitutive/mgis_constitutive_law.cpp
   # CUSTOM UTILITIES
+  ${CMAKE_CURRENT_SOURCE_DIR}/custom_utilities/mgis_read_materials_utility.cpp
 
   # CUSTOM PROCESSES
 
