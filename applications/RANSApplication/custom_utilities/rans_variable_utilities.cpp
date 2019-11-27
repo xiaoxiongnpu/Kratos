@@ -12,8 +12,8 @@
 //
 
 /* System includes */
-#include <limits>
 #include <cmath>
+#include <limits>
 
 /* External includes */
 
@@ -103,6 +103,10 @@ double GetMinimumScalarValue(const ModelPart& rModelPart, const Variable<double>
         OpenMPUtils::PartitionVector node_partition;
         OpenMPUtils::DivideInPartitions(number_of_nodes, number_of_threads, node_partition);
         Vector min_values(number_of_threads);
+        for (int i = 0; i < number_of_threads; ++i)
+        {
+            min_values[i] = std::numeric_limits<double>::max();
+        }
 
 #pragma omp parallel
         {
@@ -151,6 +155,10 @@ double GetMaximumScalarValue(const ModelPart& rModelPart, const Variable<double>
         OpenMPUtils::PartitionVector node_partition;
         OpenMPUtils::DivideInPartitions(number_of_nodes, number_of_threads, node_partition);
         Vector max_values(number_of_threads);
+        for (int i = 0; i < number_of_threads; ++i)
+        {
+            max_values[i] = std::numeric_limits<double>::min();
+        }
 
 #pragma omp parallel
         {
