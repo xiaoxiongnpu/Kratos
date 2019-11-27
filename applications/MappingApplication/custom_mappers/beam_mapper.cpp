@@ -601,37 +601,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             double determinant;
             MathUtils<double>::InvertMatrix3(_rotationMatrix_G_B, _rotationMatrix_B_G, determinant );
 
-            // BEGIN SETUP Processing previously the nodal rotations // THIS IS JUST FOR THE TESTS
-            MatrixType Rx(3, 3), Ry(3, 3), Rz(3, 3), R(3, 3), R_temp(3, 3);
-            VectorType e_1(3, 0.0), e_2(3, 0.0), e_3(3, 0.0);
-            e_1(0) = 1.0;
-            e_2(1) = 1.0;
-            e_3(2) = 1.0;
-            // For rotations in node 1
-            CalculateRotationMatrixWithAngle(e_1, rotationNode1_G(0), Rx);
-            CalculateRotationMatrixWithAngle(e_2, rotationNode1_G(1), Ry);
-            CalculateRotationMatrixWithAngle(e_3, rotationNode1_G(2), Rz);
-            //R_temp = prod(Rx, Ry); // this works for beam
-            //R = prod(Rz, R_temp);
-            R_temp = prod(Ry, Rz); // this works for wing
-            R = prod(Rx, R_temp);
-            getRotationVector(R, rotationNode1_G);
-
-            // For rotations in node 2
-            CalculateRotationMatrixWithAngle(e_1, rotationNode2_G(0), Rx);
-            CalculateRotationMatrixWithAngle(e_2, rotationNode2_G(1), Ry);
-            CalculateRotationMatrixWithAngle(e_3, rotationNode2_G(2), Rz);
-            //R_temp = prod(Rx, Ry); // this works for beam
-            //R = prod(Rz, R_temp);
-            R_temp = prod(Ry, Rz); // this works for wing
-            R = prod(Rx, R_temp);
-            std::cout << "RzRxRy in 2 is" << R << std::endl;
-            VectorType temp_rotationNode2_G(3);
-            temp_rotationNode2_G = rotationNode2_G;
-            getRotationVector(R, rotationNode2_G);
-            std::cout << "rotation vector of RzRxRy in 2 is : " << rotationNode2_G << std::endl;
-            // END SETUP
-
             // Transforming the nodal displacements to the BCS
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
@@ -754,6 +723,12 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             t_l(1) = _DisplacementsRotations_L(1); // t_l
             t_l(2) = _DisplacementsRotations_L(2); // t_l
 
+            MatrixType Rx(3, 3), Ry(3, 3), Rz(3, 3), R(3, 3), R_temp(3, 3);
+            VectorType e_1(3, 0.0), e_2(3, 0.0), e_3(3, 0.0);
+            e_1(0) = 1.0;
+            e_2(1) = 1.0;
+            e_3(2) = 1.0;
+
             CalculateRotationMatrixWithAngle(e_1, _DisplacementsRotations_L(3), Rx);
             CalculateRotationMatrixWithAngle(e_2, _DisplacementsRotations_L(4), Ry);
             CalculateRotationMatrixWithAngle(e_3, _DisplacementsRotations_L(5), Rz);
@@ -838,7 +813,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( Ve
 }
 
 template<class TSparseSpace, class TDenseSpace>
-void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector) {
+void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector) 
+{
     // see Non-linear Modeling and Analysis of Solids and Structures (Steen Krenk 2009) P52
     double angle = rotationMatrix(0, 0) + rotationMatrix(1, 1) + rotationMatrix(2, 2) - 1.0;
 
