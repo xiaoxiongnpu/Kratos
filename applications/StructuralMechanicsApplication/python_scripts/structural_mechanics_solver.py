@@ -303,7 +303,11 @@ class MechanicalSolver(PythonSolver):
             # Add constitutive laws and material properties from json file to model parts.
             material_settings = KratosMultiphysics.Parameters("""{"Parameters": {"materials_filename": ""}} """)
             material_settings["Parameters"]["materials_filename"].SetString(materials_filename)
-            KratosMultiphysics.ReadMaterialsUtility(material_settings, self.model)
+            if kratos_utils.CheckIfApplicationsAvailable("MGISApplication"):
+                import KratosMultiphysics.MGISApplication as MGISApplication
+                MGISApplication.MGISReadMaterialsUtility(material_settings, self.model)
+            else:
+                KratosMultiphysics.ReadMaterialsUtility(material_settings, self.model)
             materials_imported = True
         else:
             materials_imported = False
