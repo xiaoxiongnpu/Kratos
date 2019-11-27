@@ -19,7 +19,7 @@ import math
 #mdpa_file_name_surface = "mdpa_files/mini_test/surface"
 
 mdpa_file_name_beam    = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_line"
-mdpa_file_name_surface = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_Phase_6_Blade_3_22"
+mdpa_file_name_surface = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_Phase_6_Blade_Tri_005"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -100,8 +100,8 @@ class TestBeamMapper(KratosUnittest.TestCase):
 
         for node in self.model_part_beam.Nodes:
             lenght_beam = 5.029
-            alfa = 3 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
-            beta = 3
+            alfa = 3.141516 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            beta = 1.0472
             r = lenght_beam / alfa
             theta_Z = (beta * node.Z) / lenght_beam
             theta_Y = - node.Z / r 
