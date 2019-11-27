@@ -597,7 +597,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             std::cout << "displacement of node 2 is" << displacementNode2_G << std::endl;
             std::cout << "rotation of node 2 is" << rotationNode2_G << std::endl;
 
-            // Processing previously the nodal rotations
+            // Processing previously the nodal rotations // THIS IS JUST FOR THE TESTS
             MatrixType Rx(3, 3), Ry(3, 3), Rz(3, 3), R(3, 3), R_temp(3, 3);
             VectorType e_1(3, 0.0), e_2(3, 0.0), e_3(3, 0.0);
             e_1(0) = 1.0;
@@ -607,21 +607,27 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             CalculateRotationMatrixWithAngle(e_1, rotationNode1_G(0), Rx);
             CalculateRotationMatrixWithAngle(e_2, rotationNode1_G(1), Ry);
             CalculateRotationMatrixWithAngle(e_3, rotationNode1_G(2), Rz);
-            R_temp = prod(Rx, Ry);
-            R = prod(Rz, R_temp);
+            //R_temp = prod(Rx, Ry); // this works for beam
+            //R = prod(Rz, R_temp);
+            R_temp = prod(Ry, Rz); // this works for wing
+            R = prod(Rx, R_temp);
             getRotationVector(R, rotationNode1_G);
             double _angle1 = norm_2(rotationNode1_G);
             if (_angle1 != 0.0){
                 rotationNode1_G /= _angle1;
             }
-            std::cout << "rotationNode1_G : " << rotationNode1_G << std::endl;
+
             // For rotations in node 2
             CalculateRotationMatrixWithAngle(e_1, rotationNode2_G(0), Rx);
             CalculateRotationMatrixWithAngle(e_2, rotationNode2_G(1), Ry);
             CalculateRotationMatrixWithAngle(e_3, rotationNode2_G(2), Rz);
-            R_temp = prod(Rx, Ry);
-            R = prod(Rz, R_temp);
+            //R_temp = prod(Rx, Ry); // this works for beam
+            //R = prod(Rz, R_temp);
+            R_temp = prod(Ry, Rz); // this works for wing
+            R = prod(Rx, R_temp);
             std::cout << "RzRxRy in 2 is" << R << std::endl;
+            VectorType temp_rotationNode2_G(3);
+            temp_rotationNode2_G = rotationNode2_G;
             getRotationVector(R, rotationNode2_G);
             std::cout << "rotation vector of RzRxRy in 2 is : " << rotationNode2_G << std::endl;
             double _angle2 = norm_2(rotationNode2_G);
@@ -631,15 +637,33 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
 
             MatrixType _rotationMatrix_B_G( 3, 3 );
             double determinant;
-            std::cout << "_rotationMatrix_G_B : " << _rotationMatrix_G_B << std::endl;
+            //std::cout << "_rotationMatrix_G_B : " << _rotationMatrix_G_B << std::endl;
             MathUtils<double>::InvertMatrix3(_rotationMatrix_G_B, _rotationMatrix_B_G, determinant );
-            std::cout << "_rotationMatrix_B_G : " << _rotationMatrix_B_G << std::endl;
-            std::cout << "displacementNode1_G : " << displacementNode1_G << std::endl;
-            std::cout << "displacementNode2_G : " << displacementNode2_G << std::endl;
+            //std::cout << "_rotationMatrix_B_G : " << _rotationMatrix_B_G << std::endl;
+            //std::cout << "displacementNode1_G : " << displacementNode1_G << std::endl;
+            //std::cout << "displacementNode2_G : " << displacementNode2_G << std::endl;
             // Transforming the displacements to the BCS
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode1_G, displacementNode1_B );
             TDenseSpace::Mult( _rotationMatrix_B_G, displacementNode2_G, displacementNode2_B );
             
+
+            // other option to calculate rotation vectors
+            MatrixType Rot2(3,3), Rot2fin_temp(3,3), Rot2fin(3,3);
+            double angle_unitary2 = norm_2(temp_rotationNode2_G);
+            std::cout << "angle_unitary2 = " << angle_unitary2 << std::endl;
+            //if(angle_unitary2 > 3.1415){
+            //    angle_unitary2 = angle_unitary2 - 3.1415;
+            //}
+            //std::cout << "angle_unitary2 = " << angle_unitary2 << std::endl;
+            VectorType unitary_rotation2(3);
+            unitary_rotation2 = rotationNode2_G / norm_2(rotationNode2_G);
+            std::cout << "unitary_rotation2 = " << unitary_rotation2 << std::endl;
+            CalculateRotationMatrixWithAngle(unitary_rotation2, angle_unitary2, Rot2);
+            Rot2fin_temp = prod(_rotationMatrix_G_B, Rot2);
+            Rot2fin = prod(Rot2fin_temp, _rotationMatrix_B_G);
+            std::cout << "otra opcion para calcular RzRxRy es : " << Rot2fin << std::endl;
+            /////
+
             // Transforming the nodal rotations to the BCS
             MatrixType Rotation_G_1(3, 3);
             CalculateRotationMatrixWithAngle(rotationNode1_G, _angle1, Rotation_G_1);
@@ -759,12 +783,16 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             axis_l(1) = _DisplacementsRotations_L(4);
             axis_l(2) = _DisplacementsRotations_L(5); 
 
+            std::cout << "axis_l : " << axis_l << std::endl;
+
             //axis_l = axis_l/angle_l;
             CalculateRotationMatrixWithAngle(e_1, axis_l(0), Rx);
             CalculateRotationMatrixWithAngle(e_2, axis_l(1), Ry);
             CalculateRotationMatrixWithAngle(e_3, axis_l(2), Rz);
-            R_temp = prod(Rx, Ry);
-            R_l = prod(Rz, R_temp);
+            //R_temp = prod(Rx, Ry); // this works for beam
+            //R_l = prod(Rz, R_temp);
+            R_temp = prod(Ry, Rz); // this works for wing
+            R_l = prod(Rx, R_temp);
 
             std::cout << "t_d = " << t_d << std::endl;
             std::cout << "t_s = none " << std::endl;
@@ -844,7 +872,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( Ve
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& rotationMatrix, VectorType& rotationVector) {
     // see Non-linear Modeling and Analysis of Solids and Structures (Steen Krenk 2009) P52
-    std::cout << "is error here?" << std::endl;
     double angle = rotationMatrix(0, 0) + rotationMatrix(1, 1) + rotationMatrix(2, 2) - 1.0;
 
     angle /= 2.0;
