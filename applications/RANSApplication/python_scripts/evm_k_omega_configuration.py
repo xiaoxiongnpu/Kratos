@@ -78,10 +78,6 @@ class TurbulenceKOmegaConfiguration(
             KratosRANS.TURBULENCE_RANS_SIGMA_K] = constants["sigma_k"].GetDouble()
         self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENCE_RANS_SIGMA_OMEGA] = constants["sigma_omega"].GetDouble()
-        self.fluid_model_part.ProcessInfo[
-            KratosRANS.TURBULENT_VISCOSITY_MIN] = self.nu_t_min
-        self.fluid_model_part.ProcessInfo[
-            KratosRANS.TURBULENT_VISCOSITY_MAX] = self.nu_t_max
 
     def PrepareSolvingStrategy(self):
         scheme_settings = self.model_settings["scheme_settings"]
