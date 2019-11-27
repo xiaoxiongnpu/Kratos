@@ -33,6 +33,11 @@
 #include "custom_processes/auxiliary_processes/rans_vector_cell_center_averaging_process.h"
 #include "custom_processes/auxiliary_processes/rans_wall_distance_calculation_process.h"
 
+// K_Omega auxiliary processes
+#include "custom_processes/auxiliary_processes/rans_omega_turbulent_mixing_inlet_process.h"
+#include "custom_processes/auxiliary_processes/rans_nut_k_omega_high_re_calculation_process.h"
+#include "custom_processes/auxiliary_processes/rans_omega_y_plus_wall_function_process.h"
+
 namespace Kratos
 {
 namespace Python
@@ -134,6 +139,22 @@ void AddCustomAuxiliaryProcessesToPython(pybind11::module& m)
     py::class_<RansLineOutputProcessType, RansLineOutputProcessType::Pointer, Process>(
         m, "RansLineOutputProcess")
         .def(py::init<Model&, Parameters&>());
+
+    //k omega addition
+    using RansOmegaTurbulentMixingLengthInletProcessType = RansOmegaTurbulentMixingLengthInletProcess;
+        py::class_<RansOmegaTurbulentMixingLengthInletProcessType, RansOmegaTurbulentMixingLengthInletProcessType::Pointer, Process>(
+            m, "RansOmegaTurbulentMixingLengthInletProcess")
+            .def(py::init<Model&, Parameters&>());
+
+    using RansNutKOmegaHighReCalculationProcessType = RansNutKOmegaHighReCalculationProcess;
+        py::class_<RansNutKOmegaHighReCalculationProcessType, RansNutKOmegaHighReCalculationProcessType::Pointer, Process>(
+            m, "RansNutKOmegaHighReCalculationProcess")
+            .def(py::init<Model&, Parameters&>());
+
+    using RansOmegaYPlusWallFunctionProcessType = RansOmegaYPlusWallFunctionProcess;
+        py::class_<RansOmegaYPlusWallFunctionProcessType, RansOmegaYPlusWallFunctionProcessType::Pointer, Process>(
+            m, "RansOmegaYPlusWallFunctionProcess")
+            .def(py::init<Model&, Parameters&>());
 }
 
 } // namespace Python.

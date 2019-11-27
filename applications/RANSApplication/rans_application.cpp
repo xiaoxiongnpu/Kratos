@@ -26,29 +26,31 @@ namespace Kratos
 KratosRANSApplication::KratosRANSApplication()
     : KratosApplication("RANSApplication"),
       mRansEvmKEpsilonLowReK2D(0,
-                       Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
-                           Element::GeometryType::PointsArrayType(3)))),
+                               Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
+                                   Element::GeometryType::PointsArrayType(3)))),
       mRansEvmKEpsilonLowReK3D(0,
-                       Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
-                           Element::GeometryType::PointsArrayType(4)))),
-      mRansEvmKEpsilonLowReEpsilon2D(0,
-                             Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
-                                 Element::GeometryType::PointsArrayType(3)))),
-      mRansEvmKEpsilonLowReEpsilon3D(0,
-                             Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
-                                 Element::GeometryType::PointsArrayType(4)))),
+                               Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+                                   Element::GeometryType::PointsArrayType(4)))),
+      mRansEvmKEpsilonLowReEpsilon2D(
+          0,
+          Element::GeometryType::Pointer(
+              new Triangle2D3<Node<3>>(Element::GeometryType::PointsArrayType(3)))),
+      mRansEvmKEpsilonLowReEpsilon3D(
+          0,
+          Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+              Element::GeometryType::PointsArrayType(4)))),
       mRansEvmKEpsilonK2D(0,
-                  Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
-                      Element::GeometryType::PointsArrayType(3)))),
+                          Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
+                              Element::GeometryType::PointsArrayType(3)))),
       mRansEvmKEpsilonK3D(0,
-                  Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
-                      Element::GeometryType::PointsArrayType(4)))),
+                          Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+                              Element::GeometryType::PointsArrayType(4)))),
       mRansEvmKEpsilonEpsilon2D(0,
-                        Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
-                            Element::GeometryType::PointsArrayType(3)))),
+                                Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
+                                    Element::GeometryType::PointsArrayType(3)))),
       mRansEvmKEpsilonEpsilon3D(0,
-                        Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
-                            Element::GeometryType::PointsArrayType(4)))),
+                                Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+                                    Element::GeometryType::PointsArrayType(4)))),
       mRansEvmKEpsilonEpsilonWall2D2N(
           0,
           Element::GeometryType::Pointer(
@@ -64,7 +66,19 @@ KratosRANSApplication::KratosRANSApplication()
       mRansEvmKEpsilonVmsMonolithicWall3D3N(
           0,
           Element::GeometryType::Pointer(
-              new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3))))
+              new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3)))),
+      mRansEvmOmega2D(0,
+                      Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
+                          Element::GeometryType::PointsArrayType(3)))),
+      mRansEvmOmega3D(0,
+                      Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+                          Element::GeometryType::PointsArrayType(4)))),
+      mRansEvmKOmegaK2D(0,
+                        Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
+                            Element::GeometryType::PointsArrayType(3)))),
+      mRansEvmKOmegaK3D(0,
+                        Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
+                            Element::GeometryType::PointsArrayType(4))))
 {
 }
 
@@ -91,6 +105,15 @@ void KratosRANSApplication::Register()
     KRATOS_REGISTER_VARIABLE(TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA)
     KRATOS_REGISTER_VARIABLE(NUMBER_OF_NEIGHBOUR_CONDITIONS)
 
+    //for the k-omega element
+    KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_SIGMA_K)
+    KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_SIGMA_OMEGA)
+    KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_GAMMA)
+    KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_BETA_ZERO_STAR)
+    KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_BETA_ZERO)
+    KRATOS_REGISTER_VARIABLE(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
+	KRATOS_REGISTER_VARIABLE(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE_2)
+
     // Register Elements
     KRATOS_REGISTER_ELEMENT("RansEvmKEpsilonLowReK2D3N", mRansEvmKEpsilonLowReK2D);
     KRATOS_REGISTER_ELEMENT("RansEvmKEpsilonLowReK3D4N", mRansEvmKEpsilonLowReK3D);
@@ -109,5 +132,11 @@ void KratosRANSApplication::Register()
                               mRansEvmKEpsilonVmsMonolithicWall2D2N);
     KRATOS_REGISTER_CONDITION("RansEvmKEpsilonVmsMonolithicWall3D3N",
                               mRansEvmKEpsilonVmsMonolithicWall3D3N);
+
+    // k-omega elements
+    KRATOS_REGISTER_ELEMENT("RansEvmKOmegaOmega2D3N", mRansEvmOmega2D);
+    KRATOS_REGISTER_ELEMENT("RansEvmKOmegaOmega3D4N", mRansEvmOmega3D);
+	KRATOS_REGISTER_ELEMENT("RansEvmKOmegaK2D3N", mRansEvmKOmegaK2D);
+	KRATOS_REGISTER_ELEMENT("RansEvmKOmegaK3D4N", mRansEvmKOmegaK3D);
 }
 } // namespace Kratos.

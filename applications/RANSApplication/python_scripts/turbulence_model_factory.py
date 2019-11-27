@@ -2,6 +2,7 @@ import KratosMultiphysics
 import KratosMultiphysics.RANSApplication
 
 from KratosMultiphysics.RANSApplication.evm_k_epsilon_configuration import TurbulenceKEpsilonConfiguration
+from KratosMultiphysics.RANSApplication.evm_k_omega_configuration import TurbulenceKOmegaConfiguration
 
 def Factory(settings, Model):
     if (type(settings) != KratosMultiphysics.Parameters):
@@ -10,7 +11,7 @@ def Factory(settings, Model):
         )
     if (type(Model) != KratosMultiphysics.Model):
         raise Exception("expected input shall be a Model object")
-    turbulence_models_list = ["k_epsilon"]
+    turbulence_models_list = ["k_epsilon", "k_omega"]
 
     model_type = settings["model_type"].GetString()
     if not model_type in turbulence_models_list:
@@ -21,4 +22,8 @@ def Factory(settings, Model):
 
     if model_type == "k_epsilon":
         turbulence_model = TurbulenceKEpsilonConfiguration(Model, settings)
+        return turbulence_model
+
+    if model_type == "k_omega":
+        turbulence_model = TurbulenceKOmegaConfiguration(Model, settings)
         return turbulence_model

@@ -78,6 +78,20 @@ def Factory(settings, Model):
         [
             "CheckVectorBoundsProcess",
             KratosRANS.RansCheckVectorBoundsProcess
+        ],
+        [
+            "NutKOmegaHighReCalculationProcess",
+            KratosRANS.RansNutKOmegaHighReCalculationProcess
+        ],
+
+        [
+            "OmegaTurbulentMixingLengthInletProcess",
+            KratosRANS.RansOmegaTurbulentMixingLengthInletProcess
+        ],
+
+        [
+            "OmegaYPlusWallFunctionProcess",
+            KratosRANS.RansOmegaYPlusWallFunctionProcess
         ]
     ]
 
