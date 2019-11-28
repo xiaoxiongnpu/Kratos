@@ -113,7 +113,7 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
 
     // Mark nodes of the furthest deactivated element and store its neighbour elements
     for (unsigned int i_node= 0; i_node < p_max_elem->GetGeometry().size(); i_node++) {
-        p_max_elem->GetGeometry()[i_node].SetValue(TRAILING_EDGE,true);
+        p_max_elem->GetGeometry()[i_node].Set(MARKER,true);
         const GlobalPointersVector<Element>& r_node_elem_candidates = p_max_elem -> GetGeometry()[i_node].GetValue(NEIGHBOUR_ELEMENTS);
         for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
             mKuttaWakeElementCandidates.push_back(r_node_elem_candidates(j));
@@ -132,7 +132,7 @@ void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
         auto& r_geometry = mKuttaWakeElementCandidates[i].GetGeometry();
         if (mKuttaWakeElementCandidates[i].GetValue(WAKE) && mKuttaWakeElementCandidates[i].Is(ACTIVE)) {
             for (std::size_t i_node= 0; i_node < r_geometry.size(); i_node++) {
-                if(r_geometry[i_node].GetValue(TRAILING_EDGE)){
+                if(r_geometry[i_node].Is(MARKER)){
                     trailing_edge_node_list.push_back(r_geometry[i_node].Id());
                     mKuttaWakeElementCandidates[i].Set(STRUCTURE);
                 }
@@ -140,6 +140,8 @@ void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
         }
 
     }
+
+
 
     if (mrModelPart.HasSubModelPart("trailing_edge_sub_model_part")){
         mrModelPart.RemoveSubModelPart("trailing_edge_sub_model_part");
@@ -149,6 +151,24 @@ void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
     std::sort(trailing_edge_node_list.begin(),
               trailing_edge_node_list.end());
     mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").AddNodes(trailing_edge_node_list);
+
+    for (int i = 0; i < static_cast<int>(mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").Nodes().size()); i++) {
+        auto it_node = mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").NodesBegin() + i;
+
+        // const GlobalPointersVector<Element>& r_node_elem_candidates = it_node -> GetValue(NEIGHBOUR_ELEMENTS);
+        // std::size_t counter = 0;
+        // for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
+        //     if (r_node_elem_candidates(j)->Is(STRUCTURE)){
+        //         counter++;
+        //     }
+        // }
+        if (it_node->GetValue(WAKE_DISTANCE) < 0) {
+            it_node->SetValue(TRAILING_EDGE, true);
+        }
+
+
+    }
+
 
 }
 }// Namespace Kratos
