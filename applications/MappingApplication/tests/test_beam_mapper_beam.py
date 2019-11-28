@@ -172,24 +172,28 @@ class TestBeamMapper(KratosUnittest.TestCase):
         # list of variables involved in the Mapper-Tests
         self.model_part_beam.AddNodalSolutionStepVariable(KM.DISPLACEMENT)
         self.model_part_beam.AddNodalSolutionStepVariable(KM.ROTATION)
+        self.model_part_beam.AddNodalSolutionStepVariable(KM.REACTION)
+        self.model_part_beam.AddNodalSolutionStepVariable(KM.REACTION_MOMENT)
 
         self.model_part_surface.AddNodalSolutionStepVariable(KM.DISPLACEMENT)
+        self.model_part_surface.AddNodalSolutionStepVariable(KM.REACTION)
 
         KM.ModelPartIO(mdpa_file_name_beam).ReadModelPart(self.model_part_beam)
         KM.ModelPartIO(mdpa_file_name_surface).ReadModelPart(self.model_part_surface)
     
     def addDofs(self):
         for node in self.model_part_beam.Nodes:
-            node.AddDof(KM.DISPLACEMENT_X)
-            node.AddDof(KM.DISPLACEMENT_Y)
-            node.AddDof(KM.DISPLACEMENT_Z)
-            node.AddDof(KM.ROTATION_X)
-            node.AddDof(KM.ROTATION_Y)
-            node.AddDof(KM.ROTATION_Z)
+            node.AddDof(KM.DISPLACEMENT_X, KM.REACTION_X)
+            node.AddDof(KM.DISPLACEMENT_Y, KM.REACTION_Y)
+            node.AddDof(KM.DISPLACEMENT_Z, KM.REACTION_Z)
+            node.AddDof(KM.ROTATION_X, KM.REACTION_MOMENT_X)
+            node.AddDof(KM.ROTATION_Y, KM.REACTION_MOMENT_Y)
+            node.AddDof(KM.ROTATION_Z, KM.REACTION_MOMENT_Z)
+
         for node in self.model_part_surface.Nodes:
-            node.AddDof(KM.DISPLACEMENT_X)
-            node.AddDof(KM.DISPLACEMENT_Y)
-            node.AddDof(KM.DISPLACEMENT_Z)
+            node.AddDof(KM.DISPLACEMENT_X, KM.REACTION_X)
+            node.AddDof(KM.DISPLACEMENT_Y, KM.REACTION_Y)
+            node.AddDof(KM.DISPLACEMENT_Z, KM.REACTION_Z)
 
     def test_beam_mapper(self):
         mapper_settings = KM.Parameters("""{
@@ -221,16 +225,22 @@ class TestBeamMapper(KratosUnittest.TestCase):
             R_temp = np.dot(Rx, Ry)
             R = np.dot(Rz, R_temp)
 
-            _ROTATION = getRotationVector(R)
+            _rotation = getRotationVector(R)
             
             node.SetSolutionStepValue(KM.DISPLACEMENT_X, r * math.sin(-theta_Z) - node.X)
             node.SetSolutionStepValue(KM.DISPLACEMENT_Y, -r + r*math.cos(-theta_Z))
             node.SetSolutionStepValue(KM.DISPLACEMENT_Z, 0 )
-            node.SetSolutionStepValue(KM.ROTATION_X, _ROTATION[0] )
-            node.SetSolutionStepValue(KM.ROTATION_Y, _ROTATION[1] )
-            node.SetSolutionStepValue(KM.ROTATION_Z, _ROTATION[2] )
+            node.SetSolutionStepValue(KM.ROTATION_X, _rotation[0] )
+            node.SetSolutionStepValue(KM.ROTATION_Y, _rotation[1] )
+            node.SetSolutionStepValue(KM.ROTATION_Z, _rotation[2] )
+
+        for node in self.model_part_surface.Nodes:
+            node.SetSolutionStepValue(KM.REACTION_X, 1.0)
+            node.SetSolutionStepValue(KM.REACTION_Y, 0.0)
+            node.SetSolutionStepValue(KM.REACTION_Z, 0.0)
             
         self.mapper.Map(KM.DISPLACEMENT, KM.ROTATION, KM.DISPLACEMENT)
+        self.mapper.InverseMap(KM.REACTION, KM.REACTION_MOMENT, KM.REACTION) # just to test
 
         #WriteGiDOutput(self.model_part_beam)
         #WriteGiDOutput(self.model_part_surface)

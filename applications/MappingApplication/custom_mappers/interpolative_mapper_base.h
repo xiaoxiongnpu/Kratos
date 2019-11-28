@@ -112,19 +112,16 @@ public:
         const Variable<double>& rOriginVariable,
         const Variable<double>& rDestinationVariable,
         Kratos::Flags MappingOptions) override
-    {   std::cout << "Using 1st constructor" << std::endl;
+    {   
         if (MappingOptions.Is(MapperFlags::USE_TRANSPOSE)) {
-            std::cout << "Map 1" << std::endl;
             MappingOptions.Reset(MapperFlags::USE_TRANSPOSE);
             MappingOptions.Set(MapperFlags::INTERNAL_USE_TRANSPOSE, true);
             GetInverseMapper()->Map(rDestinationVariable, rOriginVariable, MappingOptions);
         }
         else if (MappingOptions.Is(MapperFlags::INTERNAL_USE_TRANSPOSE)) {
-            std::cout << "Map 2" << std::endl;
             MapInternalTranspose(rOriginVariable, rDestinationVariable, MappingOptions);
         }
         else {
-            std::cout << "Map 3" << std::endl;
             MapInternal(rOriginVariable, rDestinationVariable, MappingOptions);
         }
     }
@@ -133,7 +130,7 @@ public:
         const Variable< array_1d<double, 3> >& rOriginVariable,
         const Variable< array_1d<double, 3> >& rDestinationVariable,
         Kratos::Flags MappingOptions) override
-    {   std::cout << "Using 2nd constructor" << std::endl;
+    {   
         if (MappingOptions.Is(MapperFlags::USE_TRANSPOSE)) {
             MappingOptions.Reset(MapperFlags::USE_TRANSPOSE);
             MappingOptions.Set(MapperFlags::INTERNAL_USE_TRANSPOSE, true);
@@ -143,7 +140,6 @@ public:
             MapInternalTranspose(rOriginVariable, rDestinationVariable, MappingOptions);
         }
         else {
-            std::cout << "Map 3" << std::endl;
             MapInternal(rOriginVariable, rDestinationVariable, MappingOptions);
         }
     }
@@ -218,12 +214,9 @@ protected:
     * pure virtual functions
     */
     void Initialize()
-    {   std::cout << "begining of Initialize" << std::endl;
-        std::cout << "InitializeInterfaceCommunicator : " << std::endl;
+    {   
         InitializeInterfaceCommunicator();
-        std::cout << "InitializeInterface : " << std::endl;
         InitializeInterface();
-        std::cout << "end of Initialize" << std::endl;
     }
 
     void ValidateInput();

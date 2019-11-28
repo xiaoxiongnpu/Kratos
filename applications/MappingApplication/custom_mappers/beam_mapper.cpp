@@ -745,6 +745,78 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
 }
 
 template<class TSparseSpace, class TDenseSpace>
+void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
+                                                                              const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
+                                                                              const Variable< array_1d<double, 3> >& rDestinationVariableForces)
+{   size_t i = 0;
+    for( auto& r_local_sys : mMapperLocalSystems )
+    {   std::cout << " ---------------------------------- "<< std::endl;
+        std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
+        std::cout << " ---------------------------------- "<< std::endl;
+        i++;
+
+        if( r_local_sys->HasInterfaceInfo())
+        {
+            MatrixType _rotationMatrix_G_B(3, 3);
+            VectorType _translationVector_B_P(3);
+            VectorType _linearShapeValues(2);
+            VectorType _hermitianShapeValues(4);
+            VectorType _hermitanDerShapeValues(4);
+            GeometryType _r_geom; // beam line
+            NodePointerType _pNode; // surface node
+
+            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
+                                                               _translationVector_B_P,
+                                                               _linearShapeValues,
+                                                               _hermitianShapeValues,
+                                                               _hermitanDerShapeValues,
+                                                               _r_geom,
+                                                               _pNode);
+
+            KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
+
+            const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+            VectorType surfaceNodalForce(3), surfaceMoment(3); //Expressed in global coordinates
+            VectorType pointP(3), pointQ(3), distancePQ(3);
+
+            size_t k = 0;
+
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_destination_force = KratosComponents<ComponentVariableType>::Get(rDestinationVariableForces.Name() + var_ext);
+                surfaceNodalForce(k) = _pNode->FastGetSolutionStepValue(var_destination_force);
+                k++;
+            }
+
+            std::cout << "Translation vector (projection) : " << _translationVector_B_P << std::endl;
+            std::cout << "_pNode coordinates : " << _pNode->Coordinates() << std::endl;
+
+            pointP = _translationVector_B_P;
+            pointQ = _pNode->Coordinates();
+            distancePQ = pointQ - pointP;
+
+            surfaceMoment(0) = distancePQ(1) * surfaceNodalForce(2) - distancePQ(2) * surfaceNodalForce(1);
+            surfaceMoment(1) = distancePQ(2) * surfaceNodalForce(0) - distancePQ(0) * surfaceNodalForce(2);
+            surfaceMoment(2) = distancePQ(0) * surfaceNodalForce(1) - distancePQ(1) * surfaceNodalForce(0);
+
+            size_t c = 0;
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
+                const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
+
+                _r_geom[0].FastGetSolutionStepValue(var_origin_force) =  _linearShapeValues(0) * surfaceNodalForce(c);
+                _r_geom[0].FastGetSolutionStepValue(var_origin_moment) =  _linearShapeValues(0) * surfaceMoment(c);
+                _r_geom[1].FastGetSolutionStepValue(var_origin_force) =  _linearShapeValues(1) * surfaceNodalForce(c);
+                _r_geom[1].FastGetSolutionStepValue(var_origin_moment) =  _linearShapeValues(1) * surfaceMoment(c); 
+                c++;
+            }
+        }
+    }
+
+}
+
+template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::CalculateRotationMatrixWithAngle( VectorType& rAxis, double& rAngle , MatrixType& rRotationMatrix)
 {
     rRotationMatrix(0, 0) = cos( rAngle ) + pow(rAxis(0), 2) * (1 - cos( rAngle ));

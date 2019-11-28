@@ -225,7 +225,6 @@ public:
             r_interface_info->GetValue(_rotationMatrix_G_B, _translationVector_B_P, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(r_geom);
             
-            //rNode = (*mpNode);
             pNode = mpNode;
         }
     }
@@ -382,12 +381,12 @@ public:
         KRATOS_ERROR << "This function is not supported for the Beam-Mapper!" << std::endl;
     }
 
-    void InverseMap( const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements, 
-                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
-                     const Variable< array_1d<double, 3> >& rDestinationVariable,
+    void InverseMap( const Variable< array_1d<double, 3> >& rOriginVariablesForces, 
+                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
+                     const Variable< array_1d<double, 3> >& rDestinationVaribleForces,
                      Kratos::Flags MappingOptions)
     {
-        KRATOS_ERROR << "Implement Me! (InverseMap)" << std::endl;
+        InitializeInformationBeamsInverse(rOriginVariablesForces, rOriginVariablesMoments, rDestinationVaribleForces);
     }
 
     MapperUniquePointerType Clone(ModelPart& rModelPartOrigin,
@@ -476,6 +475,10 @@ private:
     void InitializeInformationBeamsCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                     const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement);
+
+    void InitializeInformationBeamsInverse(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
+                                    const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
+                                    const Variable< array_1d<double, 3> >& rDestinationVariableForces);
 
     void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 

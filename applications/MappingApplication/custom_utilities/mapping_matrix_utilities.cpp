@@ -207,6 +207,8 @@ void BuildMappingMatrix<SparseSpaceType, DenseSpaceType>(
 
     InitializeSystemVector(rpInterfaceVectorOrigin, num_nodes_origin);
     InitializeSystemVector(rpInterfaceVectorDestination, num_nodes_destination);
+
+    KRATOS_CATCH("")
 }
 }  // namespace MappinMatrixUtilities.
 
