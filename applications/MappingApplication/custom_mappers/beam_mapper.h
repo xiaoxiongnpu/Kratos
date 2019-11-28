@@ -337,7 +337,13 @@ public:
 
     void UpdateInterface(Kratos::Flags MappingOptions, double SearchRadius) override
     {
-        KRATOS_ERROR << "Implement me UpdateInterface" << std::endl;
+        // Set the Flags according to the type of remeshing
+        if (MappingOptions.Is(MapperFlags::REMESHED)) {
+            InitializeInterface(MappingOptions);
+        }
+        else {
+            BuildProblem(MappingOptions); // in interpolative_mapper_base this is BuildMappingMatrix
+        }
     }
 
     void Map( const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements, 
@@ -345,19 +351,18 @@ public:
               const Variable< array_1d<double, 3> >& rDestinationVariable, 
               Kratos::Flags MappingOptions)
     {
-        //if (MappingOptions.Is(MapperFlags::LINEAR_ALGORITHM))
-        //{
-        //    MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
-        //}
-        //else if (MappingOptions.Is(MapperFlags::CORROTATIONAL_ALGORITHM))
-        //{
-        //    MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
-        //}
-        //else
-        //{
-        //    MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
-        //}
-        MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        if (MappingOptions.Is(MapperFlags::LINEAR_ALGORITHM))
+        {
+            MapInternal( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        }
+        else if (MappingOptions.Is(MapperFlags::CORROTATIONAL_ALGORITHM))
+        {
+            MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        }
+        else
+        {
+            MapInternalCorotation ( rOriginVariablesDisplacements, rOriginVariablesRotations, rDestinationVariable, MappingOptions );
+        }
              
     }
 
@@ -488,7 +493,7 @@ private:
     void InitializeOriginForcesAndMoments(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments);
 
-    void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
+    void BuildProblem(Kratos::Flags MappingOptions = Kratos::Flags()); // in interpolative_mapper_base this is BuildMappingMatrix
 
     void CreateMapperLocalSystems(
         const Communicator& rModelPartCommunicator,

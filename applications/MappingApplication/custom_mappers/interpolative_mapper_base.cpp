@@ -37,10 +37,9 @@ typedef std::size_t SizeType;
 
 template<class TSparseSpace, class TDenseSpace>
 void InterpolativeMapperBase<TSparseSpace, TDenseSpace>::InitializeInterface(Kratos::Flags MappingOptions)
-{   std::cout << "CreateMapperLocalSystems : " << std::endl;
+{   
     CreateMapperLocalSystems(mrModelPartDestination.GetCommunicator(),
                              mMapperLocalSystems);
-    std::cout << "BuildMappingMatrix : " << std::endl;
     BuildMappingMatrix(MappingOptions);
 }
 

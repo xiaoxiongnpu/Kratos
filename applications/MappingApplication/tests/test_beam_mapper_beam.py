@@ -7,9 +7,11 @@ import KratosMultiphysics.KratosUnittest as KratosUnittest
 import numpy as np
 import math
 
-mdpa_file_name_beam    = "mdpa_files/beam_mesh_1"
-mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
+#mdpa_file_name_beam    = "mdpa_files/beam_mesh_1"
+#mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
 
+mdpa_file_name_beam    = "mdpa_files/beam_new"
+mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -240,7 +242,7 @@ class TestBeamMapper(KratosUnittest.TestCase):
             node.SetSolutionStepValue(KM.REACTION_Z, 0.0)
             
         self.mapper.Map(KM.DISPLACEMENT, KM.ROTATION, KM.DISPLACEMENT)
-        self.mapper.InverseMap(KM.REACTION, KM.REACTION_MOMENT, KM.REACTION) # just to test
+        self.mapper.InverseMap(KM.REACTION, KM.REACTION_MOMENT, KM.REACTION) 
 
         #WriteGiDOutput(self.model_part_beam)
         #WriteGiDOutput(self.model_part_surface)
