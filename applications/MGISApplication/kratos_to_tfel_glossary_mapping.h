@@ -18,53 +18,87 @@
 
 // System includes
 #include <string>
-#include <iostream>
 
 // Project includes
 #include "includes/define.h"
-
-// Application includes
-#include "mgis_application_variables.h"
+#include "includes/variables.h"
 
 namespace Kratos {
 
-  ///@name Kratos Globals
-  ///@{
+  namespace MGIS {
 
-  ///@}
-  ///@name Type Definitions
-  ///@{
+    ///@name Kratos Globals
+    ///@{
 
-  ///@}
-  ///@name  Enum's
-  ///@{
+    ///@}
+    ///@name Type Definitions
+    ///@{
 
-  ///@}
-  ///@name  Functions
-  ///@{
+    ///@}
+    ///@name  Enum's
+    ///@{
+    enum struct StensorStorageConvention { STRAIN, STRESS };
+    ///@}
+    ///@name  Functions
+    ///@{
 
-  /**
-   * @brief this function maps TFEL glossary names to Kratos' variables names
-   * @param[in] g: glossary name
-   * @return Kratos' variable name if found, an empty string otherwise.
-   */
-  KRATOS_API(MGIS_APPLICATION)
-  std::string getKratosVariableNameFromTFELGlossaryName(const std::string&);
+    /**
+     * @brief this function maps TFEL glossary names to Kratos' variables names
+     * @param[in] g: glossary name
+     * @return Kratos' variable name if found, an empty string otherwise.
+     */
+    KRATOS_API(MGIS_APPLICATION)
+    std::string GetKratosVariableName(const std::string&);
 
-  ///@}
-  ///@name Kratos Classes
-  ///@{
+    /**
+     * @brief This function maps TFEL glossary names to Kratos' variables
+     * @param[in] g: glossary name
+     * @return Kratos' variable
+     */
+    template <typename Type>
+    const Kratos::Variable<Type>& GetKratosVariable(const std::string&);
 
-  ///@}
+    /**
+     * @brief Specialisation of the `getKratosVariable` for `double`
+     * @param[in] g: glossary name
+     * @return Kratos' variable
+     */
+    template<>
+    KRATOS_API(MGIS_APPLICATION)
+    const Kratos::Variable<double>& GetKratosVariable<double>(const std::string&);
 
-  ///@name Type Definitions
-  ///@{
+    /**
+     * @brief Specialisation of the `getKratosVariable` for `Vector`
+     * @param[in] g: glossary name
+     * @return Kratos' variable
+     */
+    template <>
+    KRATOS_API(MGIS_APPLICATION)
+    const Kratos::Variable<Kratos::Vector>& GetKratosVariable<Kratos::Vector>(const std::string&);
 
-  ///@}
-  ///@name Input and output
-  ///@{
+    /**
+     * @brief Get the storage convention associated with a `Kratos`' variable
+     * @param[in] Kratos' variable
+     */
+    KRATOS_API(MGIS_APPLICATION)
+    StensorStorageConvention GetStensorStorageConvention(const Kratos::Variable<Kratos::Vector>&);
 
-  ///@}
+    ///@}
+    ///@name Kratos Classes
+    ///@{
+
+    ///@}
+
+    ///@name Type Definitions
+    ///@{
+
+    ///@}
+    ///@name Input and output
+    ///@{
+
+    ///@}
+
+  }  // end of namespace MGIS
 
 }  // namespace Kratos.
 

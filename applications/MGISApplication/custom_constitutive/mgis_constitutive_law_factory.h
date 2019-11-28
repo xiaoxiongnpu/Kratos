@@ -46,7 +46,7 @@ namespace Kratos
  * @brief Dummy class to register, only implements the `create` method
  * @author Thomas Helfer
  */
-class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) MGISConstitutiveLawFactory
+class KRATOS_API(MGIS_APPLICATION) MGISConstitutiveLawFactory
     : public ConstitutiveLaw
 {
   public:
@@ -63,16 +63,12 @@ class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) MGISConstitutiveLawFactory
     /**
     * Default constructor.
     */
-    MGISConstitutiveLawFactory()
-    {
-    }
+    MGISConstitutiveLawFactory() {}
 
     /**
     * Destructor.
     */
-    ~MGISConstitutiveLawFactory() override
-    {
-    }
+    ~MGISConstitutiveLawFactory() override {}
 
     /**
      * @brief Creates a new constitutive law pointer

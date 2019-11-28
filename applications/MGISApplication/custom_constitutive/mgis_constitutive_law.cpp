@@ -20,6 +20,7 @@
 #include "includes/checks.h"
 #include "includes/mat_variables.h"
 #include "utilities/kratos_log.h"
+#include "kratos_to_tfel_glossary_mapping.h"
 #include "custom_constitutive/mgis_constitutive_law.h"
 
 namespace Kratos {
@@ -85,6 +86,34 @@ namespace Kratos {
         KRATOS_ERROR << "unsupported tensor size\n";
       }
     }  // end of ConvertStrainToMGIS
+
+    template <class TVector>
+    static void ConvertStrainToKratos(TVector& sk, const double* const s) {
+      // \note strain ordering conventions used by Kratos:
+      // \f$ [ e11, e22, e33, 2*e12, 2*e23, 2*e13 ] \f$ for 3D case and
+      // \f$ [ e11, e22, e33, 2*e12 ] \f$ for 2D case.
+      // \f$ [ e11, e22, 2*e12 ] \f$ for 2D case.
+      constexpr const double sqrt2 = 1.41421356237309504880;
+      if (sk.size() == 6) {
+        sk[0] = s[0];
+        sk[1] = s[1];
+        sk[2] = s[2];
+        sk[3] = s[3] * sqrt2;
+        sk[4] = s[5] * sqrt2;
+        sk[5] = s[4] * sqrt2;
+      } else if (sk.size() == 4) {
+        sk[0] = s[0];
+        sk[1] = s[1];
+        sk[2] = s[2];
+        sk[3] = s[3] * sqrt2;
+      } else if (sk.size() == 3) {
+        sk[0] = s[0];
+        sk[1] = s[1];
+        sk[2] = s[3] * sqrt2;
+      } else {
+        KRATOS_ERROR << "unsupported tensor size\n";
+      }
+    }  // end of ConvertStrainToKratos
 
     template <class TVector>
     static void ConvertStressToKratos(TVector& sk, const double* const s) {
@@ -191,7 +220,8 @@ namespace Kratos {
   /******************************CONSTRUCTOR******************************************/
   /***********************************************************************************/
 
-  MGISConstitutiveLaw::MGISConstitutiveLaw(const Kratos::shared_ptr<Behaviour>& b)
+  MGISConstitutiveLaw::MGISConstitutiveLaw(
+      const Kratos::shared_ptr<Kratos::MGIS::MGISConstitutiveLawDescription>& b)
       : ConstitutiveLaw(), behaviour(b), data(*(this->behaviour)) {
     if ((this->behaviour->btype == Behaviour::STANDARDSTRAINBASEDBEHAVIOUR) &&
         (this->behaviour->kinematic == Behaviour::SMALLSTRAINKINEMATIC)) {
@@ -245,6 +275,14 @@ namespace Kratos {
   void MGISConstitutiveLaw::Integrate(ConstitutiveLaw::Parameters& rValues) {
     const auto& opts = rValues.GetOptions();
     const auto& pi = rValues.GetProcessInfo();
+    // material properties
+    // const auto& mps = rValues.GetMaterialProperties();
+    // if (mps.Has(Variable<double>("NortonCoefficient"))) {
+    //   std::cout << "mp 'NortonCoefficient' found\n";
+    // } else {
+    //   std::cout << "mp 'NortonCoefficient' not found\n";
+    // }
+    // std::exit(-1);
     // getting the gradients
     if (this->strain_measure == StrainMeasure_Infinitesimal) {
       if (!opts.Is(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN)) {
@@ -386,9 +424,11 @@ namespace Kratos {
   double& MGISConstitutiveLaw::CalculateValue(ConstitutiveLaw::Parameters& rParameterValues,
                                               const Variable<double>& rThisVariable,
                                               double& rValue) {
-    KRATOS_WARNING("MGIS") << "unimplemented feature, can't compute '" << rThisVariable.Name()
-                           << "'\n";
-    return (rValue);
+    const auto d = this->behaviour->GetInternalStateVariablePosition(rThisVariable);
+    if (d.first) {
+      rValue = this->data.s1.internal_state_variables[d.second];
+    }
+    return rValue;
   }
 
   /***********************************************************************************/
@@ -397,9 +437,17 @@ namespace Kratos {
   Vector& MGISConstitutiveLaw::CalculateValue(ConstitutiveLaw::Parameters& rParameterValues,
                                               const Variable<Vector>& rThisVariable,
                                               Vector& rValue) {
-    KRATOS_WARNING("MGIS") << "unimplemented feature, can't compute '" << rThisVariable.Name()
-                           << "'\n";
-    return (rValue);
+    const auto d = this->behaviour->GetInternalStateVariablePosition(rThisVariable);
+    if (d.first) {
+      const auto* const p = this->data.s1.internal_state_variables.data() + d.second;
+      const auto c = Kratos::MGIS::GetStensorStorageConvention(rThisVariable);
+      if (c == Kratos::MGIS::StensorStorageConvention::STRAIN) {
+        Kratos::MGIS::ConvertStrainToKratos(rValue, p);
+      } else {
+        Kratos::MGIS::ConvertStressToKratos(rValue, p);
+      }
+    }
+    return rValue;
   }
 
   /***********************************************************************************/

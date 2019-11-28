@@ -18,7 +18,9 @@
 #include "MGIS/Behaviour/Behaviour.hxx"
 
 // Project includes
+#include "kratos_to_tfel_glossary_mapping.h"
 #include "custom_constitutive/mgis_constitutive_law.h"
+#include "custom_constitutive/mgis_constitutive_law_description.h"
 #include "custom_constitutive/mgis_constitutive_law_factory.h"
 
 namespace Kratos {
@@ -53,15 +55,18 @@ namespace Kratos {
       }
       KRATOS_ERROR << "unsupported behaviour type\n";
     }();
+    auto bd = Kratos::shared_ptr<Kratos::MGIS::MGISConstitutiveLawDescription>{};
     if (btype == Behaviour::STANDARDFINITESTRAINBEHAVIOUR) {
       auto opts = FiniteStrainBehaviourOptions{};
       opts.stress_measure = FiniteStrainBehaviourOptions::StressMeasure::PK2;
       opts.tangent_operator = FiniteStrainBehaviourOptions::TangentOperator::DS_DEGL;
-      b = Kratos::make_shared<Behaviour>(mgis::behaviour::load(opts, library, name, hypothesis));
+      bd = Kratos::make_shared<Kratos::MGIS::MGISConstitutiveLawDescription>(opts, library, name,
+                                                                            hypothesis);
     } else {
-      b = Kratos::make_shared<Behaviour>(mgis::behaviour::load(library, name, hypothesis));
+      bd = Kratos::make_shared<Kratos::MGIS::MGISConstitutiveLawDescription>(library, name,
+                                                                             hypothesis);
     }
-    return Kratos::make_shared<MGISConstitutiveLaw>(b);
+    return Kratos::make_shared<MGISConstitutiveLaw>(bd);
   }  // end of MGISConstitutiveLawFactory::Create
 
 }  // end of  namespace Kratos

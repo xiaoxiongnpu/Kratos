@@ -11,8 +11,8 @@
 //                   Vicente Mataix Ferrandiz
 //
 
-#if !defined(KRATOS_MFRONT_BEHAVIOUR_H_INCLUDED)
-#define KRATOS_MFRONT_BEHAVIOUR_H_INCLUDED
+#if !defined(KRATOS_MGIS_CONSTITUTIVE_LAW_H_INCLUDED)
+#define KRATOS_MGIS_CONSTITUTIVE_LAW_H_INCLUDED
 
 // System includes
 
@@ -22,6 +22,9 @@
 
 // Project includes
 #include "includes/constitutive_law.h"
+
+// Application includes
+#include "mgis_constitutive_law_description.h"
 
 namespace Kratos {
   ///@name Kratos Globals
@@ -53,7 +56,7 @@ namespace Kratos {
    * @author Riccardo Rossi
    * @author Vicente Mataix Ferrandiz
    */
-  class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) MGISConstitutiveLaw : public ConstitutiveLaw {
+  class KRATOS_API(MGIS_APPLICATION) MGISConstitutiveLaw : public ConstitutiveLaw {
    public:
     ///@name Type Definitions
     ///@{
@@ -67,8 +70,11 @@ namespace Kratos {
     /// The size type definition
     typedef std::size_t SizeType;
 
+    /// A simple alias
     using Hypothesis = mgis::behaviour::Hypothesis;
+    /// A simple alias
     using Behaviour = mgis::behaviour::Behaviour;
+    /// A simple alias
     using BehaviourData = mgis::behaviour::BehaviourData;
 
     /// Counted pointer of MGISConstitutiveLaw
@@ -82,7 +88,7 @@ namespace Kratos {
      * @brief constructor.
      * @param[in] b: MGIS behaviour description
      */
-    MGISConstitutiveLaw(const Kratos::shared_ptr<Behaviour>&);
+    MGISConstitutiveLaw(const Kratos::shared_ptr<Kratos::MGIS::MGISConstitutiveLawDescription>&);
 
     /**
      * @brief Clone method
@@ -275,6 +281,7 @@ namespace Kratos {
     int Check(const Properties& rMaterialProperties,
               const GeometryType& rElementGeometry,
               const ProcessInfo& rCurrentProcessInfo) override;
+    ///@}
 
    protected:
     ///@name Protected static Member Variables
@@ -284,7 +291,7 @@ namespace Kratos {
     ///@name Protected member Variables
     ///@{
 
-    Kratos::shared_ptr<Behaviour> behaviour;
+    Kratos::shared_ptr<Kratos::MGIS::MGISConstitutiveLawDescription> behaviour;
     BehaviourData data;
     StrainMeasure strain_measure;
     StressMeasure stress_measure;
@@ -355,8 +362,9 @@ namespace Kratos {
     void load(Serializer& rSerializer) override {
       KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, ConstitutiveLaw)
     }
+    ///@}
 
   };  // Class MGISConstitutiveLaw
 }  // namespace Kratos.
 
-#endif  // KRATOS_MFRONT_BEHAVIOUR_H_INCLUDED  defined
+#endif  // KRATOS_MGIS_CONSTITUTIVE_LAW_H_INCLUDED  defined
