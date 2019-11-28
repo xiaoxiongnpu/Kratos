@@ -221,11 +221,15 @@ public:
                                                NodePointerType& pNode) override
     {
         for( auto& r_interface_info : mInterfaceInfos ){ // I think this mInterfaceInfos is size 1
+            pNode = mpNode;
             r_interface_info->ComputeRotationMatrixInterfaceObject();
             r_interface_info->GetValue(_rotationMatrix_G_B, _translationVector_B_P, _linearShapeValues, _hermitianShapeValues, _hermitanDerShapeValues);
             r_interface_info->GetValue(r_geom);
             
-            pNode = mpNode;
+            const Point point_to_proj(mpNode->Coordinates());
+            Point projection_point;
+            GeometricalProjectionUtilities::FastProjectOnLine(r_geom, point_to_proj, projection_point);
+            _translationVector_B_P = projection_point;
         }
     }
 
@@ -386,6 +390,7 @@ public:
                      const Variable< array_1d<double, 3> >& rDestinationVaribleForces,
                      Kratos::Flags MappingOptions)
     {
+        InitializeOriginForcesAndMoments(rOriginVariablesForces, rOriginVariablesMoments);
         InitializeInformationBeamsInverse(rOriginVariablesForces, rOriginVariablesMoments, rDestinationVaribleForces);
     }
 
@@ -406,7 +411,7 @@ public:
     TMappingMatrixType* pGetMappingMatrix() override
     {
         KRATOS_ERROR << "This function is not supported by beam-mapper" << std::endl;
-        return mpMappingMatrix.get();
+        //return mpMappingMatrix.get();
     }
 
 
@@ -456,7 +461,7 @@ private:
 
     double mLocalCoordTol;
 
-    TMappingMatrixUniquePointerType mpMappingMatrix;
+    //TMappingMatrixUniquePointerType mpMappingMatrix;
 
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerOrigin;
     InterfaceVectorContainerPointerType mpInterfaceVectorContainerDestination;
@@ -479,6 +484,9 @@ private:
     void InitializeInformationBeamsInverse(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
                                     const Variable< array_1d<double, 3> >& rDestinationVariableForces);
+
+    void InitializeOriginForcesAndMoments(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
+                                    const Variable< array_1d<double, 3> >& rOriginVariablesMoments);
 
     void BuildMappingMatrix(Kratos::Flags MappingOptions = Kratos::Flags());
 

@@ -7,8 +7,8 @@ import KratosMultiphysics.KratosUnittest as KratosUnittest
 import numpy as np
 import math
 
-mdpa_file_name_beam    = "mdpa_files/beam_new"
-mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
+mdpa_file_name_beam    = "mdpa_files/beam_mesh_1"
+mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
 
 
 def WriteGiDOutput(model_part):
