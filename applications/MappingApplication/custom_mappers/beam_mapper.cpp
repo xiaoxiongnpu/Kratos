@@ -114,8 +114,6 @@ void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterface
         mProjectionOfPoint = projection_point;
         
         mpInterfaceObject = make_shared<InterfaceGeometryObject>(rInterfaceObject.pGetBaseGeometry());
-
-        std::cout << "\n------------- END OF SEARCH -----------------" << std::endl;
     }
     
 }
@@ -351,12 +349,12 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                                                        const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                                                        const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
-{   size_t i = 0;
+{   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
-        std::cout << " ------------------------------- "<< std::endl;
-        std::cout << "----------- LOCAL SYSTEM " << i  << "------------"<< std::endl;
-        i++;
+        //std::cout << " ------------------------------- "<< std::endl;
+        //std::cout << "----------- LOCAL SYSTEM " << i  << "------------"<< std::endl;
+        //i++;
 
         if( r_local_sys->HasInterfaceInfo())
         {
@@ -514,12 +512,12 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                                                                  const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                                                                  const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
-{   size_t i = 0;
+{   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   std::cout << " ---------------------------------- "<< std::endl;
-        std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
-        std::cout << " ---------------------------------- "<< std::endl;
-        i++;
+    {   //std::cout << " ---------------------------------- "<< std::endl;
+        //std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
+        //std::cout << " ---------------------------------- "<< std::endl;
+        //i++;
 
         if( r_local_sys->HasInterfaceInfo())
         {
