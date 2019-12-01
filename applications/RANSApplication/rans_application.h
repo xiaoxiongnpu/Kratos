@@ -29,7 +29,7 @@
 // Condition includes
 #include "custom_conditions/evm_k_epsilon/rans_evm_k_epsilon_epsilon_wall.h"
 #include "custom_conditions/evm_k_epsilon/rans_evm_k_epsilon_vms_monolithic_wall.h"
-
+#include "custom_conditions/evm_k_omega/rans_evm_k_omega_omega_wall.h"
 // Omega elements
 #include "custom_elements/evm_k_omega/rans_evm_omega_element.h"
 #include "custom_elements/evm_k_omega/rans_evm_k_omega_k_element.h"
@@ -201,6 +201,8 @@ private:
     const RansEvmOmegaElement<3, 4> mRansEvmOmega3D;
 	const RansEvmKOmegaKElement<2, 3> mRansEvmKOmegaK2D;
 	const RansEvmKOmegaKElement<3, 4> mRansEvmKOmegaK3D;
+    const RansEvmKOmegaOmegaWall<2> mRansEvmKOmegaOmegaWall2D2N;
+    const RansEvmKOmegaOmegaWall<3> mRansEvmKOmegaOmegaWall3D3N;
 
     ///@}
     ///@name Private Operators

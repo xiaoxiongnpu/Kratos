@@ -95,27 +95,49 @@ double CalculateSourceTerm(const BoundedMatrix<double, TDim, TDim>& rVelocityGra
 
     BoundedMatrix<double, TDim, TDim> reynolds_stress_tensor;
 
-	noalias(reynolds_stress_tensor) =		
-		// turbulent_kinematic_viscosity *
-		// (symmetric_velocity_gradient - (2.0 / 3.0) * velocity_divergence * identity);
+	noalias(reynolds_stress_tensor) =
 		turbulent_kinematic_viscosity *
 		(symmetric_velocity_gradient - (2.0 / 3.0) * velocity_divergence * identity - (2.0 / 3.0) * turbulent_kinetic_energy * identity);
-
 
 	double source = 0.0;
     for (unsigned int i = 0; i < TDim; ++i)
         for (unsigned int j = 0; j < TDim; ++j)
-            {
-				source += reynolds_stress_tensor(i, j) * rVelocityGradient(i, j);
-			}
+            source += reynolds_stress_tensor(i, j) * rVelocityGradient(i, j);
+
     return source;
 } // calculates "P" tensor for the production term - elementwise multiplication
 
-double CalculateTheta(const double turbulent_kinematic_viscosity)
+double CalculateTheta(const double turbulent_kinetic_energy,
+						const double TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
 {
-    return 1.0 / turbulent_kinematic_viscosity;
+    return std::max<double>(
+        0.0, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE / std::max(turbulent_kinetic_energy, 1e-9) );
 }
 
+void CalculateTurbulentValues(double& turbulent_kinetic_energy,
+                              double& turbulent_energy_dissipation_rate,
+                              const double y_plus,
+                              const double kinematic_viscosity,
+                              const double wall_distance,
+                              const double c_mu,
+                              const double von_karman)
+{
+    const double u_tau = y_plus * kinematic_viscosity / wall_distance;
+    turbulent_kinetic_energy = std::pow(u_tau, 2) / std::sqrt(c_mu);
+    turbulent_energy_dissipation_rate = std::pow(u_tau, 3) / (von_karman * wall_distance);
+}
+
+void CalculateTurbulentValues(double& turbulent_kinetic_energy,
+                              double& turbulent_energy_dissipation_rate,
+                              const double velocity_mag,
+                              const double turbulence_intensity,
+                              const double mixing_length,
+                              const double c_mu)
+{
+    turbulent_kinetic_energy = 1.5 * std::pow(velocity_mag * turbulence_intensity, 2);
+    turbulent_energy_dissipation_rate =
+        c_mu * std::pow(turbulent_kinetic_energy, 1.5) / mixing_length;
+}
 
 template double CalculateSourceTerm<2>(const BoundedMatrix<double, 2, 2>&, const double, const double);
 template double CalculateSourceTerm<3>(const BoundedMatrix<double, 3, 3>&, const double, const double);
@@ -129,7 +151,7 @@ template double CalculateBeta<2>(const BoundedMatrix<double, 2, 2>&,
 	const double,
 	const double,
 	const double);
-} // namespace EvmKOmegaModelUtilities
+} // namespace EvmKepsilonModelUtilities
 
 ///@}
 

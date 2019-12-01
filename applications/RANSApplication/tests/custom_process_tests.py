@@ -476,6 +476,194 @@ class CustomProcessTest(UnitTest.TestCase):
             print(node_value, k, epsilon)
             self.assertAlmostEqual(node_value, c_mu * k * k / epsilon, 9)
 
+#Epsilon inlet test
+    def testEpsilonMixingInletProcess(self):
+        self.__CreateModel()
+        
+        settings = Kratos.Parameters(r'''
+         [
+            {
+                "kratos_module" : "KratosMultiphysics.RANSApplication",
+                "python_module" : "cpp_process_factory",
+                "process_name"  : "EpsilonTurbulentMixingLengthInletProcess",
+                "Parameters" :             
+                {
+                "model_part_name"     : "test",
+                "turbulent_mixing_length" : 0.005,
+                "c_mu"                    : 0.09,
+                "echo_level"              : 0,
+                "is_fixed"                : true
+                }
+            }
+        ]''')
+
+        factory = KratosProcessFactory(self.model)
+        self.process_list = factory.ConstructListOfProcesses(settings)
+        self.__ExecuteProcesses()
+
+        for node in self.model_part.Nodes:
+            k = node.GetSolutionStepValue(KratosRANS.TURBULENT_KINETIC_ENERGY)
+            k=max(k,0.0)
+            epsilon=node.GetSolutionStepValue(KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE)
+            node_value=(0.09**0.75)*(k**1.5)/0.005
+            print(epsilon,node_value )
+            self.assertAlmostEqual(epsilon, node_value , 9)
+
+#k omega auxiliary tests
+    def testNutKOmegaHighReCalculationProcess(self):
+        self.__CreateModel()
+
+        settings = Kratos.Parameters(r'''
+        [
+            {
+                "kratos_module" : "KratosMultiphysics.RANSApplication",
+                "python_module" : "cpp_process_factory",
+                "process_name"  : "NutKOmegaHighReCalculationProcess",
+                "Parameters" :             {
+                    "model_part_name" : "test",
+                    "echo_level"      : 0
+                }
+            }
+        ]''')
+
+        factory = KratosProcessFactory(self.model)
+        self.process_list = factory.ConstructListOfProcesses(settings)
+        self.__ExecuteProcesses()
+
+        for node in self.model_part.Nodes:
+            k = node.GetSolutionStepValue(KratosRANS.TURBULENT_KINETIC_ENERGY)
+            omega = node.GetSolutionStepValue(
+                KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
+            node_value = node.GetSolutionStepValue(Kratos.TURBULENT_VISCOSITY)
+            print(node_value, k, omega)
+            self.assertAlmostEqual(node_value, k / omega, 9)
+
+
+    def testOmegaMixingInletProcess(self):
+        self.__CreateModel()
+        
+        settings = Kratos.Parameters(r'''
+         [
+            {
+                "kratos_module" : "KratosMultiphysics.RANSApplication",
+                "python_module" : "cpp_process_factory",
+                "process_name"  : "OmegaTurbulentMixingLengthInletProcess",
+                "Parameters" :             
+                {
+                "model_part_name"         : "test",
+                "turbulent_mixing_length" : 0.005,
+                "c_mu"                    : 0.09,
+                "echo_level"              : 0,
+                "is_fixed"                : true
+                }
+            }
+        ]''')
+
+        factory = KratosProcessFactory(self.model)
+        self.process_list = factory.ConstructListOfProcesses(settings)
+        self.__ExecuteProcesses()
+
+        for node in self.model_part.Nodes:
+            k = node.GetSolutionStepValue(KratosRANS.TURBULENT_KINETIC_ENERGY)
+            k= max(k,0.0)
+            omega = node.GetSolutionStepValue(KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
+            print(omega, math.sqrt(k)/(0.09**0.75)*0.005)
+            self.assertAlmostEqual(omega,math.sqrt(k)/((0.09**0.75)*0.005) , 9)
+
+
+    def testKMixingInletProcess(self):
+        self.__CreateModel()
+        
+        settings = Kratos.Parameters(r'''
+         [
+            {
+                "kratos_module" : "KratosMultiphysics.RANSApplication",
+                "python_module" : "cpp_process_factory",
+                "process_name"  : "KTurbulentIntensityInletProcess",
+                "Parameters" :             
+                {
+                "model_part_name"     : "test",
+                "turbulent_intensity" : 0.05,
+                "echo_level"          : 0,
+                "is_fixed"            : true,
+                "min_k_value"         : 1e-18
+                }
+            }
+        ]''')
+
+        factory = KratosProcessFactory(self.model)
+        self.process_list = factory.ConstructListOfProcesses(settings)
+        self.__ExecuteProcesses()
+
+        for node in self.model_part.Nodes:
+            k = node.GetSolutionStepValue(KratosRANS.TURBULENT_KINETIC_ENERGY)
+            velocity = node.GetSolutionStepValue(Kratos.VELOCITY)
+            velocity_norm= math.pow(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2], 0.5)
+            node_value=1.5*0.05*0.05*velocity_norm**2
+            print(k,node_value )
+            self.assertAlmostEqual(k, node_value , 9)
+
+
+    def testOmegaYPlusWallFunctionProcess(self):
+        self.__CreateModel()
+
+        settings = Kratos.Parameters(r'''
+        [
+            {
+                "kratos_module" : "KratosMultiphysics.RANSApplication",
+                "python_module" : "cpp_process_factory",
+                "process_name"  : "OmegaYPlusWallFunctionProcess",
+                "Parameters" :             {
+                    "model_part_name" : "test",
+                    "echo_level"      : 0,
+                    "beta_zero"       : 0.072,
+                    "c_mu"            : 0.09,
+                    "von_karman"      : 0.41,
+                    "beta"            : 5.2
+                    }
+                }
+        ]''')
+
+        # for node, distance in zip(self.model_part.Nodes, distance_value):
+        #     node.SetSolutionStepValue(Kratos.DISTANCE, 0, distance)
+
+        factory = KratosProcessFactory(self.model)
+        self.process_list = factory.ConstructListOfProcesses(settings)
+        self.__ExecuteProcesses()
+
+        beta = 5.2
+        von_karman = 0.41
+        denominator_product= 0.09**0.25*von_karman
+        for node in self.model_part.Nodes:
+            y_plus = node.GetSolutionStepValue(KratosRANS.RANS_Y_PLUS)
+            nu = node.GetSolutionStepValue(Kratos.KINEMATIC_VISCOSITY)
+            velocity = node.GetSolutionStepValue(Kratos.VELOCITY)
+            velocity_norm= math.pow(velocity[0] * velocity[0] + velocity[1] * velocity[1] + velocity[2] * velocity[2], 0.5)
+            omega=node.GetSolutionStepValue(KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
+
+
+            
+            if (y_plus < 11.06):
+                print (omega)
+                if (y_plus< 0.000001):
+                    omega="inf"
+                else:
+                    self.assertAlmostEqual(
+                        omega, (6* velocity_norm*velocity_norm)/(0.072* (y_plus**4)*nu), 9)
+                    print("Checked omega for linear region...")
+            else:
+                u_plus=1 / von_karman * (math.log(y_plus)) + beta
+                u_tau_squared= (velocity_norm/u_plus)**2
+                self.assertAlmostEqual(omega,u_tau_squared/(denominator_product*nu*y_plus) , 9)
+                print("Checked omega for logarithmic region...")
+
+
+
+
+
+
+
+
 
 # test model part is as follows
 #       6   5   4
@@ -493,7 +681,8 @@ class CustomProcessTest(UnitTest.TestCase):
                 Kratos.KINEMATIC_VISCOSITY, Kratos.DISTANCE,
                 Kratos.FLAG_VARIABLE, Kratos.TURBULENT_VISCOSITY,
                 KratosRANS.RANS_Y_PLUS, KratosRANS.TURBULENT_KINETIC_ENERGY,
-                KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE
+                KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE,
+                KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE
             ]):
         self.model = Kratos.Model()
         self.model_part = self.model.CreateModelPart("test")
@@ -575,6 +764,12 @@ class CustomProcessTest(UnitTest.TestCase):
                     KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE)):
                 node.SetSolutionStepValue(
                     KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE, 0, scalar)
+
+            scalar = random.random()
+            if (node.SolutionStepsDataHas(
+                    KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)):
+                node.SetSolutionStepValue(
+                    KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE, 0, scalar)
 
             scalar = random.random()
             if (node.SolutionStepsDataHas(Kratos.DISTANCE)):

@@ -49,6 +49,11 @@ def AssembleTestSuites():
     nightSuite.addTest(CustomProcessTest('testWallDistanceCalculationProcess'))
     nightSuite.addTest(CustomProcessTest('testLogarithmicYPlusCalculationProcess'))
     nightSuite.addTest(CustomProcessTest('testNutKEpsilonHighReCalculationProcess'))
+    nightSuite.addTest(CustomProcessTest('testEpsilonMixingInletProcess'))
+    nightSuite.addTest(CustomProcessTest('testNutKOmegaHighReCalculationProcess'))
+    nightSuite.addTest(CustomProcessTest('testOmegaMixingInletProcess'))
+    nightSuite.addTest(CustomProcessTest('testKMixingInletProcess'))
+    nightSuite.addTest(CustomProcessTest('testOmegaYPlusWallFunctionProcess'))
 
     nightSuite.addTest(EvmKEpsilonTest('testBackwardFacingStepKEpsilonTransient'))
     nightSuite.addTest(EvmKEpsilonTest('testChannelFlowKEpsilonSteady'))

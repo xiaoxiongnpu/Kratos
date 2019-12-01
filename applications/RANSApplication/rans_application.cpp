@@ -67,6 +67,7 @@ KratosRANSApplication::KratosRANSApplication()
           0,
           Element::GeometryType::Pointer(
               new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3)))),
+    // k-omega elements
       mRansEvmOmega2D(0,
                       Element::GeometryType::Pointer(new Triangle2D3<Node<3>>(
                           Element::GeometryType::PointsArrayType(3)))),
@@ -78,7 +79,15 @@ KratosRANSApplication::KratosRANSApplication()
                             Element::GeometryType::PointsArrayType(3)))),
       mRansEvmKOmegaK3D(0,
                         Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3>>(
-                            Element::GeometryType::PointsArrayType(4))))
+                            Element::GeometryType::PointsArrayType(4)))),
+      mRansEvmKOmegaOmegaWall2D2N(
+          0,
+          Element::GeometryType::Pointer(
+              new Line2D2<Node<3>>(Element::GeometryType::PointsArrayType(2)))),
+      mRansEvmKOmegaOmegaWall3D3N(
+          0,
+          Element::GeometryType::Pointer(
+              new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3))))                        
 {
 }
 
@@ -113,6 +122,7 @@ void KratosRANSApplication::Register()
     KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_BETA_ZERO)
     KRATOS_REGISTER_VARIABLE(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
 	KRATOS_REGISTER_VARIABLE(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE_2)
+	KRATOS_REGISTER_VARIABLE(TURBULENCE_RANS_Y_PLUS_LIMIT_WALL)
 
     // Register Elements
     KRATOS_REGISTER_ELEMENT("RansEvmKEpsilonLowReK2D3N", mRansEvmKEpsilonLowReK2D);
@@ -138,5 +148,8 @@ void KratosRANSApplication::Register()
     KRATOS_REGISTER_ELEMENT("RansEvmKOmegaOmega3D4N", mRansEvmOmega3D);
 	KRATOS_REGISTER_ELEMENT("RansEvmKOmegaK2D3N", mRansEvmKOmegaK2D);
 	KRATOS_REGISTER_ELEMENT("RansEvmKOmegaK3D4N", mRansEvmKOmegaK3D);
+    // k-omega conditions
+    KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWall2D2N", mRansEvmKOmegaOmegaWall2D2N);
+    KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWall3D3N", mRansEvmKOmegaOmegaWall3D3N);
 }
 } // namespace Kratos.

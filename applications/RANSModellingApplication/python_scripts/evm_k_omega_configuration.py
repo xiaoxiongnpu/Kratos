@@ -1,8 +1,8 @@
 from __future__ import print_function, absolute_import, division
 
 import KratosMultiphysics as Kratos
-import KratosMultiphysics.RANSApplication as KratosRANS
-from KratosMultiphysics.RANSApplication.turbulence_eddy_viscosity_model_configuration import TurbulenceEddyViscosityModelConfiguration
+import KratosMultiphysics.RANSModellingApplication as KratosRANS
+from KratosMultiphysics.RANSModellingApplication.turbulence_eddy_viscosity_model_configuration import TurbulenceEddyViscosityModelConfiguration
 
 from KratosMultiphysics.kratos_utilities import CheckIfApplicationsAvailable
 if not CheckIfApplicationsAvailable("FluidDynamicsApplication"):
@@ -11,9 +11,9 @@ if not CheckIfApplicationsAvailable("FluidDynamicsApplication"):
     raise Exception(msg)
 
 if (Kratos.IsDistributedRun()):
-    from KratosMultiphysics.RANSApplication.TrilinosExtension import MPIKEpsilonCoSolvingProcess as k_epsilon_co_solving_process
+    from KratosMultiphysics.RANSModellingApplication.TrilinosExtension import MPIEddyViscosityCoSolvingProcess as eddy_viscosity_co_solving_process
 else:
-    from KratosMultiphysics.RANSApplication import KEpsilonCoSolvingProcess as k_epsilon_co_solving_process
+    from KratosMultiphysics.RANSModellingApplication import EddyViscosityCoSolvingProcess as eddy_viscosity_co_solving_process
 
 class TurbulenceKOmegaConfiguration(
         TurbulenceEddyViscosityModelConfiguration):
@@ -28,14 +28,13 @@ class TurbulenceKOmegaConfiguration(
             "turbulent_kinetic_energy_settings":{},
             "turbulent_specific_energy_dissipation_rate_settings":{},
             "constants":
-            {
+            {   
                 "sigma_k"                 : 0.5,
                 "wall_smoothness_beta"    : 5.2,
                 "von_karman"              : 0.41,
                 "sigma_omega"             : 0.5,
                 "beta_zero"               : 0.072,
                 "gamma"                   : 0.52,
-                "limit_y_plus_wall"             : 11.06,
                 "beta_zero_star"          : 0.09
             },
             "flow_parameters":
@@ -79,8 +78,10 @@ class TurbulenceKOmegaConfiguration(
             KratosRANS.TURBULENCE_RANS_SIGMA_K] = constants["sigma_k"].GetDouble()
         self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENCE_RANS_SIGMA_OMEGA] = constants["sigma_omega"].GetDouble()
-		self.fluid_model_part.ProcessInfo[
-            KratosRANS.TURBULENCE_RANS_Y_PLUS_LIMIT_WALL] = constants["limit_y_plus_wall"].GetDouble()
+        self.fluid_model_part.ProcessInfo[
+            KratosRANS.TURBULENT_VISCOSITY_MIN] = self.nu_t_min
+        self.fluid_model_part.ProcessInfo[
+            KratosRANS.TURBULENT_VISCOSITY_MAX] = self.nu_t_max
 
     def PrepareSolvingStrategy(self):
         scheme_settings = self.model_settings["scheme_settings"]
@@ -164,10 +165,9 @@ class TurbulenceKOmegaConfiguration(
             self.fluid_model_part.ProcessInfo[
                 KratosRANS.IS_CO_SOLVING_PROCESS_ACTIVE] = True
 
-
     def GetTurbulenceSolvingProcess(self):
         if self.turbulence_model_process is None:
-            self.turbulence_model_process = k_epsilon_co_solving_process(
+            self.turbulence_model_process = eddy_viscosity_co_solving_process(
                 self.fluid_model_part,
                 self.model_settings["coupling_settings"])
             Kratos.Logger.PrintInfo(self.__class__.__name__,
@@ -176,4 +176,4 @@ class TurbulenceKOmegaConfiguration(
         return self.turbulence_model_process
 
     def GetFluidVelocityPressureConditionName(self):
-        return "RansEvmKEpsilonVmsMonolithicWall"
+        return "Condition"
