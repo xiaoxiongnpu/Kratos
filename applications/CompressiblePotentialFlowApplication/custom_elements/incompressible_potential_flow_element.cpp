@@ -484,6 +484,32 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
         else
             ComputeLHSGaussPointContribution(Volumes[i]*free_stream_density, lhs_negative, data);
     }
+
+
+    BoundedMatrix<double, 2, 1 > n_kutta;
+    n_kutta(0,0)=0.0;//sin(geometry_angle*3.1415926/180);
+    n_kutta(1,0)=1.0;//cos(geometry_angle*3.1415926/180);
+
+    Matrix test=prod(data.DN_DX,n_kutta);
+
+    BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta_positive = ZeroMatrix(NumNodes, NumNodes);
+    BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta_negative = ZeroMatrix(NumNodes, NumNodes);
+    for(unsigned int i=0; i<nsubdivisions; ++i)
+    {
+        if(PartitionsSign[i] > 0){
+            noalias(lhs_kutta_positive) += free_stream_density*Volumes[i] * prod(test,trans(test));
+        }
+        else{
+            noalias(lhs_kutta_negative) += free_stream_density*Volumes[i] * prod(test,trans(test));
+        }
+    }
+
+    lhs_positive = lhs_kutta_positive + lhs_kutta_negative;
+    lhs_negative = lhs_kutta_negative + lhs_kutta_positive;
+
+
+    // lhs_positive += 1*lhs_kutta_positive;
+    // lhs_negative += 1*lhs_kutta_negative;
 }
 
 template <int Dim, int NumNodes>
