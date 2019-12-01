@@ -217,6 +217,11 @@ private:
     void AssignLocalSystemWakeElement(MatrixType& rLeftHandSideMatrix,
                                       BoundedMatrix<double, NumNodes, NumNodes>& lhs_total,
                                       const ElementalData<NumNodes, Dim>& data) const;
+    void AssignLocalSystemKuttaWakeNode(MatrixType& rLeftHandSideMatrix,
+                                   BoundedMatrix<double, NumNodes, NumNodes>& lhs_positive,
+                                   BoundedMatrix<double, NumNodes, NumNodes>& lhs_negative,
+                                   const ElementalData<NumNodes, Dim>& data,
+                                   unsigned int& row) const;
 
     void AssignLocalSystemWakeNode(MatrixType& rLeftHandSideMatrix,
                                    BoundedMatrix<double, NumNodes, NumNodes>& lhs_total,
