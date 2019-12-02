@@ -487,8 +487,8 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
 
 
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=sin(5.0*3.1415926/180);
-    n_kutta(1,0)=cos(5.0*3.1415926/180);
+    n_kutta(0,0)=0.0;//sin(0.0*3.1415926/180);
+    n_kutta(1,0)=1.0;//cos(0.0*3.1415926/180);
 
     Matrix test=prod(data.DN_DX,n_kutta);
 
@@ -507,10 +507,10 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
     // lhs_positive = lhs_kutta_positive + lhs_kutta_negative;
     // lhs_negative = lhs_kutta_negative + lhs_kutta_positive;
 
-    lhs_positive = lhs_kutta_positive;
-    lhs_negative = lhs_kutta_negative;
-    // lhs_positive += 10*lhs_kutta_positive;
-    // lhs_negative += 10*lhs_kutta_negative;
+    // lhs_positive = lhs_kutta_positive;
+    // lhs_negative = lhs_kutta_negative;
+    lhs_positive += 10.0*(lhs_kutta_positive+lhs_kutta_negative);
+    lhs_negative += 10.0*(lhs_kutta_negative+lhs_kutta_positive);
 }
 
 template <int Dim, int NumNodes>
@@ -538,7 +538,7 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
         // if (true)
         {
 
-            // AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, data, i);
+            // AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
             for (unsigned int j = 0; j < NumNodes; ++j)
             {
                 rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
@@ -564,7 +564,8 @@ template <int Dim, int NumNodes>
 void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemKuttaWakeNode(
     MatrixType& rLeftHandSideMatrix,
     BoundedMatrix<double, NumNodes, NumNodes>& lhs_total,
-    BoundedMatrix<double, NumNodes, NumNodes>& lhs_kutta,
+    BoundedMatrix<double, NumNodes, NumNodes>& lhs_positive,
+    BoundedMatrix<double, NumNodes, NumNodes>& lhs_negative,
     const ElementalData<NumNodes, Dim>& data,
     unsigned int& row) const
 {
@@ -578,10 +579,10 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemKuttaWa
     // Applying wake condition on the AUXILIARY_VELOCITY_POTENTIAL dofs
     if (data.distances[row] < 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row, column + NumNodes) = lhs_kutta(row, column); // Side 1
+            rLeftHandSideMatrix(row, column + NumNodes) = lhs_negative(row, column); // Side 1
     else if (data.distances[row] > 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row + NumNodes, column) = lhs_kutta(row, column); // Side 2
+            rLeftHandSideMatrix(row + NumNodes, column) = lhs_positive(row, column); // Side 2
 }
 
 template <int Dim, int NumNodes>
