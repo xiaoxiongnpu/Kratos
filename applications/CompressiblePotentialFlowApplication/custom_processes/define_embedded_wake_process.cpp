@@ -110,6 +110,7 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
             p_max_elem = mrModelPart.pGetElement(it_elem->Id());
         }
     }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Mark nodes of the furthest deactivated element and store its neighbour elements
     for (unsigned int i_node= 0; i_node < p_max_elem->GetGeometry().size(); i_node++) {
@@ -131,11 +132,14 @@ void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
     {
         auto& r_geometry = mKuttaWakeElementCandidates[i].GetGeometry();
         if (mKuttaWakeElementCandidates[i].GetValue(WAKE) && mKuttaWakeElementCandidates[i].Is(ACTIVE)) {
+            // int counter = 0;
             for (std::size_t i_node= 0; i_node < r_geometry.size(); i_node++) {
                 if(r_geometry[i_node].Is(MARKER)){
                     trailing_edge_node_list.push_back(r_geometry[i_node].Id());
                     mKuttaWakeElementCandidates[i].Set(STRUCTURE);
+                    // counter++;
                 }
+                // if (counter>1)
             }
         }
 
@@ -152,23 +156,79 @@ void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
               trailing_edge_node_list.end());
     mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").AddNodes(trailing_edge_node_list);
 
+    std::size_t max_number_of_structure_elements = 0;
+    auto p_max_node = mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").NodesBegin();
+
+
     for (int i = 0; i < static_cast<int>(mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").Nodes().size()); i++) {
         auto it_node = mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").NodesBegin() + i;
 
-        // const GlobalPointersVector<Element>& r_node_elem_candidates = it_node -> GetValue(NEIGHBOUR_ELEMENTS);
-        // std::size_t counter = 0;
-        // for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
-        //     if (r_node_elem_candidates(j)->Is(STRUCTURE)){
-        //         counter++;
-        //     }
-        // }
-        if (it_node->GetValue(WAKE_DISTANCE) < 0) {
-            it_node->SetValue(TRAILING_EDGE, true);
+        const GlobalPointersVector<Element>& r_node_elem_candidates = it_node -> GetValue(NEIGHBOUR_ELEMENTS);
+        std::size_t counter = 0;
+        for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
+            if (r_node_elem_candidates(j)->Is(STRUCTURE)){
+                counter++;
+            }
         }
-
-
+        if (counter > max_number_of_structure_elements) {
+            max_number_of_structure_elements = counter;
+            p_max_node = it_node;
+        }
+        // if (it_node->GetValue(WAKE_DISTANCE) < 0) {
+        //     it_node->SetValue(TRAILING_EDGE, true);
+        // }
     }
-
+    p_max_node->SetValue(TRAILING_EDGE, true);
 
 }
 }// Namespace Kratos
+
+
+
+
+// ////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+//     // Mark nodes of the furthest deactivated element and store its neighbour elements
+//     for (unsigned int i_node= 0; i_node < p_max_elem->GetGeometry().size(); i_node++) {
+//         p_max_elem->GetGeometry()[i_node].SetValue(TRAILING_EDGE,true);
+//         const GlobalPointersVector<Element>& r_node_elem_candidates = p_max_elem -> GetGeometry()[i_node].GetValue(NEIGHBOUR_ELEMENTS);
+//         for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
+//             mKuttaWakeElementCandidates.push_back(r_node_elem_candidates(j));
+//         }
+//     }
+
+//     mrModelPart.RemoveSubModelPart("deactivated_model_part");
+// }
+
+// void DefineEmbeddedWakeProcess::MarkKuttaWakeElements(){
+
+//     // Find elements that touch the furthest deactivated element and that are part of the wake.
+//     std::vector<std::size_t> trailing_edge_node_list;
+//     for (std::size_t i = 0; i < mKuttaWakeElementCandidates.size(); i++)
+//     {
+//         auto& r_geometry = mKuttaWakeElementCandidates[i].GetGeometry();
+//         if (mKuttaWakeElementCandidates[i].GetValue(WAKE) && mKuttaWakeElementCandidates[i].Is(ACTIVE)) {
+//             for (std::size_t i_node= 0; i_node < r_geometry.size(); i_node++) {
+//                 if(r_geometry[i_node].GetValue(TRAILING_EDGE)){
+//                     trailing_edge_node_list.push_back(r_geometry[i_node].Id());
+//                     mKuttaWakeElementCandidates[i].Set(STRUCTURE);
+//                 }
+//             }
+//         }
+
+//     }
+
+//     if (mrModelPart.HasSubModelPart("trailing_edge_sub_model_part")){
+//         mrModelPart.RemoveSubModelPart("trailing_edge_sub_model_part");
+//     }
+//     mrModelPart.CreateSubModelPart("trailing_edge_sub_model_part");
+
+//     std::sort(trailing_edge_node_list.begin(),
+//               trailing_edge_node_list.end());
+//     mrModelPart.GetSubModelPart("trailing_edge_sub_model_part").AddNodes(trailing_edge_node_list);
+
+// }
+// }// Namespace Kratos
