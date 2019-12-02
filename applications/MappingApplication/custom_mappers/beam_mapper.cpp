@@ -1052,7 +1052,9 @@ void BeamMapper<TSparseSpace, TDenseSpace>::BuildProblem(Kratos::Flags MappingOp
 // Extern template instantiation
 
 template class BeamMapper< MapperDefinitions::SparseSpaceType, MapperDefinitions::DenseSpaceType >;
-
+#ifdef KRATOS_USING_MPI // mpi-parallel compilation
+template class BeamMapper< MapperDefinitions::MPISparseSpaceType, MapperDefinitions::DenseSpaceType >;
+#endif
 
 
 }  // namespace Kratos.

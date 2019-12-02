@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import, division  # makes Kratos
 import KratosMultiphysics as KM
 import KratosMultiphysics.MappingApplication as KratosMapping
 data_comm = KM.DataCommunicator.GetDefault()
-import mapper_test_case
+import beam_mapper_test_case
 from math import cos
 import os
 

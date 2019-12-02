@@ -76,8 +76,6 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
     array_1d<double, 3> local_coords;
     PairingIndex pairing_index;
 
-    bool a = rGeometry.IsInside(projected_point, local_coords, 1e-14);
-
     if (rGeometry.IsInside(projected_point, local_coords, 1e-14)) {
         pairing_index = PairingIndex::Line_Inside;
         rGeometry.ShapeFunctionsValues(rShapeFunctionValues, local_coords);
@@ -90,7 +88,6 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
         pairing_index = PairingIndex::Line_Outside;
         rGeometry.ShapeFunctionsValues(rShapeFunctionValues, local_coords);
         FillEquationIdVector(rGeometry, rEquationIds);
-
     }   
 
     return pairing_index;
@@ -108,14 +105,9 @@ PairingIndex ProjectOnLineHermitian(const GeometryType& rGeometry,
     array_1d<double, 3> local_coords;
     PairingIndex pairing_index;
 
-    double lenght_line;
-    //lenght_line = rGeometry.Length();
-
     if (rGeometry.IsInside(rProjectionOfPoint, local_coords, 1e-14)) {
         pairing_index = PairingIndex::Line_Inside;
         HermitianShapeFunctionsValues(rHermitianShapeFunctionValues, rHermitianShapeFunctionValuesDer, local_coords);
-        // FillEquationIdVector(rGeometry, rEquationIds);
-
     } 
 
     return pairing_index;
