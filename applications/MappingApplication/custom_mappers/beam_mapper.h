@@ -391,7 +391,7 @@ public:
                      Kratos::Flags MappingOptions)
     {
         InitializeOriginForcesAndMoments(rOriginVariablesForces, rOriginVariablesMoments);
-        InitializeInformationBeamsInverse(rOriginVariablesForces, rOriginVariablesMoments, rDestinationVaribleForces);
+        InitializeInformationBeamsInverse(rOriginVariablesForces, rOriginVariablesMoments, rDestinationVaribleForces, MappingOptions);
     }
 
     MapperUniquePointerType Clone(ModelPart& rModelPartOrigin,
@@ -483,7 +483,8 @@ private:
 
     void InitializeInformationBeamsInverse(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
-                                    const Variable< array_1d<double, 3> >& rDestinationVariableForces);
+                                    const Variable< array_1d<double, 3> >& rDestinationVariableForces,
+                                    const Kratos::Flags& rMappingOptions);
 
     void InitializeOriginForcesAndMoments(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments);

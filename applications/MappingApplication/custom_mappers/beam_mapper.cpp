@@ -41,7 +41,7 @@ void BeamMapperInterfaceInfo::ProcessSearchResult(const InterfaceObject& rInterf
 void BeamMapperInterfaceInfo::ProcessSearchResultForApproximation(const InterfaceObject& rInterfaceObject,
                                                                   const double NeighborDistance)
 {
-    KRATOS_ERROR << "ProcessSearchResultForApproximation is not implemented for Beam Mapping yet." << std::endl;
+    //KRATOS_ERROR << "ProcessSearchResultForApproximation is not implemented for Beam Mapping yet." << std::endl;
     //SaveSearchResult(rInterfaceObject, true);
 }
 
@@ -314,7 +314,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
                                         mrModelPartOrigin,
                                         mrModelPartDestination,
                                         mMapperSettings["echo_level"].GetInt());
-        mMapperSettings["search_radius"].SetDouble(search_radius);
+        mMapperSettings["search_radius"].SetDouble(10e12);
     }
 }
 
@@ -745,13 +745,15 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                                                               const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
-                                                                              const Variable< array_1d<double, 3> >& rDestinationVariableForces)
-{   size_t i = 0;
+                                                                              const Variable< array_1d<double, 3> >& rDestinationVariableForces,
+                                                                              const Kratos::Flags& rMappingOptions)
+{   const double factor = rMappingOptions.Is(MapperFlags::SWAP_SIGN) ? -1.0 : 1.0;
+    //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   std::cout << " ---------------------------------- "<< std::endl;
-        std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
-        std::cout << " ---------------------------------- "<< std::endl;
-        i++;
+    {   //std::cout << " ---------------------------------- "<< std::endl;
+        //std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
+        //std::cout << " ---------------------------------- "<< std::endl;
+        //i++;
 
         if( r_local_sys->HasInterfaceInfo())
         {
@@ -794,68 +796,68 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
             surfaceMoment(1) = distancePQ(2) * surfaceForce(0) - distancePQ(0) * surfaceForce(2);
             surfaceMoment(2) = distancePQ(0) * surfaceForce(1) - distancePQ(1) * surfaceForce(0);
 
-            size_t c = 0;//Expressed in global coordinates
+            size_t c = 0;
             for (const auto& var_ext : var_comps)
             {
                 const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
                 const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
 
-                _r_geom[0].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(0) * surfaceForce(c);
-                _r_geom[0].FastGetSolutionStepValue(var_origin_moment) +=  _linearShapeValues(0) * surfaceMoment(c);
-                _r_geom[1].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(1) * surfaceForce(c);
-                _r_geom[1].FastGetSolutionStepValue(var_origin_moment) +=  _linearShapeValues(1) * surfaceMoment(c); 
+                _r_geom[0].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(0) * surfaceForce(c) * factor;
+                _r_geom[0].FastGetSolutionStepValue(var_origin_moment)+=  _linearShapeValues(0) * surfaceMoment(c) * factor;
+                _r_geom[1].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(1) * surfaceForce(c) * factor;
+                _r_geom[1].FastGetSolutionStepValue(var_origin_moment)+=  _linearShapeValues(1) * surfaceMoment(c) * factor; 
                 c++;
             }
         }
     }
 
-    for( auto& r_local_sys : mMapperLocalSystems )
-    {   std::cout << " ---------------------------------- "<< std::endl;
-        if( r_local_sys->HasInterfaceInfo())
-        {
-            MatrixType _rotationMatrix_G_B(3, 3);
-            VectorType _translationVector_B_P(3);
-            VectorType _linearShapeValues(2);
-            VectorType _hermitianShapeValues(4);
-            VectorType _hermitanDerShapeValues(4);
-            GeometryType _r_geom; // beam line
-            NodePointerType _pNode; // surface node
-
-            r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
-                                                               _translationVector_B_P,
-                                                               _linearShapeValues,
-                                                               _hermitianShapeValues,
-                                                               _hermitanDerShapeValues,
-                                                               _r_geom,
-                                                               _pNode);
-            const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
-            std::cout << "The forces and moments on node " << _r_geom[0].GetId() << " are :" << std::endl;
-            for (const auto& var_ext : var_comps)
-            {
-                const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
-                const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
-
-                double num1 = _r_geom[0].FastGetSolutionStepValue(var_origin_force);
-                double num2 = _r_geom[0].FastGetSolutionStepValue(var_origin_moment);
-
-                std::cout << "Force [ " << var_ext << " ] = " << num1 << std::endl;
-                std::cout << "Moment [ " << var_ext << " ] = " << num2 << std::endl;
-            }
-
-            std::cout << "The forces and moments on node " << _r_geom[1].GetId() << " are :" << std::endl;
-            for (const auto& var_ext : var_comps)
-            {
-                const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
-                const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
-
-                double num1 = _r_geom[1].FastGetSolutionStepValue(var_origin_force);
-                double num2 = _r_geom[1].FastGetSolutionStepValue(var_origin_moment);
-
-                std::cout << "Force [ " << var_ext << " ] = " << num1 << std::endl;
-                std::cout << "Moment [ " << var_ext << " ] = " << num2 << std::endl;
-            }
-        }
-    }
+    //for( auto& r_local_sys : mMapperLocalSystems )
+    //{   
+    //    if( r_local_sys->HasInterfaceInfo())
+    //    {
+    //        MatrixType _rotationMatrix_G_B(3, 3);
+    //        VectorType _translationVector_B_P(3);
+    //        VectorType _linearShapeValues(2);
+    //        VectorType _hermitianShapeValues(4);
+    //        VectorType _hermitanDerShapeValues(4);
+    //        GeometryType _r_geom; // beam line
+    //        NodePointerType _pNode; // surface node
+//
+    //        r_local_sys->CalculateRotationMatrixInterfaceInfos(_rotationMatrix_G_B,
+    //                                                           _translationVector_B_P,
+    //                                                           _linearShapeValues,
+    //                                                           _hermitianShapeValues,
+    //                                                           _hermitanDerShapeValues,
+    //                                                           _r_geom,
+    //                                                           _pNode);
+    //        const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
+    //        std::cout << "The forces and moments on node " << _r_geom[0].GetId() << " are :" << std::endl;
+    //        for (const auto& var_ext : var_comps)
+    //        {
+    //            const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
+    //            const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
+//
+    //            double num1 = _r_geom[0].FastGetSolutionStepValue(var_origin_force);
+    //            double num2 = _r_geom[0].FastGetSolutionStepValue(var_origin_moment);
+//
+    //            std::cout << "Force [ " << var_ext << " ] = " << num1 << std::endl;
+    //            std::cout << "Moment [ " << var_ext << " ] = " << num2 << std::endl;
+    //        }
+//
+    //        std::cout << "The forces and moments on node " << _r_geom[1].GetId() << " are :" << std::endl;
+    //        for (const auto& var_ext : var_comps)
+    //        {
+    //            const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
+    //            const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
+//
+    //            double num1 = _r_geom[1].FastGetSolutionStepValue(var_origin_force);
+    //            double num2 = _r_geom[1].FastGetSolutionStepValue(var_origin_moment);
+//
+    //            std::cout << "Force [ " << var_ext << " ] = " << num1 << std::endl;
+    //            std::cout << "Moment [ " << var_ext << " ] = " << num2 << std::endl;
+    //        }
+    //    }
+    //}
 
 }
 
@@ -983,12 +985,12 @@ void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& 
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeOriginForcesAndMoments(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments)                                    
-{   size_t i = 0;
+{   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   std::cout << " ---------------------------------- "<< std::endl;
-        std::cout << " ----------- Setting forces and moments to zero of LOCAL SYSTEM " << i << "---------"<< std::endl;
-        std::cout << " ---------------------------------- "<< std::endl;
-        i++;
+    {   //std::cout << " ---------------------------------- "<< std::endl;
+        //std::cout << " ----------- Setting forces and moments to zero of LOCAL SYSTEM " << i << "---------"<< std::endl;
+        //std::cout << " ---------------------------------- "<< std::endl;
+        //i++;
 
         if( r_local_sys->HasInterfaceInfo())
         {

@@ -25,7 +25,7 @@ Begin Nodes
 End Nodes
 
 
-Begin Elements Element2D2N// GUI group identifier: Add SubModelPart Auto1
+Begin Elements Element3D2N// GUI group identifier: Add SubModelPart Auto1
         1          0         17         16 
         2          0         16         15 
         3          0         15         14 

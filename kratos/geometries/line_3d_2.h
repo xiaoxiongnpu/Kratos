@@ -688,7 +688,7 @@ public:
     {
         if(rResult.size() != 2) {
             rResult.resize(2, false);
-        }std::cout << "aqui estoy" << std::endl;
+        }
 
         rResult[0] =  0.5 * ( 1.0 - rCoordinates[0]);
         rResult[1] =  0.5 * ( 1.0 + rCoordinates[0]);
