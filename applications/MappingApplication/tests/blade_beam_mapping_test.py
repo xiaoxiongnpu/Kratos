@@ -3,7 +3,7 @@ from __future__ import print_function, absolute_import, division  # makes Kratos
 import KratosMultiphysics as KM
 import KratosMultiphysics.MappingApplication as KratosMapping
 data_comm = KM.DataCommunicator.GetDefault()
-import beam_mapper_test_case
+import mapper_test_case
 from math import cos
 import math
 import os
@@ -12,7 +12,7 @@ import numpy as np
 def GetFilePath(file_name):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), file_name)
 
-class BladeMappingTests(beam_mapper_test_case.MapperTestCase):
+class BladeMappingTests(mapper_test_case.BeamMapperTestCase):
     '''This class contains basic tests for mapping on real geometries
     In this case it is a remodeled NREL Phase VI wind turbine blade
     It also serves as a showcase on how to use the Mapper in FSI
@@ -52,37 +52,37 @@ class BladeMappingTests(beam_mapper_test_case.MapperTestCase):
     def test_map_displacements(self):
         SetDisplacements(self.model_part_structure)
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.DISPLACEMENT, "Blade_" + self.mapper_type + "_Structure_prescr_disp")
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.ROTATION, "Blade_" + self.mapper_type + "_Structure_prescr_rot")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.DISPLACEMENT, "Blade_" + self.mapper_type + "_Structure_prescr_disp")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.ROTATION, "Blade_" + self.mapper_type + "_Structure_prescr_rot")
 
         self.mapper_pressure_side.Map(KM.DISPLACEMENT, KM.ROTATION, KM.MESH_DISPLACEMENT)
         self.mapper_suction_side.Map(KM.DISPLACEMENT, KM.ROTATION, KM.MESH_DISPLACEMENT)
 
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.MESH_DISPLACEMENT, "Blade_" + self.mapper_type + "_Fluid_mapped_disp")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.MESH_DISPLACEMENT, "Blade_" + self.mapper_type + "_Fluid_mapped_disp")
 
-        beam_mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_fluid, KM.MESH_DISPLACEMENT, GetFilePath(self.__GetFileName("blade_map_disp")))
+        mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_fluid, KM.MESH_DISPLACEMENT, GetFilePath(self.__GetFileName("blade_map_disp")))
 
     def test_map_forces(self):
         SetReactions(self.model_part_fluid)
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.REACTION, "Blade_" + self.mapper_type + "_Fluid_prescr_force")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.REACTION, "Blade_" + self.mapper_type + "_Fluid_prescr_force")
 
         # this would be POINT_LOAD in regular StructuralMechanics (using FORCE to avoid the StructuralMechanics import)
         self.mapper_pressure_side.InverseMap(KM.FORCE, KM.MOMENT, KM.REACTION)
         self.mapper_suction_side.InverseMap(KM.FORCE, KM.MOMENT, KM.REACTION)
 
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.FORCE, "Blade_" + self.mapper_type + "_Structure_mapped_force")
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.MOMENT, "Blade_" + self.mapper_type + "_Structure_mapped_moment")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.FORCE, "Blade_" + self.mapper_type + "_Structure_mapped_force")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.MOMENT, "Blade_" + self.mapper_type + "_Structure_mapped_moment")
 
-        beam_mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.FORCE, GetFilePath(self.__GetFileName("blade_map_force")))
-        beam_mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.MOMENT, GetFilePath(self.__GetFileName("blade_map_moment")))
+        mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.FORCE, GetFilePath(self.__GetFileName("blade_map_force")))
+        mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.MOMENT, GetFilePath(self.__GetFileName("blade_map_moment")))
 
     def test_map_forces_conservative(self):
         SetReactions(self.model_part_fluid)
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.REACTION, "Blade_" + self.mapper_type + "_Fluid_prescr_force")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_fluid, KM.REACTION, "Blade_" + self.mapper_type + "_Fluid_prescr_force")
 
          # this would be POINT_LOAD in regular StructuralMechanics (using FORCE to avoid the StructuralMechanics import)
         self.mapper_pressure_side.InverseMap(KM.FORCE, KM.MOMENT, KM.REACTION)
@@ -95,11 +95,11 @@ class BladeMappingTests(beam_mapper_test_case.MapperTestCase):
         self.mapper_suction_side.InverseMap(KM.FORCE, KM.MOMENT, KM.REACTION)
 
         if self.print_output:
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.FORCE, "Blade_" + self.mapper_type + "_Structure_mapped_force_conserv")
-            beam_mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.MOMENT, "Blade_" + self.mapper_type + "_Structure_mapped_moment_conserv")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.FORCE, "Blade_" + self.mapper_type + "_Structure_mapped_force_conserv")
+            mapper_test_case.VtkOutputNodesHistorical(self.model_part_structure, KM.MOMENT, "Blade_" + self.mapper_type + "_Structure_mapped_moment_conserv")
 
-        beam_mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.FORCE, GetFilePath(self.__GetFileName("blade_map_force_conserv")))
-        beam_mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.MOMENT, GetFilePath(self.__GetFileName("blade_map_moment_conserv")))
+        mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.FORCE, GetFilePath(self.__GetFileName("blade_map_force_conserv")))
+        mapper_test_case.CheckHistoricalNonUniformValues(self.model_part_structure, KM.MOMENT, GetFilePath(self.__GetFileName("blade_map_moment_conserv")))
 
         #self.__CheckValuesSum(self.model_part_fluid.GetSubModelPart("suction_side_quad"), self.model_part_structure.GetSubModelPart("suction_side_line"), KM.REACTION, KM.FORCE)
 
