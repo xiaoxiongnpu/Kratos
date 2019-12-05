@@ -172,48 +172,70 @@ public:
     }
 
 
-    /** Normal solve method.
-    Solves the linear system Ax=b and puts the result on SystemVector& rX.
-    rVectorx is also th initial guess for iterative methods.
-    @param rA. System matrix
-    @param rX. Solution vector. it's also the initial
-    guess for iterative linear solvers.
-     @param rB. Right hand side vector.
-    */
+    /** 
+     * @brief Normal solve method.
+     * @details Solves the linear system Ax=b and puts the result on SystemVector& rX. rVectorx is also th initial guess for iterative methods.
+     * @param rA. System matrix
+     * @param rX. Solution vector. it's also the initial guess for iterative linear solvers.
+     * @param rB. Right hand side vector.
+     */
     virtual bool Solve(SparseMatrixType& rA, VectorType& rX, VectorType& rB)
     {
         KRATOS_ERROR << "Calling linear solver base class" << std::endl;
         return false;
     }
 
-    /** Multi solve method for solving a set of linear systems with same coefficient matrix.
-    Solves the linear system Ax=b and puts the result on SystemVector& rX.
-    rVectorx is also th initial guess for iterative methods.
-    @param rA. System matrix
-    @param rX. Solution vector. it's also the initial
-    guess for iterative linear solvers.
-     @param rB. Right hand side vector.
-    */
+    /** 
+     * @brief Multi solve method for solving a set of linear systems with same coefficient matrix.
+     * @details Solves the linear system Ax=b and puts the result on SystemVector& rX. rVectorx is also th initial guess for iterative methods.
+     * @param rA. System matrix
+     * @param rX. Solution vector. it's also the initial guess for iterative linear solvers.
+     * @param rB. Right hand side vector.
+     */
     virtual bool Solve(SparseMatrixType& rA, DenseMatrixType& rX, DenseMatrixType& rB)
     {
         KRATOS_ERROR << "Calling linear solver base class" << std::endl;
         return false;
     }
 
-    /** Eigenvalue and eigenvector solve method for derived eigensolvers
-     * @param K The stiffness matrix
-     * @param M The mass matrix
-     * @param Eigenvalues The vector containing the eigen values
-     * @param Eigenvectors The matrix containing the eigen vectors
+    /** 
+     * @brief Eigenvalue and eigenvector solve method for derived eigensolvers
+     * @param rK The stiffness matrix
+     * @param rM The mass matrix
+     * @param rEigenvalues The vector containing the eigen values
+     * @param rEigenvectors The matrix containing the eigen vectors
      */
-    virtual  void Solve(SparseMatrixType& K,
-                        SparseMatrixType& M,
-                        DenseVectorType& Eigenvalues,
-                        DenseMatrixType& Eigenvectors)
+    virtual  void Solve(
+        SparseMatrixType& rK,
+        SparseMatrixType& rM,
+        DenseVectorType& rEigenvalues,
+        DenseMatrixType& rEigenvectors
+        )
     {
         KRATOS_ERROR << "Calling linear solver base class" << std::endl;
     }
 
+    /** 
+     * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V
+     * @details U and V are unitary, and S is a diagonal matrix.
+     * Where s_i >= 0, and s_i >= s_i+1 (which means that the biggest number is the first one and the smallest the last one)
+     * @param rK The stiffness matrix
+     * @param rM The mass matrix
+     * @param rUMatrix The unitary U matrix
+     * @param rSMatrix The diagonal S matrix
+     * @param rVMatrix The unitary V matrix
+     */
+    virtual  void Solve(
+        SparseMatrixType& rK,
+        SparseMatrixType& rM,
+        DenseMatrixType& rUMatrix,
+        DenseMatrixType& rSMatrix,
+        DenseMatrixType& rVMatrix
+        )
+    {
+        KRATOS_ERROR << "Calling linear solver base class" << std::endl;
+    }
+    
     /** Some solvers may require a minimum degree of knowledge of the structure of the matrix. To make an example
      * when solving a mixed u-p problem, it is important to identify the row associated to v and p.
      * another example is the automatic prescription of rotation null-space for smoothed-aggregation solvers
