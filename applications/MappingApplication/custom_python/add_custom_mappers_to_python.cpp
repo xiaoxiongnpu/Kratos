@@ -135,6 +135,19 @@ void (Mapper<TSparseSpace, TDenseSpace>::*pInverseMapVectorOptions)(const Variab
         Kratos::Flags)
     = &Mapper<TSparseSpace, TDenseSpace>::InverseMap;
 
+template<class TSparseSpace, class TDenseSpace>
+void (BeamMapper<TSparseSpace, TDenseSpace>::*pMapBeamMapperOptions)(const Variable< array_1d<double, 3> > &,
+        const Variable< array_1d<double, 3> > &,
+        const Variable< array_1d<double, 3> > &,
+        Kratos::Flags)
+    = &BeamMapper<TSparseSpace, TDenseSpace>::Map;
+
+template<class TSparseSpace, class TDenseSpace>
+void (BeamMapper<TSparseSpace, TDenseSpace>::*pInverseMapBeamMapperOptions)(const Variable< array_1d<double, 3> > &,
+        const Variable< array_1d<double, 3> > &,
+        const Variable< array_1d<double, 3> > &,
+        Kratos::Flags)
+    = &BeamMapper<TSparseSpace, TDenseSpace>::InverseMap;
 
 template<class TSparseSpace, class TDenseSpace>
 void ExposeMapperToPython(pybind11::module& m, const std::string& rName)
@@ -170,8 +183,11 @@ void ExposeMapperToPython(pybind11::module& m, const std::string& rName)
     typedef BeamMapper<TSparseSpace, TDenseSpace> BeamMapperType;
     const std::string beam_mapper_name("Beam" + rName);
     py::class_< BeamMapperType, typename BeamMapperType::Pointer, MapperType >(m, beam_mapper_name.c_str())
-        .def("Map", BeamMapWithoutOptions<TSparseSpace, TDenseSpace>)
-        .def("InverseMap", InverseBeamMapWithoutOptions<TSparseSpace, TDenseSpace>)
+        .def("Map",             BeamMapWithoutOptions<TSparseSpace, TDenseSpace>)
+        .def("InverseMap",      InverseBeamMapWithoutOptions<TSparseSpace, TDenseSpace>)
+
+        .def("Map",             pMapBeamMapperOptions<TSparseSpace, TDenseSpace>)
+        .def("InverseMap",      pInverseMapBeamMapperOptions<TSparseSpace, TDenseSpace>)
         ;
 }
 
