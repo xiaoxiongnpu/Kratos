@@ -10,12 +10,10 @@
 //  Main authors:    Vicente Mataix Ferrandiz
 //
 
-#if !defined(KRATOS_SVD_UTILS )
-#define  KRATOS_SVD_UTILS
-
+#if !defined(KRATOS_SVD_UTILS_INCLUDE_H )
+#define  KRATOS_SVD_UTILS_INCLUDE_H
 
 /* System includes */
-
 
 /* External includes */
 
@@ -83,11 +81,6 @@ public:
     ///@name Life Cycle
     ///@{
 
-    /* Constructor */
-
-
-    /** Destructor */
-
     ///@}
     ///@name Operators
     ///@{
@@ -136,7 +129,6 @@ public:
      * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V
      * @details U and V are unitary, and S is a diagonal matrix.
      * Where s_i >= 0, and s_i >= s_i+1 (which means that the biggest number is the first one and the smallest the last one)
-     * @todo This version is quite innefficient, look for a real and mathematical implementation (not the algorithm found in Wikipedia!!)
      * @param InputMatrix The matrix where perform the SVD
      * @param UMatrix The unitary U matrix
      * @param SMatrix The diagonal S matrix
@@ -527,4 +519,4 @@ private:
 
 }  /* namespace Kratos.*/
 
-#endif /* KRATOS_SVD_UTILS  defined */
+#endif /* KRATOS_SVD_UTILS_INCLUDE_H  defined */
