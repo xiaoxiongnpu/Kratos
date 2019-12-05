@@ -132,9 +132,9 @@ void UpdateSystemVectorFromModelPart(TVectorType& rVector,
 
     #pragma omp parallel for
     for (int i=0; i<num_local_nodes; i++) {
-        //fill_fct(*(nodes_begin + i), rVariable, rVector[i]);
+        fill_fct(*(nodes_begin + i), rVariable, rVector[i]);
 
-        (nodes_begin + i)->FastGetSolutionStepValue(rVariable) = rVector[i];
+        //(nodes_begin + i)->FastGetSolutionStepValue(rVariable) = rVector[i];
     }
 }
 

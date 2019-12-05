@@ -10,7 +10,10 @@ import math
 #mdpa_file_name_beam    = "mdpa_files/beam_mesh_1"
 #mdpa_file_name_surface = "mdpa_files/beam_surface_10_elements"
 
-mdpa_file_name_beam    = "mdpa_files/beam_new"
+#mdpa_file_name_beam    = "mdpa_files/beam_new"
+#mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
+
+mdpa_file_name_beam    = "mdpa_files/line_10_elements"
 mdpa_file_name_surface = "mdpa_files/surface_mesh_Tianyang"
 
 def WriteGiDOutput(model_part):
@@ -40,14 +43,27 @@ def WriteGiDOutput(model_part):
     gid_output.ExecuteFinalizeSolutionStep()
     gid_output.ExecuteFinalize()
 
-def WriteVtkOutput(model_part):
+def WriteVtkOutputStructure(model_part):
     default_parameters = KM.Parameters("""{
         "file_format"                        : "binary",
         "output_precision"                   : 7,
         "output_control_type"                : "step",
         "output_sub_model_parts"             : false,
         "save_output_files_in_folder"        : false,
-        "nodal_solution_step_data_variables" : ["DISPLACEMENT"]
+        "nodal_solution_step_data_variables" : ["DISPLACEMENT", "ROTATION" , "REACTION", "REACTION_MOMENT"]
+    }""")
+
+    vtk_io = KM.VtkOutput(model_part, default_parameters)
+    vtk_io.PrintOutput()
+
+def WriteVtkOutputFluid(model_part):
+    default_parameters = KM.Parameters("""{
+        "file_format"                        : "binary",
+        "output_precision"                   : 7,
+        "output_control_type"                : "step",
+        "output_sub_model_parts"             : false,
+        "save_output_files_in_folder"        : false,
+        "nodal_solution_step_data_variables" : ["DISPLACEMENT", "REACTION"]
     }""")
 
     vtk_io = KM.VtkOutput(model_part, default_parameters)
@@ -247,8 +263,8 @@ class TestBeamMapper(KratosUnittest.TestCase):
         #WriteGiDOutput(self.model_part_beam)
         #WriteGiDOutput(self.model_part_surface)
 
-        WriteVtkOutput(self.model_part_beam)
-        WriteVtkOutput(self.model_part_surface)
+        WriteVtkOutputStructure(self.model_part_beam)
+        WriteVtkOutputFluid(self.model_part_surface)
 
 
 if __name__ == '__main__':

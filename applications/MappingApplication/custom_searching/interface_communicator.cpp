@@ -269,9 +269,6 @@ void InterfaceCommunicator::ConductLocalSearch()
                 // If the search did not result in a "valid" result (e.g. the projection fails)
                 // we try to compute an approximation
                 if (!r_interface_info->GetLocalSearchWasSuccessful()) {
-                    std::cout << " " << std::endl;
-                    std::cout << "surface node : " << r_interface_info->Coordinates() << std::endl;
-                    std::cout << "The number of results for approximation for this node are : " << number_of_results << std::endl;
                     for (IndexType j=0; j<number_of_results; ++j) {
                         r_interface_info->ProcessSearchResultForApproximation(
                             *(neighbor_results[j]), neighbor_distances[j]);

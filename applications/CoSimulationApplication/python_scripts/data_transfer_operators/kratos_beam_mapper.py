@@ -20,7 +20,11 @@ class KratosBeamMapper(CoSimulationDataTransferOperator):
 
     def __init__(self, settings):
         super(KratosBeamMapper, self).__init__(settings)
-        self.__mappers = {}
+        self.beam_mapper = None
+        self.model_part_name_beam = self.settings["model_part_name_beam"].GetString()
+        self.model_part_name_surface = self.settings["model_part_name_surface"].GetString()
+        self.solver_name_beam = self.settings["solver_name_beam"].GetString()
+        self.solver_name_surface = self.settings["solver_name_surface"].GetString()
 
         self.second_variable_displacement = KM.KratosGlobals.GetVariable(self.settings["second_variable_displacement"].GetString())
         self.second_variable_force = KM.KratosGlobals.GetVariable(self.settings["second_variable_force"].GetString())
@@ -30,47 +34,63 @@ class KratosBeamMapper(CoSimulationDataTransferOperator):
         # or throw if it is not in a suitable location (e.g. on the ProcessInfo)
 
         self._CheckAvailabilityTransferOptions(transfer_options)
+        
+        from_solver_name = from_solver_data.solver_name
+        to_solver_name = to_solver_data.solver_name
 
-        model_part_origin      = from_solver_data.GetModelPart()
-        model_part_origin_name = model_part_origin.Name
-        variable_origin        = from_solver_data.variable
+        from_model_part_name = from_solver_data.model_part_name
+        to_model_part_name = to_solver_data.model_part_name
 
-        model_part_destinatinon      = to_solver_data.GetModelPart()
-        model_part_destinatinon_name = model_part_destinatinon.Name
-        variable_destination         = to_solver_data.variable
+        if self.solver_name_beam == from_solver_name and self.solver_name_surface == to_solver_name:
+            inverse_map = False
+            if not from_model_part_name == self.model_part_name_beam:
+                raise Exception("wrong input")
+            if not to_model_part_name == self.model_part_name_surface:
+                raise Exception("wrong input")
+        elif self.solver_name_surface == from_solver_name and self.solver_name_beam == to_solver_name:
+            inverse_map = True
+            if not to_model_part_name == self.model_part_name_beam:
+                raise Exception("wrong input")
+            if not from_model_part_name == self.model_part_name_surface:
+                raise Exception("wrong input")
+        else:
+            raise Exception("Wrong Input!")
+
+        if self.beam_mapper == None:
+            print("Creating Beam-Mapper")
+            if inverse_map:
+                origin_model_part = to_solver_data.GetModelPart() # beam
+                destination_model_part = from_solver_data.GetModelPart() # surface
+            else:
+                origin_model_part = from_solver_data.GetModelPart() # beam
+                destination_model_part = to_solver_data.GetModelPart() # surface
+            
+            self.beam_mapper = KratosMapping.MapperFactory.CreateMapper(origin_model_part, destination_model_part, self.settings["mapper_settings"].Clone())
 
         mapper_flags = self.__GetMapperFlags(transfer_options)
 
-        name_tuple         = (model_part_origin_name, model_part_destinatinon_name)
-        inverse_name_tuple = (model_part_destinatinon_name, model_part_origin_name)
-
-        if name_tuple in self.__mappers:
-            if not variable_origin == KM.DISPLACEMENT:
-                raise Exception("Wrong variable")
-            self.__mappers[name_tuple].Map(variable_origin, self.second_variable_displacement, variable_destination, mapper_flags)
-        elif inverse_name_tuple in self.__mappers:
+        if inverse_map:
+            variable_destination = from_solver_data.variable
+            variable_origin = to_solver_data.variable
             if not variable_origin == KSM.POINT_LOAD:
                 raise Exception("Wrong variable")
-            self.__mappers[inverse_name_tuple].InverseMap(variable_destination, self.second_variable_force, variable_origin, mapper_flags)
+            self.beam_mapper.InverseMap(variable_origin, self.second_variable_displacement, variable_destination, mapper_flags)
         else:
-            if model_part_origin.IsDistributed() or model_part_destinatinon.IsDistributed():
-                raise NotImplementedError("Beam mapper does not yet work in MPI")
-                mapper_create_fct = KratosMapping.MapperFactory.CreateMPIMapper
-            else:
-                mapper_create_fct = KratosMapping.MapperFactory.CreateMapper
-
-            beam_mapper_settings = self.settings["mapper_settings"].Clone()
-            beam_mapper_settings.AddEmptyValue("mapper_type").SetString("beam_mapper")
+            variable_origin = from_solver_data.variable
+            variable_destination = to_solver_data.variable
             if not variable_origin == KM.DISPLACEMENT:
                 raise Exception("Wrong variable")
-            self.__mappers[name_tuple] = mapper_create_fct(model_part_origin, model_part_destinatinon, beam_mapper_settings) # Clone is necessary here bcs settings are influenced among mappers otherwise. TODO check in the MapperFactory how to solve this better
-            self.__mappers[name_tuple].Map(variable_origin, self.second_variable_displacement, variable_destination, mapper_flags)
+            self.beam_mapper.Map(variable_origin, self.second_variable_force, variable_destination, mapper_flags)
 
     @classmethod
     def _GetDefaultSettings(cls):
         this_defaults = KM.Parameters("""{
-            "mapper_settings" : { },
-            "second_variable_displacement" : "ROTATION"
+            "mapper_settings"              : { },
+            "solver_name_beam"             : "UNSPECIFIED",
+            "solver_name_surface"          : "UNSPECIFIED",
+            "model_part_name_beam"         : "UNSPECIFIED",
+            "model_part_name_surface"      : "UNSPECIFIED",
+            "second_variable_displacement" : "ROTATION",
             "second_variable_force"        : "POINT_MOMENT"
         }""")
         this_defaults.AddMissingParameters(super(KratosBeamMapper, cls)._GetDefaultSettings())
