@@ -7,8 +7,11 @@ import KratosMultiphysics.KratosUnittest as KratosUnittest
 import numpy as np
 import math
 
-mdpa_file_name_beam    = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_line"
-mdpa_file_name_surface = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_Phase_6_Blade_Tri_005"
+#mdpa_file_name_beam    = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_line"
+#mdpa_file_name_surface = "mdpa_files/NREL_Phase_6_Blade_Different_Meshes_2/NREL_Phase_6_Blade_Tri_005"
+
+mdpa_file_name_beam    = "mdpa_files/blade_line"
+mdpa_file_name_surface = "mdpa_files/blade_quad"
 
 def WriteGiDOutput(model_part):
     from gid_output_process import GiDOutputProcess
@@ -194,15 +197,16 @@ class TestBeamMapper(KratosUnittest.TestCase):
         mapper_settings = KM.Parameters("""{
             "mapper_type": "beam_mapper",
             "echo_level" : 3,
-            "local_coord_tolerance" : 0.25
+            "local_coord_tolerance" : 0.25,
+            "use_corotation" : true
         }""")
 
         self.mapper = KratosMapping.MapperFactory.CreateMapper(self.model_part_beam, self.model_part_surface, mapper_settings)
 
         for node in self.model_part_beam.Nodes:
             lenght_beam = 5.029
-            alfa = 3.141516 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
-            beta = 1.0472
+            alfa = 1.0472 # 20° = 0.3491 rad, 40° = 0.6981, 60° = 1.0472 alfa is the slope of the right end
+            beta = alfa
             r = lenght_beam / alfa
 
             theta_X = 0.0

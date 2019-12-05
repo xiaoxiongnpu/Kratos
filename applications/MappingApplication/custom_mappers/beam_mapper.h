@@ -237,7 +237,6 @@ public:
 
     /// Turn back information as a string.
     std::string PairingInfo(const int EchoLevel) const override;
-
 private:
     NodePointerType mpNode;
     mutable ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;

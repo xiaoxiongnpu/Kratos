@@ -41,8 +41,77 @@ void BeamMapperInterfaceInfo::ProcessSearchResult(const InterfaceObject& rInterf
 void BeamMapperInterfaceInfo::ProcessSearchResultForApproximation(const InterfaceObject& rInterfaceObject,
                                                                   const double NeighborDistance)
 {
-    //KRATOS_ERROR << "ProcessSearchResultForApproximation is not implemented for Beam Mapping yet." << std::endl;
-    //SaveSearchResult(rInterfaceObject, true);
+    const auto p_geom = rInterfaceObject.pGetBaseGeometry();
+    double proj_dist;
+    double proj_dist_nodes;
+
+    const Point point_to_proj(this->Coordinates());
+    Point projection_point;
+    Point local_coords;
+
+    mCoordinates = point_to_proj;
+
+    Vector linear_shape_function_values;
+    Vector hermitian_shape_function_values;
+    Vector hermitian_shape_function_derivatives_values;
+    std::vector<int> eq_ids;
+
+    std::abs(GeometricalProjectionUtilities::FastProjectOnLine(*(p_geom), point_to_proj, projection_point));
+    
+    Point min_distance_to_nodes;
+    double distance_to_node1, distance_to_node2;
+    distance_to_node1 = norm_2(projection_point - (*p_geom)[0]);
+    distance_to_node2 = norm_2(projection_point - (*p_geom)[1]);
+    
+    if(distance_to_node1 < distance_to_node2)
+        proj_dist_nodes = distance_to_node1;
+    else
+        proj_dist_nodes = distance_to_node2;
+    
+    if (proj_dist_nodes < mClosestProjectionDistance) {
+        SetIsApproximation();
+
+        mPairingIndex = ProjectionUtilities::PairingIndex::Closest_Point;
+        p_geom->IsInside(projection_point, local_coords, 1e-14);
+        p_geom->PointLocalCoordinates(local_coords, projection_point);
+        if(local_coords[0] < -1.0 )
+            local_coords[0] = -1.0;
+        if(local_coords[0] > 1.0 )
+            local_coords[0] = 1.0;
+
+        bool ComputeApproximation = 0;
+        ProjectionUtilities::ProjectOnLine(*p_geom, point_to_proj, mLocalCoordTol, linear_shape_function_values, eq_ids, proj_dist, ComputeApproximation); // Kust to get eq_ids
+        //ProjectionUtilities::ProjectOnLineHermitian(*p_geom, point_to_proj, mLocalCoordTol, hermitian_shape_function_values, hermitian_shape_function_derivatives_values, proj_dist, projection_point);
+
+        p_geom->ShapeFunctionsValues(linear_shape_function_values, local_coords);
+        ProjectionUtilities::HermitianShapeFunctionsValues(hermitian_shape_function_values, hermitian_shape_function_derivatives_values, local_coords);
+        mClosestProjectionDistance = proj_dist_nodes;
+        mNodeIds = eq_ids;
+
+        const std::size_t num_values_linear = linear_shape_function_values.size();
+        const std::size_t num_values_hermitian = hermitian_shape_function_values.size();
+        const std::size_t num_values_hermitian_der = hermitian_shape_function_derivatives_values.size();
+        
+        if (mLinearShapeFunctionValues.size() != num_values_linear) mLinearShapeFunctionValues.resize(num_values_linear);
+        for (std::size_t i=0; i<num_values_linear; ++i) {
+            mLinearShapeFunctionValues[i] = linear_shape_function_values[i];
+        }
+
+        if (mHermitianShapeFunctionValues.size() != num_values_linear) mHermitianShapeFunctionValues.resize(num_values_hermitian);
+        for (std::size_t i=0; i<num_values_hermitian; ++i) {
+            mHermitianShapeFunctionValues[i] = hermitian_shape_function_values[i];
+        }
+
+        if (mHermitianShapeFunctionValuesDerivatives.size() != num_values_hermitian_der) mHermitianShapeFunctionValuesDerivatives.resize(num_values_hermitian_der);
+        for (std::size_t i=0; i<num_values_hermitian_der; ++i) {
+            mHermitianShapeFunctionValuesDerivatives[i] = hermitian_shape_function_derivatives_values[i];
+        }
+        
+        mProjectionOfPoint = projection_point;
+        
+        mpInterfaceObject = make_shared<InterfaceGeometryObject>(rInterfaceObject.pGetBaseGeometry());
+        const auto p_geom = mpInterfaceObject->pGetBaseGeometry();
+    }
 }
 
 void BeamMapperInterfaceInfo::SaveSearchResult(const InterfaceObject& rInterfaceObject,
@@ -314,7 +383,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::ValidateInput()
                                         mrModelPartOrigin,
                                         mrModelPartDestination,
                                         mMapperSettings["echo_level"].GetInt());
-        mMapperSettings["search_radius"].SetDouble(10e12);
+        mMapperSettings["search_radius"].SetDouble(search_radius);
     }
 }
 
@@ -352,10 +421,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Var
 {   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
-        //std::cout << " ------------------------------- "<< std::endl;
-        //std::cout << "----------- LOCAL SYSTEM " << i  << "------------"<< std::endl;
-        //i++;
-
         if( r_local_sys->HasInterfaceInfo())
         {
             MatrixType _rotationMatrix_G_B(3, 3);
@@ -514,11 +579,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
                                                                                  const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
 {   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   //std::cout << " ---------------------------------- "<< std::endl;
-        //std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
-        //std::cout << " ---------------------------------- "<< std::endl;
-        //i++;
-
+    {   
         if( r_local_sys->HasInterfaceInfo())
         {
             MatrixType _rotationMatrix_G_B(3, 3);
@@ -750,11 +811,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
 {   const double factor = rMappingOptions.Is(MapperFlags::SWAP_SIGN) ? -1.0 : 1.0;
     //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   //std::cout << " ---------------------------------- "<< std::endl;
-        //std::cout << " ----------- LOCAL SYSTEM " << i << "---------"<< std::endl;
-        //std::cout << " ---------------------------------- "<< std::endl;
-        //i++;
-
+    {   
         if( r_local_sys->HasInterfaceInfo())
         {
             MatrixType _rotationMatrix_G_B(3, 3);
@@ -987,11 +1044,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeOriginForcesAndMoments(con
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments)                                    
 {   //size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
-    {   //std::cout << " ---------------------------------- "<< std::endl;
-        //std::cout << " ----------- Setting forces and moments to zero of LOCAL SYSTEM " << i << "---------"<< std::endl;
-        //std::cout << " ---------------------------------- "<< std::endl;
-        //i++;
-
+    {   
         if( r_local_sys->HasInterfaceInfo())
         {
             MatrixType _rotationMatrix_G_B(3, 3);
