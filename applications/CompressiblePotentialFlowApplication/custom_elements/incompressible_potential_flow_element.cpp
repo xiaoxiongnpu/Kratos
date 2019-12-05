@@ -391,6 +391,34 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemNorm
     noalias(rLeftHandSideMatrix) =
         data.vol * free_stream_density * prod(data.DN_DX, trans(data.DN_DX));
 
+    BoundedMatrix<double, 2, 1 > n_kutta;
+    n_kutta(0,0)=0.0;//sin(0.0*3.1415926/180);
+    n_kutta(1,0)=1.0;//cos(0.0*3.1415926/180);
+    Matrix test=prod(data.DN_DX,n_kutta);
+    BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
+    noalias(lhs_kutta) = free_stream_density * data.vol * prod(test,trans(test));
+    auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
+    lhs_kutta = penalty*(lhs_kutta);
+
+
+    const IncompressiblePotentialFlowElement& r_this = *this;
+
+    const int kutta = r_this.GetValue(KUTTA);
+
+    // if (kutta == 1){
+        for (unsigned int i = 0; i < NumNodes; ++i)
+        {
+            if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+            {
+                for (unsigned int j = 0; j < NumNodes; ++j)
+                {
+                    rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
+                }
+            }
+        }
+    // }
+
+
     data.potentials = PotentialFlowUtilities::GetPotentialOnNormalElement<Dim,NumNodes>(*this);
     noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix, data.potentials);
 }
@@ -503,14 +531,22 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
             noalias(lhs_kutta_negative) += free_stream_density*Volumes[i] * prod(test,trans(test));
         }
     }
-
+    auto penalty = rCurrentProcessInfo[TEMPERATURE];
+//
     // lhs_positive = lhs_kutta_positive + lhs_kutta_negative;
     // lhs_negative = lhs_kutta_negative + lhs_kutta_positive;
 
     // lhs_positive = lhs_kutta_positive;
     // lhs_negative = lhs_kutta_negative;
-    lhs_positive += 10.0*(lhs_kutta_positive+lhs_kutta_negative);
-    lhs_negative += 10.0*(lhs_kutta_negative+lhs_kutta_positive);
+    lhs_positive += lhs_negative;
+
+    lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
+    lhs_negative += penalty*(lhs_kutta_negative+lhs_kutta_positive);
+    // lhs_positive += 100*(lhs_positive+lhs_negative);
+    // lhs_negative += 100*(lhs_negative+lhs_positive);
+    // lhs_positive += penalty*(lhs_kutta_positive);
+    // lhs_negative += penalty*(lhs_kutta_negative);
+
 }
 
 template <int Dim, int NumNodes>
@@ -538,12 +574,12 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
         // if (true)
         {
 
-            // AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
-            for (unsigned int j = 0; j < NumNodes; ++j)
-            {
-                rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
-                rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
-            }
+            AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
+            // for (unsigned int j = 0; j < NumNodes; ++j)
+            // {
+            //     rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
+            //     rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
+            // }
         }
         else
             AssignLocalSystemWakeNode(rLeftHandSideMatrix, lhs_total, data, i);
@@ -572,17 +608,17 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemKuttaWa
     // Filling the diagonal blocks (i.e. decoupling upper and lower dofs)
     for (unsigned int column = 0; column < NumNodes; ++column)
     {
-        rLeftHandSideMatrix(row, column) = lhs_total(row, column);
-        rLeftHandSideMatrix(row + NumNodes, column + NumNodes) = lhs_total(row, column);
+        rLeftHandSideMatrix(row, column) = lhs_positive(row, column);
+        rLeftHandSideMatrix(row + NumNodes, column + NumNodes) = lhs_positive(row, column);
     }
 
     // Applying wake condition on the AUXILIARY_VELOCITY_POTENTIAL dofs
     if (data.distances[row] < 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row, column + NumNodes) = lhs_negative(row, column); // Side 1
+            rLeftHandSideMatrix(row, column + NumNodes) = -lhs_total(row, column); // Side 1
     else if (data.distances[row] > 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row + NumNodes, column) = lhs_positive(row, column); // Side 2
+            rLeftHandSideMatrix(row + NumNodes, column) = -lhs_total(row, column); // Side 2
 }
 
 template <int Dim, int NumNodes>
