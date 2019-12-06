@@ -216,7 +216,7 @@ public:
     }
 
     /** 
-     * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V
+     * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V (sparse matrix version)
      * @details U and V are unitary, and S is the singular value vector
      * Where s_i >= 0, and s_i >= s_i+1 (which means that the biggest number is the first one and the smallest the last one)
      * @param rA The LHS matrix
@@ -226,6 +226,25 @@ public:
      */
     virtual void Solve(
         SparseMatrixType& rA,
+        DenseMatrixType& rUMatrix,
+        DenseVectorType& rSVector,
+        DenseMatrixType& rVMatrix
+        )
+    {
+        KRATOS_ERROR << "Calling linear solver base class" << std::endl;
+    }
+    
+    /** 
+     * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V (dense matrix version)
+     * @details U and V are unitary, and S is the singular value vector
+     * Where s_i >= 0, and s_i >= s_i+1 (which means that the biggest number is the first one and the smallest the last one)
+     * @param rA The LHS matrix
+     * @param rUMatrix The unitary U matrix
+     * @param rSVector The singular values vector
+     * @param rVMatrix The unitary V matrix
+     */
+    virtual void Solve(
+        DenseMatrixType& rA,
         DenseMatrixType& rUMatrix,
         DenseVectorType& rSVector,
         DenseMatrixType& rVMatrix
