@@ -217,19 +217,17 @@ public:
 
     /** 
      * @brief This function gives the SVD of a given mxn matrix (m>=n), returns U,S; where A=U*S*V
-     * @details U and V are unitary, and S is a diagonal matrix.
+     * @details U and V are unitary, and S is the singular value vector
      * Where s_i >= 0, and s_i >= s_i+1 (which means that the biggest number is the first one and the smallest the last one)
-     * @param rK The stiffness matrix
-     * @param rM The mass matrix
+     * @param rA The LHS matrix
      * @param rUMatrix The unitary U matrix
-     * @param rSMatrix The diagonal S matrix
+     * @param rSVector The singular values vector
      * @param rVMatrix The unitary V matrix
      */
-    virtual  void Solve(
-        SparseMatrixType& rK,
-        SparseMatrixType& rM,
+    virtual void Solve(
+        SparseMatrixType& rA,
         DenseMatrixType& rUMatrix,
-        DenseMatrixType& rSMatrix,
+        DenseVectorType& rSVector,
         DenseMatrixType& rVMatrix
         )
     {
