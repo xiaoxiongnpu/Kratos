@@ -24,6 +24,7 @@ def  AuxiliarContactSettings():
             "max_number_splits"                                       : 3,
             "inner_loop_iterations"                                   : 5,
             "inner_loop_adaptive"                                     : false,
+            "io_debug"                                                : false,
             "contact_displacement_relative_tolerance"                 : 1.0e-4,
             "contact_displacement_absolute_tolerance"                 : 1.0e-9,
             "contact_residual_relative_tolerance"                     : 1.0e-4,
@@ -41,7 +42,6 @@ def  AuxiliarContactSettings():
             "simplified_semi_smooth_newton"                           : false,
             "rescale_linear_solver"                                   : false,
             "use_mixed_ulm_solver"                                    : true,
-            "io_debug"                                          : false,
             "mixed_ulm_solver_parameters" :
             {
                 "solver_type"          : "mixed_ulm_linear_solver",
