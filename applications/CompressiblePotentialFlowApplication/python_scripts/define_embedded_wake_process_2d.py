@@ -46,8 +46,8 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
                         node_pos = node
                     else:
                         node_neg = node
-
                 if node_pos.Y - self.trailing_edge_node.Y> 0.0:
+                    elem.SetValue(CPFApp.KUTTA, False)
                     for node in elem.GetNodes():
                         node.SetValue(CPFApp.UPPER_SURFACE, True)
                 else:
@@ -70,7 +70,7 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
                 for node in elem.GetNodes():
                     if node.GetValue(CPFApp.TRAILING_EDGE):
                         elem.SetValue(CPFApp.KUTTA, True)
-        self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
+        # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
 
 
 
@@ -172,8 +172,8 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
                     if(node.X > max_x_coordinate) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
                         max_x_coordinate = node.X
                         self.trailing_edge_node = node
-        # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 10)
-        # self.trailing_edge_node = self.main_model_part.GetNode(53640)
+        # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
+        # self.trailing_edge_node = self.main_model_part.GetNode(12242)
         self.trailing_edge_node.SetValue(CPFApp.TRAILING_EDGE, True)
 
     def __MarkWakeElements(self):
