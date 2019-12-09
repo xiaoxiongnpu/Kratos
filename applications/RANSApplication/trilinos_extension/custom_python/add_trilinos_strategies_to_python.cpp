@@ -18,6 +18,7 @@
 // KratosCore dependencies
 #include "includes/model_part.h"
 #include "linear_solvers/linear_solver.h"
+#include "solving_strategies/builder_and_solvers/builder_and_solver.h"
 #include "solving_strategies/strategies/solving_strategy.h"
 #include "spaces/ublas_space.h"
 
@@ -28,6 +29,7 @@
 #include "custom_strategies/generic_convergence_criteria.h"
 #include "custom_strategies/generic_residual_based_bossak_velocity_scalar_scheme.h"
 #include "custom_strategies/generic_residualbased_simple_steady_scalar_scheme.h"
+#include "custom_strategies/rans_residualbased_newton_raphson_strategy.h"
 
 // Include base h
 #include "add_trilinos_strategies_to_python.h"
@@ -41,15 +43,14 @@ void AddTrilinosStrategiesToPython(pybind11::module& m)
     namespace py = pybind11;
 
     using LocalSpaceType = UblasSpace<double, Matrix, Vector>;
-
     using MPISparseSpaceType = TrilinosSpace<Epetra_FECrsMatrix, Epetra_FEVector>;
-
     using MPIBaseSchemeType = Scheme<MPISparseSpaceType, LocalSpaceType>;
-
-    using MPIConvergenceCriteria = ConvergenceCriteria<MPISparseSpaceType, LocalSpaceType>;
+    using MPIConvergenceCriteriaType =
+        ConvergenceCriteria<MPISparseSpaceType, LocalSpaceType>;
+    using MPILinearSolverType = LinearSolver<MPISparseSpaceType, LocalSpaceType>;
 
     py::class_<GenericConvergenceCriteria<MPISparseSpaceType, LocalSpaceType>,
-               typename GenericConvergenceCriteria<MPISparseSpaceType, LocalSpaceType>::Pointer, MPIConvergenceCriteria>(
+               typename GenericConvergenceCriteria<MPISparseSpaceType, LocalSpaceType>::Pointer, MPIConvergenceCriteriaType>(
         m, "MPIGenericScalarConvergenceCriteria")
         .def(py::init<MPISparseSpaceType::DataType, MPISparseSpaceType::DataType>());
 
@@ -63,6 +64,18 @@ void AddTrilinosStrategiesToPython(pybind11::module& m)
                typename GenericResidualBasedSimpleSteadyScalarScheme<MPISparseSpaceType, LocalSpaceType>::Pointer, MPIBaseSchemeType>(
         m, "MPIGenericResidualBasedSimpleSteadyScalarScheme")
         .def(py::init<const double>());
+
+    using BaseSolvingStrategyType =
+        SolvingStrategy<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
+    using BuilderAndSolverType =
+        BuilderAndSolver<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
+    using RansResidualBasedNewtonRaphsonStrategyType =
+        RansResidualBasedNewtonRaphsonStrategy<MPISparseSpaceType, LocalSpaceType, MPILinearSolverType>;
+
+    py::class_<RansResidualBasedNewtonRaphsonStrategyType, typename RansResidualBasedNewtonRaphsonStrategyType::Pointer, BaseSolvingStrategyType>(
+        m, "MPIRansResidualBasedNewtonRaphsonStrategy")
+        .def(py::init<ModelPart&, MPIBaseSchemeType::Pointer, MPILinearSolverType::Pointer, MPIConvergenceCriteriaType::Pointer,
+                      BuilderAndSolverType::Pointer, int, bool, bool, bool>());
 }
 
 } // namespace Python

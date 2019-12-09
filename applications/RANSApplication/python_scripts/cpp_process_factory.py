@@ -82,6 +82,10 @@ def Factory(settings, Model):
         [
             "TimeAveragingProcess",
             KratosRANS.RansTimeAveragingProcess
+        ],
+        [
+            "VectorRampingProcess",
+            KratosRANS.RansVectorRampingProcess
         ]
     ]
 

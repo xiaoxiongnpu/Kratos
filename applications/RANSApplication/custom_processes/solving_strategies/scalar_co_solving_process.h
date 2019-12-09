@@ -235,12 +235,12 @@ protected:
     void SolveEquations()
     {
         ++mCurrentParentIteration;
+        this->UpdateBeforeSolveEquations();
 
         if (mCurrentParentIteration > mSkipIterations ||
             mpParentSolvingStrategy->IsConverged())
         {
             mCurrentParentIteration = 0;
-            this->UpdateBeforeSolveEquations();
 
             for (auto p_solving_strategy : this->mrSolvingStrategiesList)
             {

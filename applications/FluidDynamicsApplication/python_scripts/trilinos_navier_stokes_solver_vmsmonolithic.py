@@ -248,7 +248,13 @@ class TrilinosNavierStokesSolverMonolithic(navier_stokes_solver_vmsmonolithic.Na
                                                                                    self.trilinos_linear_solver)
 
         ## Construct the Trilinos Newton-Raphson strategy
-        self.solver = KratosTrilinos.TrilinosNewtonRaphsonStrategy(self.main_model_part,
+        if not hasattr(self, "_turbulence_model_solver"):
+            solving_strategy_type = KratosTrilinos.TrilinosNewtonRaphsonStrategy
+        else:
+            from KratosMultiphysics.RANSApplication.TrilinosExtension import MPIRansResidualBasedNewtonRaphsonStrategy
+            solving_strategy_type = MPIRansResidualBasedNewtonRaphsonStrategy
+            #solving_strategy_type = KratosTrilinos.TrilinosNewtonRaphsonStrategy
+        self.solver = solving_strategy_type(self.main_model_part,
                                                                    self.time_scheme,
                                                                    self.trilinos_linear_solver,
                                                                    self.conv_criteria,

@@ -142,9 +142,39 @@ public:
     if (SteadyLHS.size1() != 0)
       noalias(LHS_Contribution) += SteadyLHS;
 
+
     // apply slip condition
     mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentElement->GetGeometry());
     mRotationTool.ApplySlipCondition(LHS_Contribution,RHS_Contribution,rCurrentElement->GetGeometry());
+
+    // // apply the lumped mass matrix
+    // double weighting_factor = static_cast<double>(mCounter) / 50.0;
+    // if (weighting_factor >= 1.0)
+    // {
+    //   weighting_factor = 1.0;
+    // }
+
+    // const int matrix_size = LHS_Contribution.size1();
+    // for (int diag = 0; diag < matrix_size; ++diag)
+    // {
+    //    double lumping_factor = -1.0 * std::abs(LHS_Contribution(diag, diag));
+    //    for (int i = 0; i < matrix_size; ++i)
+    //    {
+    //      lumping_factor += std::abs(LHS_Contribution(diag, i));
+    //    }
+    //    lumping_factor *= (1.0 - weighting_factor);
+    //    if (LHS_Contribution(diag, diag) < 0.0)
+    //    {
+    //      LHS_Contribution(diag, diag) -= lumping_factor;
+    //    }
+    //    else
+    //    {
+    //      LHS_Contribution(diag, diag) += lumping_factor;
+    //    }
+    // }
+
+    // KRATOS_WATCH(LHS_Contribution);
+    // std::exit(-1);
 
     KRATOS_CATCH("");
   }
@@ -204,6 +234,14 @@ public:
                                            rCurrentProcessInfo);
 
     KRATOS_CATCH("");
+  }
+
+  void InitializeNonLinIteration(ModelPart& rModelPart,
+                                       TSystemMatrixType& rA,
+                                       TSystemVectorType& rDx,
+                                       TSystemVectorType& rb) override
+  {
+    ++mCounter;
   }
 
   void FinalizeNonLinIteration(ModelPart& rModelPart,
@@ -314,6 +352,8 @@ protected:
 private:
   ///@name Member Variables
   ///@{
+
+  int mCounter = 0;
 
   double mVelocityRelaxationFactor;
   double mPressureRelaxationFactor;
