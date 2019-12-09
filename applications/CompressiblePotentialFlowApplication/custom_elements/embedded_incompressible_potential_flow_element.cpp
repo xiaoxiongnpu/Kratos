@@ -100,8 +100,8 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
 
     BoundedMatrix<double,NumNodes,Dim> DN_DX;
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=0.0;//sin(0.0*3.1415926/180);
-    n_kutta(1,0)=1.0;//cos(0.0*3.1415926/180);
+    n_kutta(0,0)=sin(5.0*3.1415926/180);
+    n_kutta(1,0)=cos(5.0*3.1415926/180);
     BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
     for (unsigned int i_gauss=0;i_gauss<positive_side_sh_func_gradients.size();i_gauss++){
         DN_DX=positive_side_sh_func_gradients(i_gauss);
@@ -109,22 +109,25 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
         noalias(rLeftHandSideMatrix) += free_stream_density*prod(DN_DX,trans(DN_DX))*positive_side_weights(i_gauss);;
         noalias(lhs_kutta) += free_stream_density * positive_side_weights(i_gauss) * prod(test,trans(test));
     }
-    // const int kutta = r_this.GetValue(KUTTA);
+    const EmbeddedIncompressiblePotentialFlowElement& r_this = *this;
+
+    const int kutta = r_this.GetValue(KUTTA);
 
     auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
-    lhs_kutta = penalty*(lhs_kutta);
-
+    // lhs_kutta = penalty*(lhs_kutta);
+    // if (kutta==1){
     for (unsigned int i = 0; i < NumNodes; ++i)
     {
         if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
         {
             for (unsigned int j = 0; j < NumNodes; ++j)
             {
-                rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
+                rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+                // rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
             }
         }
     }
-
+    // }
     noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix, potential);
 }
 
