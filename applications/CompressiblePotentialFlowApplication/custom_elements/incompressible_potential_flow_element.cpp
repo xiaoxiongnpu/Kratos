@@ -406,16 +406,16 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemNorm
     const int kutta = r_this.GetValue(KUTTA);
 
     // if (kutta == 1){
-        for (unsigned int i = 0; i < NumNodes; ++i)
-        {
-            if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
-            {
-                for (unsigned int j = 0; j < NumNodes; ++j)
-                {
-                    rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
-                }
-            }
-        }
+        // for (unsigned int i = 0; i < NumNodes; ++i)
+        // {
+        //     if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+        //     {
+        //         for (unsigned int j = 0; j < NumNodes; ++j)
+        //         {
+        //             rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
+        //         }
+        //     }
+        // }
     // }
 
 
@@ -515,8 +515,8 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
 
 
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=0.0;//sin(0.0*3.1415926/180);
-    n_kutta(1,0)=1.0;//cos(0.0*3.1415926/180);
+    n_kutta(0,0)=sin(5.0*3.1415926/180);
+    n_kutta(1,0)=cos(5.0*3.1415926/180);
 
     Matrix test=prod(data.DN_DX,n_kutta);
 
@@ -536,16 +536,16 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
     // lhs_positive = lhs_kutta_positive + lhs_kutta_negative;
     // lhs_negative = lhs_kutta_negative + lhs_kutta_positive;
 
-    // lhs_positive = lhs_kutta_positive;
-    // lhs_negative = lhs_kutta_negative;
-    lhs_positive += lhs_negative;
+    lhs_positive = lhs_kutta_positive;
+    lhs_negative = lhs_kutta_negative;
+    // lhs_positive += lhs_negative;
 
-    lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
-    lhs_negative += penalty*(lhs_kutta_negative+lhs_kutta_positive);
-    // lhs_positive += 100*(lhs_positive+lhs_negative);
-    // lhs_negative += 100*(lhs_negative+lhs_positive);
+    // lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
+    // lhs_negative += penalty*(lhs_kutta_negative+lhs_kutta_positive);
     // lhs_positive += penalty*(lhs_kutta_positive);
     // lhs_negative += penalty*(lhs_kutta_negative);
+    // lhs_positive += 100*(lhs_positive+lhs_negative);
+    // lhs_negative += 100*(lhs_negative+lhs_positive);
 
 }
 
@@ -574,12 +574,12 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
         // if (true)
         {
 
-            AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
-            // for (unsigned int j = 0; j < NumNodes; ++j)
-            // {
-            //     rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
-            //     rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
-            // }
+            // AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
+            for (unsigned int j = 0; j < NumNodes; ++j)
+            {
+                rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
+                rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
+            }
         }
         else
             AssignLocalSystemWakeNode(rLeftHandSideMatrix, lhs_total, data, i);
