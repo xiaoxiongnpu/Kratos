@@ -150,7 +150,10 @@ private:
     std::string mModelPartName;
 
     int mEchoLevel;
-
+    double mMinValue;
+    double mCmu;
+    double mVk;
+    double mB0;
 
     ///@}
     ///@name Private Operators
