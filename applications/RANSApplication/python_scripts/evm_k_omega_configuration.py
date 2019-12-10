@@ -82,8 +82,8 @@ class TurbulenceKOmegaConfiguration(
             KratosRANS.TURBULENCE_RANS_SIGMA_OMEGA] = constants["sigma_omega"].GetDouble()
         self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENCE_RANS_Y_PLUS_LIMIT_WALL] = constants["limit_y_plus_wall"].GetDouble()
-        self.fluid_model_part.ProcessInfo[
-            KratosRANS.TURBULENCE_BLENDING] = constants["is_blended"].GetBool()
+        # self.fluid_model_part.ProcessInfo[
+        #     KratosRANS.TURBULENCE_BLENDING] = constants["is_blended"].GetBool()
         
 
     def PrepareSolvingStrategy(self):

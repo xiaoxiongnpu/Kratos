@@ -99,7 +99,7 @@ void RansNutYPlusWallFunctionOmegaProcess::Execute()
         NodeType& r_node = *(r_nodes.begin() + i_node);
         const double nu_k = r_node.FastGetSolutionStepValue(KINEMATIC_VISCOSITY);
         const double y_plus = r_node.FastGetSolutionStepValue(RANS_Y_PLUS);
-        double value= std::pow(value_2+(value_1/(y_plus*y_plus*nu_k*nu_k)),0.5);
+        double value= std::pow(value_2+(value_1/(y_plus*y_plus)),0.5);
         const double nu_t = (y_plus * nu_k)/(c_mu_50*value);
 
         r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) =std::max(nu_t, mMinValue) ;
