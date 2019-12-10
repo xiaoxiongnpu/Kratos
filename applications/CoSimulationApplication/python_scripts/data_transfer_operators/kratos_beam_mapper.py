@@ -74,13 +74,13 @@ class KratosBeamMapper(CoSimulationDataTransferOperator):
             variable_origin = to_solver_data.variable
             if not variable_origin == KSM.POINT_LOAD:
                 raise Exception("Wrong variable")
-            self.beam_mapper.InverseMap(variable_origin, self.second_variable_displacement, variable_destination, mapper_flags)
+            self.beam_mapper.InverseMap(variable_origin, self.second_variable_force, variable_destination, mapper_flags)
         else:
             variable_origin = from_solver_data.variable
             variable_destination = to_solver_data.variable
             if not variable_origin == KM.DISPLACEMENT:
                 raise Exception("Wrong variable")
-            self.beam_mapper.Map(variable_origin, self.second_variable_force, variable_destination, mapper_flags)
+            self.beam_mapper.Map(variable_origin, self.second_variable_displacement, variable_destination, mapper_flags)
 
     @classmethod
     def _GetDefaultSettings(cls):

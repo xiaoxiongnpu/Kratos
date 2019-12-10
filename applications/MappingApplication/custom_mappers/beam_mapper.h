@@ -233,12 +233,21 @@ public:
         }
     }
 
+    void SaveRotationVectorValue(const VectorType& rotationVector) override
+    {
+        mRotationVectorOfSection = rotationVector;
+    }
 
+    void GetValue(VectorType& rotVectorValue) override
+    {
+        rotVectorValue = mRotationVectorOfSection;
+    }
 
     /// Turn back information as a string.
     std::string PairingInfo(const int EchoLevel) const override;
 private:
     NodePointerType mpNode;
+    VectorType mRotationVectorOfSection;
     mutable ProjectionUtilities::PairingIndex mPairingIndex = ProjectionUtilities::PairingIndex::Unspecified;
     double mTheta;
 };

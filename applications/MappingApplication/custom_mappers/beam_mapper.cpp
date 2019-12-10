@@ -516,7 +516,7 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                                                                  const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                                                                  const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
-{   //size_t i = 0;
+{   size_t i = 0;
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
         if( r_local_sys->HasInterfaceInfo())
@@ -538,6 +538,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
                                                                _pNode);
 
             KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
+            std::cout << "Surface node : " << _pNode->Coordinates() << std::endl;
 
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             VectorType displacementNode1_G(3); //Expresses in global coordinates
@@ -731,6 +732,14 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             displacement( 1 ) = phi_G( 1 ) - _X( 1 );
             displacement( 2 ) = phi_G( 2 ) - _X( 2 );
 
+            std::cout << "Final displacement : " << displacement << std::endl;
+
+            // For conservative mapping
+            VectorType rotationOfSection(3);
+            std::cout << "Matrix product : " << MatrixProduct << std::endl;
+            getRotationVector(MatrixProduct, rotationOfSection);
+            r_local_sys->SaveRotationVectorValue(rotationOfSection);
+
             size_t c = 0;
             for( const auto& var_ext : var_comps )
             {
@@ -773,7 +782,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
 
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             VectorType surfaceForce(3), surfaceMoment(3); 
-            VectorType pointP(3), pointQ(3), distancePQ(3);
+            VectorType pointP(3), pointQ(3), distancePQ(3), distancePQMoved(3);
 
             size_t k = 0;
 
@@ -783,14 +792,27 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
                 surfaceForce(k) = _pNode->FastGetSolutionStepValue(var_destination_force);
                 k++;
             }
+            VectorType rotationVectorOfSection(3);
+            MatrixType rotationMatrixOfSection(3, 3);
+            r_local_sys->GetValue(rotationVectorOfSection);
+            std::cout << "rotationVectorOfSection : " << rotationVectorOfSection << std::endl;
+            double angle = norm_2(rotationVectorOfSection);
+            rotationVectorOfSection = rotationVectorOfSection / angle;
+            CalculateRotationMatrixWithAngle(rotationVectorOfSection, angle, rotationMatrixOfSection);
 
             pointP = _translationVector_B_P;
             pointQ = _pNode->Coordinates();
             distancePQ = pointQ - pointP;
+            std::cout << "distancePQ : " << distancePQ << std::endl;
+            std::cout << "rotationMatrixOfSection : " << rotationMatrixOfSection << std::endl;
+            TDenseSpace::Mult(rotationMatrixOfSection, distancePQ, distancePQMoved);
+            std::cout << "distancePQMoved : " << distancePQMoved << std::endl;
 
-            surfaceMoment(0) = distancePQ(1) * surfaceForce(2) - distancePQ(2) * surfaceForce(1);
-            surfaceMoment(1) = distancePQ(2) * surfaceForce(0) - distancePQ(0) * surfaceForce(2);
-            surfaceMoment(2) = distancePQ(0) * surfaceForce(1) - distancePQ(1) * surfaceForce(0);
+            surfaceMoment(0) = distancePQMoved(1) * surfaceForce(2) - distancePQMoved(2) * surfaceForce(1);
+            surfaceMoment(1) = distancePQMoved(2) * surfaceForce(0) - distancePQMoved(0) * surfaceForce(2);
+            surfaceMoment(2) = distancePQMoved(0) * surfaceForce(1) - distancePQMoved(1) * surfaceForce(0);
+
+            std::cout << "Linear shape function values " << _linearShapeValues << std::endl;
 
             size_t c = 0;
             for (const auto& var_ext : var_comps)
@@ -798,11 +820,18 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
                 const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
                 const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
 
-                _r_geom[0].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(0) * surfaceForce(c) * factor;
-                _r_geom[0].FastGetSolutionStepValue(var_origin_moment)+=  _linearShapeValues(0) * surfaceMoment(c) * factor;
-                _r_geom[1].FastGetSolutionStepValue(var_origin_force) +=  _linearShapeValues(1) * surfaceForce(c) * factor;
-                _r_geom[1].FastGetSolutionStepValue(var_origin_moment)+=  _linearShapeValues(1) * surfaceMoment(c) * factor; 
+                _r_geom[0].FastGetSolutionStepValue(var_origin_force)  +=  _linearShapeValues(0) * surfaceForce(c) * factor;
+                _r_geom[0].FastGetSolutionStepValue(var_origin_moment) +=  _linearShapeValues(0) * surfaceMoment(c) * factor;
+                _r_geom[1].FastGetSolutionStepValue(var_origin_force)  +=  _linearShapeValues(1) * surfaceForce(c) * factor;
+                _r_geom[1].FastGetSolutionStepValue(var_origin_moment) +=  _linearShapeValues(1) * surfaceMoment(c) * factor; 
                 c++;
+            }
+            for (const auto& var_ext : var_comps)
+            {
+                const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
+                const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
+                std::cout << "_r_geom[0].force" << var_ext << " : " << _r_geom[0].FastGetSolutionStepValue(var_origin_force) << " , _r_geom[0].moment" << var_ext << " : " <<  _r_geom[0].FastGetSolutionStepValue(var_origin_moment) << std::endl;
+                std::cout << "_r_geom[1].force" << var_ext << " : " << _r_geom[1].FastGetSolutionStepValue(var_origin_force) << " , _r_geom[1].moment" << var_ext << " : " <<  _r_geom[1].FastGetSolutionStepValue(var_origin_moment) << std::endl; 
             }
         }
     }

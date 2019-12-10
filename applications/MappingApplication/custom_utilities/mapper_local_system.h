@@ -186,6 +186,10 @@ public:
                                                        VectorType& _hermitanDerShapeValues,
                                                        GeometryType& r_geom,
                                                        NodePointerType& pNode){ KRATOS_ERROR << "Base class function called! This function is used only for the Beam Mapper. " << std::endl;}
+    
+    virtual void SaveRotationVectorValue(const VectorType& rotationVector) { KRATOS_ERROR << "Base class function called!" << std::endl; }
+    
+    virtual void GetValue(VectorType& rotVectorValue) { KRATOS_ERROR << "Base class function called!" << std::endl; }
 
 protected:
     ///@name Protected Life Cycle
