@@ -40,7 +40,8 @@ RansOmegaYPlusWallFunctionProcess::RansOmegaYPlusWallFunctionProcess(Model& rMod
             "beta_zero"       : 0.072,
             "c_mu"            : 0.09,
             "von_karman"      : 0.41,
-            "beta"            : 5.2
+            "beta"            : 5.2,
+            "is_fixed"        : true
         })");
 
     mrParameters.ValidateAndAssignDefaults(default_parameters);
@@ -50,7 +51,8 @@ RansOmegaYPlusWallFunctionProcess::RansOmegaYPlusWallFunctionProcess(Model& rMod
     mBetaZero = mrParameters["beta_zero"].GetDouble();
     mVonKarman = mrParameters["von_karman"].GetDouble();
     mBeta = mrParameters["beta"].GetDouble();
-    mCmu = mrParameters["c_mu"].GetDouble(); //equivalent to beta star
+    mCmu = mrParameters["c_mu"].GetDouble(); // equivalent to beta star
+    mIsFixed = mrParameters["is_fixed"].GetBool();
     mLimitYPlus =
         RansCalculationUtilities::CalculateLogarithmicYPlusLimit(mVonKarman, mBeta);
 
@@ -72,8 +74,9 @@ int RansOmegaYPlusWallFunctionProcess::Check()
 
     RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, KINEMATIC_VISCOSITY);
     RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, RANS_Y_PLUS);
-    RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, TURBULENT_KINETIC_ENERGY );
-    RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE);
+    RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, TURBULENT_KINETIC_ENERGY);
+    RansCheckUtilities::CheckIfVariableExistsInModelPart(
+        r_model_part, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE);
     RansCheckUtilities::CheckIfVariableExistsInModelPart(r_model_part, VELOCITY);
 
     return 0;
@@ -85,14 +88,17 @@ void RansOmegaYPlusWallFunctionProcess::ExecuteInitialize()
 {
     KRATOS_TRY
 
-    ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
-    const int number_of_nodes = r_model_part.NumberOfNodes();
-
-    #pragma omp parallel for
-    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+    if (mIsFixed)
     {
-        NodeType& r_node = *(r_model_part.NodesBegin() + i_node);
-        r_node.Fix(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE);
+        ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
+        const int number_of_nodes = r_model_part.NumberOfNodes();
+
+#pragma omp parallel for
+        for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+        {
+            NodeType& r_node = *(r_model_part.NodesBegin() + i_node);
+            r_node.Fix(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE);
+        }
     }
 
     KRATOS_CATCH("");
@@ -106,12 +112,11 @@ void RansOmegaYPlusWallFunctionProcess::Execute()
 
     const int number_of_nodes = r_model_part.NumberOfNodes();
     unsigned int number_of_modified_omega_wall_nodes = 0;
-    double c_mu_25= std::pow(mCmu, 0.25); //4th rooth of cmu
+    double c_mu_25 = std::pow(mCmu, 0.25); // 4th rooth of cmu
 
 #pragma omp parallel for reduction(+ : number_of_modified_omega_wall_nodes)
     for (int i_node = 0; i_node < number_of_nodes; ++i_node)
     {
-
         NodeType& r_node = *(r_model_part.NodesBegin() + i_node);
         // if (r_node.Id() = 1000)
         //     std::cout<< r_node.FastGetSolutionStepValue(VELOCITY)<<std::endl;
@@ -120,31 +125,29 @@ void RansOmegaYPlusWallFunctionProcess::Execute()
         const array_1d<double, 3>& r_velocity = r_node.FastGetSolutionStepValue(VELOCITY);
         double velocity_magnitude = norm_2(r_velocity);
 
-//         KRATOS_ERROR_IF(y_plus < std::numeric_limits<double>::epsilon())
-// -          << "The input y_plus should be greater than zero.\n";
-		//raising flag nor kratos error working on console -> ask suneth
-		//if(y_plus < std::numeric_limits<double>::epsilon())
-  //        throw std::runtime_error( "The input y_plus should be greater than zero.\n");
+        //         KRATOS_ERROR_IF(y_plus < std::numeric_limits<double>::epsilon())
+        // -          << "The input y_plus should be greater than zero.\n";
+        // raising flag nor kratos error working on console -> ask suneth
+        // if(y_plus < std::numeric_limits<double>::epsilon())
+        //        throw std::runtime_error( "The input y_plus should be greater than zero.\n");
 
-        if (y_plus < mLimitYPlus) //if y_plus is less than limit y plus it is in the viscous zones, hence we have to apply wall function
+        if (y_plus < mLimitYPlus) // if y_plus is less than limit y plus it is in the viscous zones, hence we have to apply wall function
         {
             r_node.FastGetSolutionStepValue(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE) =
-                                (6* velocity_magnitude*velocity_magnitude)/(mBetaZero* std::pow(y_plus,4)*nu_m);
+                (6 * velocity_magnitude * velocity_magnitude) /
+                (mBetaZero * std::pow(y_plus, 4) * nu_m);
             number_of_modified_omega_wall_nodes++;
         }
         else // if y plus is greater than the limit y plus, we are not in wall zone so apply the wall function in the log layer
         {
-            double u_plus= (1/mVonKarman)* std::log(y_plus) + mBeta;
-            double u_tau_squared= std::pow(velocity_magnitude/(u_plus),2);
-            double denominator_product= c_mu_25 * mVonKarman * y_plus * nu_m;
+            double u_plus = (1 / mVonKarman) * std::log(y_plus) + mBeta;
+            double u_tau_squared = std::pow(velocity_magnitude / (u_plus), 2);
+            double denominator_product = c_mu_25 * mVonKarman * y_plus * nu_m;
 
-            r_node.FastGetSolutionStepValue(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE) = u_tau_squared/denominator_product;
+            r_node.FastGetSolutionStepValue(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE) =
+                u_tau_squared / denominator_product;
             number_of_modified_omega_wall_nodes++;
-
         }
-
-
-
     }
 
     KRATOS_INFO_IF(this->Info(), mEchoLevel > 0)

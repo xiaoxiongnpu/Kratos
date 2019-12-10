@@ -159,6 +159,8 @@ private:
     double mVonKarman;
     double mBeta;
 
+    bool mIsFixed;
+
     ///@}
     ///@name Private Operators
     ///@{

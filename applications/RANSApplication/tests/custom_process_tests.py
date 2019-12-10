@@ -479,14 +479,14 @@ class CustomProcessTest(UnitTest.TestCase):
 #Epsilon inlet test
     def testEpsilonMixingInletProcess(self):
         self.__CreateModel()
-        
+
         settings = Kratos.Parameters(r'''
          [
             {
                 "kratos_module" : "KratosMultiphysics.RANSApplication",
                 "python_module" : "cpp_process_factory",
                 "process_name"  : "EpsilonTurbulentMixingLengthInletProcess",
-                "Parameters" :             
+                "Parameters" :
                 {
                 "model_part_name"     : "test",
                 "turbulent_mixing_length" : 0.005,
@@ -541,14 +541,14 @@ class CustomProcessTest(UnitTest.TestCase):
 
     def testOmegaMixingInletProcess(self):
         self.__CreateModel()
-        
+
         settings = Kratos.Parameters(r'''
          [
             {
                 "kratos_module" : "KratosMultiphysics.RANSApplication",
                 "python_module" : "cpp_process_factory",
                 "process_name"  : "OmegaTurbulentMixingLengthInletProcess",
-                "Parameters" :             
+                "Parameters" :
                 {
                 "model_part_name"         : "test",
                 "turbulent_mixing_length" : 0.005,
@@ -573,14 +573,14 @@ class CustomProcessTest(UnitTest.TestCase):
 
     def testKMixingInletProcess(self):
         self.__CreateModel()
-        
+
         settings = Kratos.Parameters(r'''
          [
             {
                 "kratos_module" : "KratosMultiphysics.RANSApplication",
                 "python_module" : "cpp_process_factory",
                 "process_name"  : "KTurbulentIntensityInletProcess",
-                "Parameters" :             
+                "Parameters" :
                 {
                 "model_part_name"     : "test",
                 "turbulent_intensity" : 0.05,
@@ -619,7 +619,8 @@ class CustomProcessTest(UnitTest.TestCase):
                     "beta_zero"       : 0.072,
                     "c_mu"            : 0.09,
                     "von_karman"      : 0.41,
-                    "beta"            : 5.2
+                    "beta"            : 5.2,
+                    "is_fixed"        : false
                     }
                 }
         ]''')
@@ -642,7 +643,7 @@ class CustomProcessTest(UnitTest.TestCase):
             omega=node.GetSolutionStepValue(KratosRANS.TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE)
 
 
-            
+
             if (y_plus < 11.06):
                 print (omega)
                 if (y_plus< 0.000001):
