@@ -194,6 +194,7 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
                         is_valid = self.CheckIfValid(node)
                         if is_valid:
                             return True
+        return False
 
     def FindNode(self, max_x_coordinate, restarted_search_maximum):
         for elem in self.main_model_part.Elements:
