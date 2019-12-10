@@ -100,8 +100,9 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
 
     BoundedMatrix<double,NumNodes,Dim> DN_DX;
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=sin(5.0*3.1415926/180);
-    n_kutta(1,0)=cos(5.0*3.1415926/180);
+    double angle_in_deg = rCurrentProcessInfo[ROTATION_ANGLE];
+    n_kutta(0,0)=sin(angle_in_deg*Globals::Pi/180);
+    n_kutta(1,0)=cos(angle_in_deg*Globals::Pi/180);
     BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
     for (unsigned int i_gauss=0;i_gauss<positive_side_sh_func_gradients.size();i_gauss++){
         DN_DX=positive_side_sh_func_gradients(i_gauss);

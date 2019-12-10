@@ -515,8 +515,9 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
 
 
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=sin(5.0*3.1415926/180);
-    n_kutta(1,0)=cos(5.0*3.1415926/180);
+    double angle_in_deg = rCurrentProcessInfo[ROTATION_ANGLE];
+    n_kutta(0,0)=sin(angle_in_deg*Globals::Pi/180);
+    n_kutta(1,0)=cos(angle_in_deg*Globals::Pi/180);
 
     Matrix test=prod(data.DN_DX,n_kutta);
 
