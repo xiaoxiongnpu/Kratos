@@ -492,7 +492,7 @@ class CustomProcessTest(UnitTest.TestCase):
                 "turbulent_mixing_length" : 0.005,
                 "c_mu"                    : 0.09,
                 "echo_level"              : 0,
-                "is_fixed"                : true
+                "is_fixed"                : false
                 }
             }
         ]''')
@@ -554,7 +554,7 @@ class CustomProcessTest(UnitTest.TestCase):
                 "turbulent_mixing_length" : 0.005,
                 "c_mu"                    : 0.09,
                 "echo_level"              : 0,
-                "is_fixed"                : true
+                "is_fixed"                : false
                 }
             }
         ]''')
@@ -585,7 +585,7 @@ class CustomProcessTest(UnitTest.TestCase):
                 "model_part_name"     : "test",
                 "turbulent_intensity" : 0.05,
                 "echo_level"          : 0,
-                "is_fixed"            : true,
+                "is_fixed"            : false,
                 "min_k_value"         : 1e-18
                 }
             }
