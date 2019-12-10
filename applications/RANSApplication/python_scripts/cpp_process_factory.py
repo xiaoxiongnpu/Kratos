@@ -88,7 +88,10 @@ def Factory(settings, Model):
             "OmegaTurbulentMixingLengthInletProcess",
             KratosRANS.RansOmegaTurbulentMixingLengthInletProcess
         ],
-
+        [
+            "NutYPlusWallFunctionOmegaProcess",
+            KratosRANS.RansNutYPlusWallFunctionOmegaProcess
+        ],
         [
             "OmegaYPlusWallFunctionProcess",
             KratosRANS.RansOmegaYPlusWallFunctionProcess

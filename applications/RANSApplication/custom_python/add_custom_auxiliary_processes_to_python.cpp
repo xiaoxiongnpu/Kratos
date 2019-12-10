@@ -37,6 +37,8 @@
 #include "custom_processes/auxiliary_processes/rans_omega_turbulent_mixing_inlet_process.h"
 #include "custom_processes/auxiliary_processes/rans_nut_k_omega_high_re_calculation_process.h"
 #include "custom_processes/auxiliary_processes/rans_omega_y_plus_wall_function_process.h"
+#include "custom_processes/auxiliary_processes/rans_nut_y_plus_wall_function_omega_process.h"
+
 
 namespace Kratos
 {
@@ -154,6 +156,11 @@ void AddCustomAuxiliaryProcessesToPython(pybind11::module& m)
     using RansOmegaYPlusWallFunctionProcessType = RansOmegaYPlusWallFunctionProcess;
         py::class_<RansOmegaYPlusWallFunctionProcessType, RansOmegaYPlusWallFunctionProcessType::Pointer, Process>(
             m, "RansOmegaYPlusWallFunctionProcess")
+            .def(py::init<Model&, Parameters&>());
+
+    using RansNutYPlusWallFunctionOmegaProcessType = RansNutYPlusWallFunctionOmegaProcess;
+        py::class_<RansNutYPlusWallFunctionOmegaProcessType, RansNutYPlusWallFunctionOmegaProcessType::Pointer, Process>(
+            m, "RansNutYPlusWallFunctionOmegaProcess")
             .def(py::init<Model&, Parameters&>());
 }
 

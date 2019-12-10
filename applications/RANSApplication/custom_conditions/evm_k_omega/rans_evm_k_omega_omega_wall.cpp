@@ -302,44 +302,94 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO_STAR], 0.25);
     const double eps = std::numeric_limits<double>::epsilon();
-    for (IndexType g = 0; g < num_gauss_points; ++g)
-    {
-        const Vector& gauss_shape_functions = row(shape_functions, g);
-        const double weight = J * integration_points[g].Weight();
+    // blending coefficient calculation
+    const double c_mu_50 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO_STAR], 0.50);
+    const double b0_2 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO], 2);
+    const double vk = rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double blended_val = b0_2 / ( 36.0 * c_mu_50 * vk);
+    // const bool blend = rCurrentProcessInfo[TURBULENCE_BLENDING];
 
-        const double nu = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, KINEMATIC_VISCOSITY, gauss_shape_functions);
-        const double nu_t = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, TURBULENT_VISCOSITY, gauss_shape_functions);
-        const double tke = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
-        const double omega = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
-        const double y_plus = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, RANS_Y_PLUS, gauss_shape_functions);
-        int coefficient = -2.0;
-        if(y_plus>rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
-            coefficient= - 1.0;
-    // Launder-Spalding wall functions considering u_tau relation proportional
-    // to cmu^0.25 and sqrt(kinetic energy)
-        const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
-        if (y_plus > eps)
+    // if(blend)
+    // {
+        for (IndexType g = 0; g < num_gauss_points; ++g)
         {
-            const double value =
-                weight * coefficient * u_tau / (y_plus * nu);
+            const Vector& gauss_shape_functions = row(shape_functions, g);
+            const double weight = J * integration_points[g].Weight();
 
-            for (IndexType a = 0; a < TNumNodes; ++a)
+            const double nu = RansCalculationUtilities::EvaluateInPoint(
+                r_geometry, KINEMATIC_VISCOSITY, gauss_shape_functions);
+            const double nu_t = RansCalculationUtilities::EvaluateInPoint(
+                r_geometry, TURBULENT_VISCOSITY, gauss_shape_functions);
+            const double tke = RansCalculationUtilities::EvaluateInPoint(
+                r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
+            const double omega = RansCalculationUtilities::EvaluateInPoint(
+                r_geometry, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
+            const double y_plus = RansCalculationUtilities::EvaluateInPoint(
+                r_geometry, RANS_Y_PLUS, gauss_shape_functions);
+        
+            int coefficient = -1.0 * (1 + (1 / ( 1 + blended_val * std::pow(y_plus , 2.0))));
+        // Launder-Spalding wall functions considering u_tau relation proportional
+        // to cmu^0.25 and sqrt(kinetic energy)
+            const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
+            if (y_plus > eps)
             {
-                for (IndexType b = 0; b < TNumNodes; ++b)
+                const double value =
+                    weight * coefficient * u_tau / (y_plus * nu);
+
+                for (IndexType a = 0; a < TNumNodes; ++a)
                 {
-                    rDampingMatrix(a, b) -=
-                        gauss_shape_functions[a] * gauss_shape_functions[b] * value;
+                    for (IndexType b = 0; b < TNumNodes; ++b)
+                    {
+                        rDampingMatrix(a, b) -=
+                            gauss_shape_functions[a] * gauss_shape_functions[b] * value;
+                    }
+                    rRightHandSideVector[a] += value * gauss_shape_functions[a] * omega;
                 }
-                rRightHandSideVector[a] += value * gauss_shape_functions[a] * omega;
             }
         }
-    }
+    // }
 
+    // else
+    // {    
+    //     for (IndexType g = 0; g < num_gauss_points; ++g)
+    //     {
+    //         const Vector& gauss_shape_functions = row(shape_functions, g);
+    //         const double weight = J * integration_points[g].Weight();
+
+    //         const double nu = RansCalculationUtilities::EvaluateInPoint(
+    //             r_geometry, KINEMATIC_VISCOSITY, gauss_shape_functions);
+    //         const double nu_t = RansCalculationUtilities::EvaluateInPoint(
+    //             r_geometry, TURBULENT_VISCOSITY, gauss_shape_functions);
+    //         const double tke = RansCalculationUtilities::EvaluateInPoint(
+    //             r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
+    //         const double omega = RansCalculationUtilities::EvaluateInPoint(
+    //             r_geometry, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
+    //         const double y_plus = RansCalculationUtilities::EvaluateInPoint(
+    //             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
+        
+    //         int coefficient = -2.0;
+    //         if(y_plus>rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
+    //             coefficient= - 1.0;
+    //     // Launder-Spalding wall functions considering u_tau relation proportional
+    //     // to cmu^0.25 and sqrt(kinetic energy)
+    //         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
+    //         if (y_plus > eps)
+    //         {
+    //             const double value =
+    //                 weight * coefficient * u_tau / (y_plus * nu);
+
+    //             for (IndexType a = 0; a < TNumNodes; ++a)
+    //             {
+    //                 for (IndexType b = 0; b < TNumNodes; ++b)
+    //                 {
+    //                     rDampingMatrix(a, b) -=
+    //                         gauss_shape_functions[a] * gauss_shape_functions[b] * value;
+    //                 }
+    //                 rRightHandSideVector[a] += value * gauss_shape_functions[a] * omega;
+    //             }
+    //         }
+    //     }
+    // }
     KRATOS_CATCH("");
 }
 

@@ -35,8 +35,9 @@ class TurbulenceKOmegaConfiguration(
                 "sigma_omega"             : 0.5,
                 "beta_zero"               : 0.072,
                 "gamma"                   : 0.52,
-                "limit_y_plus_wall"             : 11.06,
-                "beta_zero_star"          : 0.09
+                "limit_y_plus_wall"       : 11.06,
+                "beta_zero_star"          : 0.09,
+                "is_blended"              : false
             },
             "flow_parameters":
             {
@@ -56,7 +57,7 @@ class TurbulenceKOmegaConfiguration(
 
 
         self.model_elements_list = ["RansEvmKOmegaK", "RansEvmKOmegaOmega"]
-        self.model_conditions_list = ["Condition", "Condition"]
+        self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWall"]
 
         self.ramp_up_time = self.model_settings["flow_parameters"][
             "ramp_up_time"].GetDouble()
@@ -79,8 +80,11 @@ class TurbulenceKOmegaConfiguration(
             KratosRANS.TURBULENCE_RANS_SIGMA_K] = constants["sigma_k"].GetDouble()
         self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENCE_RANS_SIGMA_OMEGA] = constants["sigma_omega"].GetDouble()
-		self.fluid_model_part.ProcessInfo[
+        self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENCE_RANS_Y_PLUS_LIMIT_WALL] = constants["limit_y_plus_wall"].GetDouble()
+        self.fluid_model_part.ProcessInfo[
+            KratosRANS.TURBULENCE_BLENDING] = constants["is_blended"].GetBool()
+        
 
     def PrepareSolvingStrategy(self):
         scheme_settings = self.model_settings["scheme_settings"]
