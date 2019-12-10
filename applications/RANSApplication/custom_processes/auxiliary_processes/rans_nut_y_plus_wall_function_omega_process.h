@@ -10,8 +10,8 @@
 //  Main authors:    Suneth Warnakulasuriya (https://github.com/sunethwarna)
 //
 
-#if !defined(KRATOS_RANS_NUT_Y_PLUS_WALL_FUNCTION_PROCESS_H_INCLUDED)
-#define KRATOS_RANS_NUT_Y_PLUS_WALL_FUNCTION_PROCESS_H_INCLUDED
+#if !defined(KRATOS_RANS_NUT_Y_PLUS_WALL_FUNCTION_PROCESS_OMEGA_H_INCLUDED)
+#define KRATOS_RANS_NUT_Y_PLUS_WALL_FUNCTION_PROCESS_OMEGA_H_INCLUDED
 
 // System includes
 #include <string>
