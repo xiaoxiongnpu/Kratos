@@ -165,16 +165,44 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
 
     def __SaveTrailingEdgeNode(self):
         # This function finds and saves the trailing edge for further computations
+        ini_time = time.time()
         max_x_coordinate = -1e30
-        for elem in self.main_model_part.Elements:
-            if elem.Is(KratosMultiphysics.TO_SPLIT) and elem.Is(KratosMultiphysics.ACTIVE):
-                for node in elem.GetNodes():
-                    if(node.X > max_x_coordinate) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
-                        max_x_coordinate = node.X
-                        self.trailing_edge_node = node
+        restarted_search_maximum = 1e30
+        trailing_edge_candidate = self.FindNode(max_x_coordinate, restarted_search_maximum)
+        is_valid = self.CheckIfValid(trailing_edge_candidate)
+        while(not is_valid):
+            trailing_edge_candidate = self.FindNode(max_x_coordinate, trailing_edge_candidate.X)
+            is_valid = self.CheckIfValid(trailing_edge_candidate)
+
+        self.trailing_edge_node = trailing_edge_candidate
+        KratosMultiphysics.Logger.PrintInfo('Time spend finding trailing edge node:', time.time() - ini_time)
         # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
         # self.trailing_edge_node = self.main_model_part.GetNode(12242)
         self.trailing_edge_node.SetValue(CPFApp.TRAILING_EDGE, True)
+
+    def CheckIfValid(self, trailing_edge_candidate):
+        for elem in self.main_model_part.Elements:
+            is_neighbour = False
+            for node in elem.GetNodes():
+                if (node.Id == trailing_edge_candidate.Id):
+                    is_neighbour = True
+            if is_neighbour:
+                if elem.IsNot(KratosMultiphysics.ACTIVE):
+                    return True
+                for node in elem.GetNodes():
+                    if node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0 and node.X < trailing_edge_candidate.X :
+                        is_valid = self.CheckIfValid(node)
+                        if is_valid:
+                            return True
+
+    def FindNode(self, max_x_coordinate, restarted_search_maximum):
+        for elem in self.main_model_part.Elements:
+            if elem.Is(KratosMultiphysics.TO_SPLIT) and elem.Is(KratosMultiphysics.ACTIVE):
+                for node in elem.GetNodes():
+                    if(node.X > max_x_coordinate) and (node.X<restarted_search_maximum) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
+                        max_x_coordinate = node.X
+                        trailing_edge_node = node
+        return trailing_edge_node
 
     def __MarkWakeElements(self):
         # This function checks which elements are cut by the wake
