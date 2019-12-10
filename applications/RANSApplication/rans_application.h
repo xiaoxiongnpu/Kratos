@@ -203,7 +203,8 @@ private:
 	const RansEvmKOmegaKElement<3, 4> mRansEvmKOmegaK3D;
     const RansEvmKOmegaOmegaWall<2> mRansEvmKOmegaOmegaWall2D2N;
     const RansEvmKOmegaOmegaWall<3> mRansEvmKOmegaOmegaWall3D3N;
-
+    const RansEvmKOmegaOmegaWallBlended<2> mRansEvmKOmegaOmegaWallBlended2D2N;
+    const RansEvmKOmegaOmegaWallBlended<3> mRansEvmKOmegaOmegaWallBlended3D3N;
     ///@}
     ///@name Private Operators
     ///@{

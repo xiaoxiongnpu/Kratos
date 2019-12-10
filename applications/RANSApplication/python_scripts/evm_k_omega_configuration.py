@@ -27,6 +27,7 @@ class TurbulenceKOmegaConfiguration(
             "echo_level"          :0,
             "turbulent_kinetic_energy_settings":{},
             "turbulent_specific_energy_dissipation_rate_settings":{},
+            "is_blended"              : false,
             "constants":
             {
                 "sigma_k"                 : 0.5,
@@ -36,8 +37,7 @@ class TurbulenceKOmegaConfiguration(
                 "beta_zero"               : 0.072,
                 "gamma"                   : 0.52,
                 "limit_y_plus_wall"       : 11.06,
-                "beta_zero_star"          : 0.09,
-                "is_blended"              : false
+                "beta_zero_star"          : 0.09
             },
             "flow_parameters":
             {
@@ -54,10 +54,14 @@ class TurbulenceKOmegaConfiguration(
             "flow_parameters"].ValidateAndAssignDefaults(
                 default_settings["flow_parameters"])
         self.model_settings = parameters["model_settings"]
-
+        is_blended = self.model_settings["is_blended"].GetBool()
 
         self.model_elements_list = ["RansEvmKOmegaK", "RansEvmKOmegaOmega"]
-        self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWall"]
+        if is_blended:
+            self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWallBlended"]
+        else:
+            self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWall"]
+        
 
         self.ramp_up_time = self.model_settings["flow_parameters"][
             "ramp_up_time"].GetDouble()

@@ -87,6 +87,14 @@ KratosRANSApplication::KratosRANSApplication()
       mRansEvmKOmegaOmegaWall3D3N(
           0,
           Element::GeometryType::Pointer(
+              new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3)))),
+      mRansEvmKOmegaOmegaWallBlended2D2N(
+          0,
+          Element::GeometryType::Pointer(
+              new Line2D2<Node<3>>(Element::GeometryType::PointsArrayType(2)))),
+      mRansEvmKOmegaOmegaWallBlended3D3N(
+          0,
+          Element::GeometryType::Pointer(
               new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3))))                        
 {
 }
@@ -152,5 +160,7 @@ void KratosRANSApplication::Register()
     // k-omega conditions
     KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWall2D2N", mRansEvmKOmegaOmegaWall2D2N);
     KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWall3D3N", mRansEvmKOmegaOmegaWall3D3N);
+    KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWallBlended2D2N", mRansEvmKOmegaOmegaWallBlended2D2N);
+    KRATOS_REGISTER_CONDITION("RansEvmKOmegaOmegaWallBlended3D3N", mRansEvmKOmegaOmegaWallBlended3D3N);
 }
 } // namespace Kratos.

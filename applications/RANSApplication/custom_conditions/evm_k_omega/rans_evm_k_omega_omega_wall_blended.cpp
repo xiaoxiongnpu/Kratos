@@ -26,7 +26,7 @@
 #include "includes/define.h"
 
 // Application includes
-#include "rans_evm_k_omega_omega_wall.h"
+#include "rans_evm_k_omega_omega_wall_blended.h"
 
 #include "custom_utilities/rans_calculation_utilities.h"
 #include "rans_application_variables.h"
@@ -34,46 +34,46 @@
 namespace Kratos
 {
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::RansEvmKOmegaOmegaWall(IndexType NewId)
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::RansEvmKOmegaOmegaWallBlended(IndexType NewId)
     : Condition(NewId)
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::RansEvmKOmegaOmegaWall(IndexType NewId,
-                                                                const NodesArrayType &ThisNodes)
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::RansEvmKOmegaOmegaWallBlended(IndexType NewId,
+                                                                              const NodesArrayType &ThisNodes)
     : Condition(NewId, ThisNodes)
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::RansEvmKOmegaOmegaWall(IndexType NewId,
-                                                                GeometryType::Pointer pGeometry)
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::RansEvmKOmegaOmegaWallBlended(IndexType NewId,
+                                                                              GeometryType::Pointer pGeometry)
     : Condition(NewId, pGeometry)
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::RansEvmKOmegaOmegaWall(
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::RansEvmKOmegaOmegaWallBlended(
     IndexType NewId, GeometryType::Pointer pGeometry, PropertiesType::Pointer pProperties)
     : Condition(NewId, pGeometry, pProperties)
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::RansEvmKOmegaOmegaWall(RansEvmKOmegaOmegaWall const &rOther)
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::RansEvmKOmegaOmegaWallBlended(RansEvmKOmegaOmegaWallBlended const &rOther)
     : Condition(rOther)
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes>::~RansEvmKOmegaOmegaWall()
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::~RansEvmKOmegaOmegaWallBlended()
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-RansEvmKOmegaOmegaWall<TDim, TNumNodes> &RansEvmKOmegaOmegaWall<TDim, TNumNodes>::operator=(
-    RansEvmKOmegaOmegaWall<TDim, TNumNodes> const &rOther)
+RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes> &RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::operator=(
+    RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes> const &rOther)
 {
     Condition::operator=(rOther);
 
@@ -81,22 +81,22 @@ RansEvmKOmegaOmegaWall<TDim, TNumNodes> &RansEvmKOmegaOmegaWall<TDim, TNumNodes>
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-Condition::Pointer RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Create(
+Condition::Pointer RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::Create(
     IndexType NewId, NodesArrayType const &ThisNodes, PropertiesType::Pointer pProperties) const
 {
-    return Kratos::make_intrusive<RansEvmKOmegaOmegaWall>(
+    return Kratos::make_intrusive<RansEvmKOmegaOmegaWallBlended>(
         NewId, GetGeometry().Create(ThisNodes), pProperties);
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-Condition::Pointer RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Create(
+Condition::Pointer RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::Create(
     IndexType NewId, GeometryType::Pointer pGeom, PropertiesType::Pointer pProperties) const
 {
-    return Kratos::make_intrusive<RansEvmKOmegaOmegaWall>(NewId, pGeom, pProperties);
+    return Kratos::make_intrusive<RansEvmKOmegaOmegaWallBlended>(NewId, pGeom, pProperties);
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-Condition::Pointer RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Clone(
+Condition::Pointer RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::Clone(
     IndexType NewId, NodesArrayType const &rThisNodes) const
 {
     Condition::Pointer pNewCondition =
@@ -109,7 +109,7 @@ Condition::Pointer RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Clone(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLocalSystem(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::CalculateLocalSystem(
     MatrixType &rLeftHandSideMatrix, VectorType &rRightHandSideVector, ProcessInfo &rCurrentProcessInfo)
 {
     if (rLeftHandSideMatrix.size1() != TNumNodes || rLeftHandSideMatrix.size2() != TNumNodes)
@@ -123,7 +123,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLocalSystem(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLeftHandSide(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::CalculateLeftHandSide(
     MatrixType &rLeftHandSideMatrix, ProcessInfo &rCurrentProcessInfo)
 {
     if (rLeftHandSideMatrix.size1() != TNumNodes || rLeftHandSideMatrix.size2() != TNumNodes)
@@ -133,7 +133,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLeftHandSide(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateRightHandSide(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::CalculateRightHandSide(
     VectorType &rRightHandSideVector, ProcessInfo &rCurrentProcessInfo)
 {
     if (rRightHandSideVector.size() != TNumNodes)
@@ -143,7 +143,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateRightHandSide(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateDampingMatrix(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::CalculateDampingMatrix(
     MatrixType &rDampingMatrix, ProcessInfo &rCurrentProcessInfo)
 {
     VectorType RHS;
@@ -151,7 +151,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateDampingMatrix(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLocalVelocityContribution(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::CalculateLocalVelocityContribution(
     MatrixType &rDampingMatrix, VectorType &rRightHandSideVector, ProcessInfo &rCurrentProcessInfo)
 {
     KRATOS_TRY
@@ -175,7 +175,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::CalculateLocalVelocityContribution
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-int RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Check(const ProcessInfo &rCurrentProcessInfo)
+int RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::Check(const ProcessInfo &rCurrentProcessInfo)
 {
     KRATOS_TRY;
 
@@ -202,8 +202,8 @@ int RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Check(const ProcessInfo &rCurrentPr
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::EquationIdVector(EquationIdVectorType &rResult,
-                                                               ProcessInfo &rCurrentProcessInfo)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::EquationIdVector(EquationIdVectorType &rResult,
+                                                                      ProcessInfo &rCurrentProcessInfo)
 {
     if (rResult.size() != TNumNodes)
         rResult.resize(TNumNodes, false);
@@ -215,8 +215,8 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::EquationIdVector(EquationIdVectorT
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetDofList(DofsVectorType &ConditionDofList,
-                                                         ProcessInfo &CurrentProcessInfo)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::GetDofList(DofsVectorType &ConditionDofList,
+                                                                ProcessInfo &CurrentProcessInfo)
 {
     if (ConditionDofList.size() != TNumNodes)
         ConditionDofList.resize(TNumNodes);
@@ -227,13 +227,13 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetDofList(DofsVectorType &Conditi
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetValuesVector(VectorType &rValues, int Step)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::GetValuesVector(VectorType &rValues, int Step)
 {
     this->GetFirstDerivativesVector(rValues, Step);
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetFirstDerivativesVector(Vector &rValues, int Step)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::GetFirstDerivativesVector(Vector &rValues, int Step)
 {
     if (rValues.size() != TNumNodes)
         rValues.resize(TNumNodes, false);
@@ -248,7 +248,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetFirstDerivativesVector(Vector &
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetSecondDerivativesVector(Vector &rValues, int Step)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::GetSecondDerivativesVector(Vector &rValues, int Step)
 {
     if (rValues.size() != TNumNodes)
         rValues.resize(TNumNodes, false);
@@ -263,26 +263,26 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::GetSecondDerivativesVector(Vector 
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-std::string RansEvmKOmegaOmegaWall<TDim, TNumNodes>::Info() const
+std::string RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::Info() const
 {
     std::stringstream buffer;
-    buffer << "RansEvmKOmegaOmegaWall" << TNumNodes << "N";
+    buffer << "RansEvmKOmegaOmegaWallBlended" << TNumNodes << "N";
     return buffer.str();
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::PrintInfo(std::ostream &rOStream) const
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::PrintInfo(std::ostream &rOStream) const
 {
-    rOStream << "RansEvmKOmegaOmegaWall";
+    rOStream << "RansEvmKOmegaOmegaWallBlended";
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::PrintData(std::ostream &rOStream) const
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::PrintData(std::ostream &rOStream) const
 {
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::AddLocalVelocityContribution(
     MatrixType &rDampingMatrix, VectorType &rRightHandSideVector, ProcessInfo &rCurrentProcessInfo)
 {
     KRATOS_TRY
@@ -306,6 +306,8 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     const double c_mu_50 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO_STAR], 0.50);
     const double b0_2 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO], 2);
     const double vk = rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double blended_val = b0_2 / (36.0 * c_mu_50 * vk);
+    // const bool blend = rCurrentProcessInfo[TURBULENCE_BLENDING];
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
@@ -323,9 +325,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         const double y_plus = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
 
-        int coefficient = -2.0;
-        if (y_plus > rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
-            coefficient = -1.0;
+        int coefficient = -1.0 * (1 + (1 / (1 + blended_val * std::pow(y_plus, 2.0))));
         // Launder-Spalding wall functions considering u_tau relation proportional
         // to cmu^0.25 and sqrt(kinetic energy)
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
@@ -350,20 +350,20 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::save(Serializer &rSerializer) const
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::save(Serializer &rSerializer) const
 {
     KRATOS_SERIALIZE_SAVE_BASE_CLASS(rSerializer, Condition);
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
-void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::load(Serializer &rSerializer)
+void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::load(Serializer &rSerializer)
 {
     KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, Condition);
 }
 
 // template instantiation
 
-template class RansEvmKOmegaOmegaWall<2>;
-template class RansEvmKOmegaOmegaWall<3>;
+template class RansEvmKOmegaOmegaWallBlended<2>;
+template class RansEvmKOmegaOmegaWallBlended<3>;
 
 } // namespace Kratos.
