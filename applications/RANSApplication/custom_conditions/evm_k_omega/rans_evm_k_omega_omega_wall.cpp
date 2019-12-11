@@ -323,9 +323,9 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         const double y_plus = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
 
-        int coefficient = -2.0;
+        const double coefficient = 2.0;
         if (y_plus > rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
-            coefficient = -1.0;
+            coefficient = 1.0;
         // Launder-Spalding wall functions considering u_tau relation proportional
         // to cmu^0.25 and sqrt(kinetic energy)
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));

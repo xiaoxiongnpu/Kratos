@@ -325,7 +325,7 @@ void RansEvmKOmegaOmegaWallBlended<TDim, TNumNodes>::AddLocalVelocityContributio
         const double y_plus = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
 
-        int coefficient = -1.0 * (1 + (1 / (1 + blended_val * std::pow(y_plus, 2.0))));
+        const double coefficient = (1 + (1 / (1 + blended_val * std::pow(y_plus, 2.0))));
         // Launder-Spalding wall functions considering u_tau relation proportional
         // to cmu^0.25 and sqrt(kinetic energy)
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
