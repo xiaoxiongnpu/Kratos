@@ -88,12 +88,12 @@ void RansNutKEpsilonHighReCalculationProcess::Execute()
     for (int i_node = 0; i_node < number_of_nodes; ++i_node)
     {
         NodeType& r_node = *(r_nodes.begin() + i_node);
-        const double tke = r_node.FastGetSolutionStepValue(TURBULENT_KINETIC_ENERGY);
         const double epsilon =
             r_node.FastGetSolutionStepValue(TURBULENT_ENERGY_DISSIPATION_RATE);
 
         if (epsilon > 0.0)
         {
+            const double tke = r_node.FastGetSolutionStepValue(TURBULENT_KINETIC_ENERGY);
             r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) =
                 mCmu * std::pow(tke, 2) / epsilon;
         }

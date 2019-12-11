@@ -163,7 +163,6 @@ private:
     Parameters mrParameters;
     std::string mModelPartName;
 
-
     double mCmu;
     double mMinValue;
 
