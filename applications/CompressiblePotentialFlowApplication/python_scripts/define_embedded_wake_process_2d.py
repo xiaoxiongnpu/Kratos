@@ -125,9 +125,9 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
 
     def __FindWakeElements(self):
 
-        if not self.main_model_part.HasSubModelPart("trailing_edge_sub_model_part"):
-            self.trailing_edge_sub_model_part = self.main_model_part.CreateSubModelPart("trailing_edge_sub_model_part")
-        else: self.trailing_edge_sub_model_part = self.main_model_part.GetSubModelPart("trailing_edge_sub_model_part")
+        if self.main_model_part.HasSubModelPart("trailing_edge_sub_model_part"):
+            self.main_model_part.RemoveSubModelPart("trailing_edge_sub_model_part")
+        self.trailing_edge_sub_model_part = self.main_model_part.CreateSubModelPart("trailing_edge_sub_model_part")
         if not self.main_model_part.HasSubModelPart("wake_sub_model_part"):
             self.wake_sub_model_part = self.main_model_part.CreateSubModelPart("wake_sub_model_part")
         else: self.wake_sub_model_part = self.main_model_part.GetSubModelPart("wake_sub_model_part")
