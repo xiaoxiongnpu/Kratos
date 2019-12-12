@@ -169,6 +169,7 @@ class GenericConstitutiveLawIntegratorDamage
         TYieldSurfaceType::GetInitialUniaxialThreshold(rValues, initial_threshold);
         rDamage = 1.0 - (initial_threshold / UniaxialStress) * std::exp(DamageParameter * 
                  (1.0 - UniaxialStress / initial_threshold));
+        rDamage = (rDamage < 0.999) ? rDamage : 0.999;
     }
 
     /**

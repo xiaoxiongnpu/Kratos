@@ -100,7 +100,7 @@ public:
      * @param rMatProps The material properties
      * @param rGeometry The geometry of the element
      */
-    void StableConditionForAdvancingStrategy(bool& rAdvancingStrategy);
+    void StableConditionForAdvancingStrategy(bool& rAdvancingStrategy, bool DamageIndicator);
 
     /**
      * @brief This method computes the free energy 
