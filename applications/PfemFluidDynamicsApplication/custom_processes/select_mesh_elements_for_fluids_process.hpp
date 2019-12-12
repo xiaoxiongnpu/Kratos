@@ -176,6 +176,7 @@ public:
                 double MeanMeshSize = mrRemesh.Refine->CriticalRadius;
                 bool increaseAlfa = false;
 
+                bool reduceAlpha = false;
                 for (unsigned int pn = 0; pn < nds; pn++)
                 {
                     //set vertices
@@ -202,6 +203,14 @@ public:
                     {
                         numisolated++;
                     }
+                    
+                    if ((vertices.back().X()<780 && vertices.back().Z()>725) ||
+                    (vertices.back().X()>1450 && vertices.back().Z()>725 && vertices.back().Z()<855) ||
+                    (vertices.back().X()<1289.992 && vertices.back().Z()>725))
+                    {
+                        reduceAlpha =true;
+                    }
+
                     if (vertices.back().Is(BOUNDARY))
                     {
                         numboundary++;
@@ -372,6 +381,13 @@ public:
                     Alpha *= 1.15;
                 }
 
+                if (reduceAlpha==false)
+                {
+                    Alpha *= 1.45;
+                }else{
+                    Alpha *= 1.25;
+                }
+
                 bool accepted = false;
                 MesherUtilities MesherUtils;
                 if (mrRemesh.Options.Is(MesherUtilities::CONTACT_SEARCH))
@@ -404,44 +420,44 @@ public:
                 // to control that the element has a good shape
                 if (accepted && (numfreesurf > 0 || numrigid == nds))
                 {
-                    if (dimension == 3 && nds == 4)
-                    {
-                        Geometry<Node<3>> *tetrahedron = new Tetrahedra3D4<Node<3>>(vertices);
+                    // if (dimension == 3 && nds == 4)
+                    // {
+                    //     Geometry<Node<3>> *tetrahedron = new Tetrahedra3D4<Node<3>>(vertices);
 
-                        double Volume = tetrahedron->Volume();
-                        double CriticalVolume = 0.01 * mrRemesh.Refine->MeanVolume;
+                    //     double Volume = tetrahedron->Volume();
+                    //     double CriticalVolume = 0.01 * mrRemesh.Refine->MeanVolume;
 
-                        if (CriticalVolume == 0)
-                        {
-                            array_1d<double, 3> CoorDifference = vertices[0].Coordinates() - vertices[1].Coordinates();
-                            double SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            double meanLength = sqrt(SquaredLength) / 6.0;
-                            CoorDifference = vertices[0].Coordinates() - vertices[2].Coordinates();
-                            SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            meanLength += sqrt(SquaredLength) / 6.0;
-                            CoorDifference = vertices[0].Coordinates() - vertices[3].Coordinates();
-                            SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            meanLength += sqrt(SquaredLength) / 6.0;
-                            CoorDifference = vertices[1].Coordinates() - vertices[2].Coordinates();
-                            SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            meanLength += sqrt(SquaredLength) / 6.0;
-                            CoorDifference = vertices[1].Coordinates() - vertices[3].Coordinates();
-                            SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            meanLength += sqrt(SquaredLength) / 6.0;
-                            CoorDifference = vertices[2].Coordinates() - vertices[3].Coordinates();
-                            SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
-                            meanLength += sqrt(SquaredLength) / 6.0;
-                            double regularTetrahedronVolume = pow(meanLength, 3) * sqrt(2) / 12.0;
-                            CriticalVolume = 0.00001 * regularTetrahedronVolume;
-                        }
+                    //     if (CriticalVolume == 0)
+                    //     {
+                    //         array_1d<double, 3> CoorDifference = vertices[0].Coordinates() - vertices[1].Coordinates();
+                    //         double SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         double meanLength = sqrt(SquaredLength) / 6.0;
+                    //         CoorDifference = vertices[0].Coordinates() - vertices[2].Coordinates();
+                    //         SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         meanLength += sqrt(SquaredLength) / 6.0;
+                    //         CoorDifference = vertices[0].Coordinates() - vertices[3].Coordinates();
+                    //         SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         meanLength += sqrt(SquaredLength) / 6.0;
+                    //         CoorDifference = vertices[1].Coordinates() - vertices[2].Coordinates();
+                    //         SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         meanLength += sqrt(SquaredLength) / 6.0;
+                    //         CoorDifference = vertices[1].Coordinates() - vertices[3].Coordinates();
+                    //         SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         meanLength += sqrt(SquaredLength) / 6.0;
+                    //         CoorDifference = vertices[2].Coordinates() - vertices[3].Coordinates();
+                    //         SquaredLength = CoorDifference[0] * CoorDifference[0] + CoorDifference[1] * CoorDifference[1] + CoorDifference[2] * CoorDifference[2];
+                    //         meanLength += sqrt(SquaredLength) / 6.0;
+                    //         double regularTetrahedronVolume = pow(meanLength, 3) * sqrt(2) / 12.0;
+                    //         CriticalVolume = 0.00001 * regularTetrahedronVolume;
+                    //     }
 
-                        if (Volume < CriticalVolume)
-                        {
-                            accepted = false;
-                            number_of_slivers++;
-                        }
-                        delete tetrahedron;
-                    }
+                    //     if (Volume < CriticalVolume)
+                    //     {
+                    //         accepted = false;
+                    //         number_of_slivers++;
+                    //     }
+                    //     delete tetrahedron;
+                    // }
                 }
 
                 if (accepted)
