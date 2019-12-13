@@ -1964,7 +1964,7 @@ private:
 			(*it)->Z0() = (*it)->Z() - displacement[2];
 
 			(*it)->Set(FLUID);
-			(*it)->Set(ACTIVE);
+			// (*it)->Set(ACTIVE);
 			(*it)->Set(FREE_SURFACE);
 			(*it)->Reset(TO_ERASE);
 			if ((*it)->Y0() > 4199 && (*it)->X0() < 941 && (*it)->X0() > 259)
@@ -2045,7 +2045,7 @@ private:
 			(*it)->Z0() = (*it)->Z() - displacement[2];
 
 			(*it)->Set(FLUID);
-			(*it)->Set(ACTIVE);
+			// (*it)->Set(ACTIVE);
 			(*it)->Reset(TO_ERASE);
 			//correct contact_normal interpolation
 			if ((*it)->SolutionStepsDataHas(CONTACT_FORCE))
@@ -2143,7 +2143,7 @@ private:
 			(*it)->Z0() = (*it)->Z() - displacement[2];
 
 			(*it)->Set(FLUID);
-			(*it)->Set(ACTIVE);
+			// (*it)->Set(ACTIVE);
 			(*it)->Reset(TO_ERASE);
 			// std::cout<<"velocity_x "<<(*it)->FastGetSolutionStepValue(VELOCITY_X,0)<<std::endl;
 			// std::cout<<"velocity_x "<<(*it)->FastGetSolutionStepValue(VELOCITY_X,1)<<std::endl;
