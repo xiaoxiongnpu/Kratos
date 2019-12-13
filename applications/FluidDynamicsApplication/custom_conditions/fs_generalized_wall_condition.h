@@ -367,7 +367,7 @@ public:
 			noalias(rRightHandSideVector) = ZeroVector(LocalSize);
 
 			if (this->Is(SLIP))
-			  this->ApplyWallLaw(rLeftHandSideMatrix, rRightHandSideVector);
+			  this->ApplyWallLaw(rLeftHandSideMatrix, rRightHandSideVector, rCurrentProcessInfo);
 		}
 		else if (rCurrentProcessInfo[FRACTIONAL_STEP] == 5)
 		{
@@ -837,7 +837,7 @@ protected:
 	 @param rLocalMatrix Local system matrix
 	 @param rLocalVector Local right hand side
 	 */
-	void ApplyWallLaw(MatrixType& rLocalMatrix, VectorType& rLocalVector)
+	virtual void ApplyWallLaw(MatrixType& rLocalMatrix, VectorType& rLocalVector, ProcessInfo& rCurrentProcessInfo)
 	{
 		const unsigned int BlockSize = TDim;
 		double WallHeight, Area, WallVelMag, tmp, WallStress, WallGradP, WallForce;

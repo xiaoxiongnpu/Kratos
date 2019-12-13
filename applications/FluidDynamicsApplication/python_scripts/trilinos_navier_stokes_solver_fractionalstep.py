@@ -13,6 +13,8 @@ from KratosMultiphysics.TrilinosApplication import trilinos_linear_solver_factor
 from KratosMultiphysics.FluidDynamicsApplication.navier_stokes_solver_fractionalstep import NavierStokesSolverFractionalStep
 from KratosMultiphysics.mpi.distributed_import_model_part_utility import DistributedImportModelPartUtility
 
+from KratosMultiphysics.kratos_utilities import CheckIfApplicationsAvailable
+
 def CreateSolver(model, custom_settings):
     return TrilinosNavierStokesSolverFractionalStep(model, custom_settings)
 
@@ -70,7 +72,8 @@ class TrilinosNavierStokesSolverFractionalStep(NavierStokesSolverFractionalStep)
                 "maximum_delta_time"  : 0.01
             },
             "move_mesh_flag": false,
-            "use_slip_conditions": true
+            "use_slip_conditions": true,
+            "turbulence_model": {}
         }""")
 
         default_settings.AddMissingParameters(super(TrilinosNavierStokesSolverFractionalStep, cls).GetDefaultSettings())
@@ -90,6 +93,19 @@ class TrilinosNavierStokesSolverFractionalStep(NavierStokesSolverFractionalStep)
         self.velocity_linear_solver = trilinos_linear_solver_factory.ConstructSolver(self.settings["velocity_linear_solver_settings"])
 
         self.compute_reactions = self.settings["compute_reactions"].GetBool()
+
+        if not self.settings["turbulence_model"].IsEquivalentTo(KratosMultiphysics.Parameters("{}")):
+            # if not empty
+            if CheckIfApplicationsAvailable("RANSModellingApplication"):
+                import KratosMultiphysics.RANSModellingApplication as KratosRANS
+            else:
+                raise Exception("Please install/compile RANSModellingApplication to use turbulence_model properties")
+            from KratosMultiphysics.FluidDynamicsApplication.turbulence_model_configuration import CreateTurbulenceModel
+            self.turbulence_model_configuration = CreateTurbulenceModel(model, self.settings["turbulence_model"], "MPI")
+            self.condition_name = self.turbulence_model_configuration.GetFluidVelocityPressureConditionName()
+            KratosMultiphysics.Logger.PrintInfo("TrilinosNavierStokesSolverMonolithic", "Using " + self.condition_name)
+        else:
+            self.turbulence_model_configuration = None
 
         KratosMultiphysics.Logger.PrintInfo("TrilinosNavierStokesSolverFractionalStep","Construction of TrilinosNavierStokesSolverFractionalStep solver finished.")
 
@@ -118,6 +134,8 @@ class TrilinosNavierStokesSolverFractionalStep(NavierStokesSolverFractionalStep)
         ## Construct MPI communicators
         self.distributed_model_part_importer.CreateCommunicators()
 
+        if self.turbulence_model_configuration is not None:
+            self.turbulence_model_configuration.PrepareModelPart()
 
     def AddDofs(self):
         ## Base class DOFs addition
@@ -129,6 +147,7 @@ class TrilinosNavierStokesSolverFractionalStep(NavierStokesSolverFractionalStep)
     def Initialize(self):
         ## Construct the communicator
         self.EpetraComm = KratosTrilinos.CreateCommunicator()
+        self.turbulence_model_configuration.SetCommunicator(self.EpetraComm)
 
         ## Get the computing model part
         self.computing_model_part = self.GetComputingModelPart()
@@ -168,6 +187,10 @@ class TrilinosNavierStokesSolverFractionalStep(NavierStokesSolverFractionalStep)
                                          self.pressure_linear_solver,
                                          self.settings["pressure_tolerance"].GetDouble(),
                                          self.settings["maximum_pressure_iterations"].GetInt())
+
+        if (self.turbulence_model_configuration is not None):
+            self.turbulence_model_configuration.Initialize()
+            self.solver_settings.SetTurbulenceModel(self.turbulence_model_configuration.GetTurbulenceSolvingProcess())
 
         self.solver = KratosTrilinos.TrilinosFSStrategy(self.computing_model_part,
                                                         self.solver_settings,

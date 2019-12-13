@@ -64,6 +64,14 @@ KratosRANSModellingApplication::KratosRANSModellingApplication()
       mRansEVMVMSMonolithicWallCondition3D3N(
           0,
           Element::GeometryType::Pointer(
+              new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3)))),
+      mRansEVMVMSFractionalStepWallCondition2D2N(
+          0,
+          Element::GeometryType::Pointer(
+              new Line2D2<Node<3>>(Element::GeometryType::PointsArrayType(2)))),
+      mRansEVMVMSFractionalStepWallCondition3D3N(
+          0,
+          Element::GeometryType::Pointer(
               new Triangle3D3<Node<3>>(Element::GeometryType::PointsArrayType(3))))
 {
 }
@@ -116,5 +124,10 @@ void KratosRANSModellingApplication::Register()
                               mRansEVMVMSMonolithicWallCondition2D2N);
     KRATOS_REGISTER_CONDITION("RANSEVMVMSMonolithicWallCondition3D3N",
                               mRansEVMVMSMonolithicWallCondition3D3N);
+
+    KRATOS_REGISTER_CONDITION("RANSEVMVMSFractionalStepWallCondition2D2N",
+                              mRansEVMVMSFractionalStepWallCondition2D2N);
+    KRATOS_REGISTER_CONDITION("RANSEVMVMSFractionalStepWallCondition3D3N",
+                              mRansEVMVMSFractionalStepWallCondition3D3N);
 }
 } // namespace Kratos.

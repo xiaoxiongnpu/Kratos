@@ -29,6 +29,7 @@
 // Condition includes
 #include "custom_conditions/evm_k_epsilon/evm_epsilon_wall_condition.h"
 #include "custom_conditions/evm_k_epsilon/evm_vms_monolithic_wall_condition.h"
+#include "custom_conditions/evm_k_epsilon/evm_vms_fractionalstep_wall_condition.h"
 
 namespace Kratos
 {
@@ -191,6 +192,9 @@ private:
 
     const EVMVMSMonolithicWallCondition<2> mRansEVMVMSMonolithicWallCondition2D2N;
     const EVMVMSMonolithicWallCondition<3> mRansEVMVMSMonolithicWallCondition3D3N;
+
+    const EVMVMSFractionalStepWallCondition<2> mRansEVMVMSFractionalStepWallCondition2D2N;
+    const EVMVMSFractionalStepWallCondition<3> mRansEVMVMSFractionalStepWallCondition3D3N;
 
 
     ///@}

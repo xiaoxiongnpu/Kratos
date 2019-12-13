@@ -10,6 +10,8 @@ import KratosMultiphysics.FluidDynamicsApplication as KratosCFD
 # Import base class file
 from KratosMultiphysics.FluidDynamicsApplication.fluid_solver import FluidSolver
 
+from KratosMultiphysics.kratos_utilities import CheckIfApplicationsAvailable
+
 def CreateSolver(model, custom_settings):
     return NavierStokesSolverFractionalStep(model, custom_settings)
 
@@ -76,7 +78,8 @@ class NavierStokesSolverFractionalStep(FluidSolver):
                 "maximum_delta_time"  : 0.01
             },
             "move_mesh_flag": false,
-            "use_slip_conditions": true
+            "use_slip_conditions": true,
+            "turbulence_model": {}
         }""")
 
         default_settings.AddMissingParameters(super(NavierStokesSolverFractionalStep, cls).GetDefaultSettings())
@@ -95,6 +98,19 @@ class NavierStokesSolverFractionalStep(FluidSolver):
         self.velocity_linear_solver = linear_solver_factory.ConstructSolver(self.settings["velocity_linear_solver_settings"])
 
         self.compute_reactions = self.settings["compute_reactions"].GetBool()
+
+        if not self.settings["turbulence_model"].IsEquivalentTo(KratosMultiphysics.Parameters("{}")):
+            # if not empty
+            if CheckIfApplicationsAvailable("RANSModellingApplication"):
+                import KratosMultiphysics.RANSModellingApplication as KratosRANS
+            else:
+                raise Exception("Please install/compile RANSModellingApplication to use turbulence_model properties")
+            from KratosMultiphysics.FluidDynamicsApplication.turbulence_model_configuration import CreateTurbulenceModel
+            self.turbulence_model_configuration = CreateTurbulenceModel(model, self.settings["turbulence_model"])
+            self.condition_name = self.turbulence_model_configuration.GetFluidVelocityPressureConditionName()
+            KratosMultiphysics.Logger.PrintInfo("NavierStokesSolverMonolithic", "Using " + self.condition_name)
+        else:
+            self.turbulence_model_configuration = None
 
         KratosMultiphysics.Logger.PrintInfo("NavierStokesSolverFractionalStep", "Construction of NavierStokesSolverFractionalStep solver finished.")
 
@@ -121,16 +137,30 @@ class NavierStokesSolverFractionalStep(FluidSolver):
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.CONV_PROJ)
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.DIVPROJ)
 
+        # Adding variables required for the turbulence modelling
+        if self.turbulence_model_configuration is not None:
+            self.turbulence_model_configuration.fluid_model_part = self.main_model_part
+            self.turbulence_model_configuration.AddVariables()
+
         self.main_model_part.AddNodalSolutionStepVariable(KratosCFD.Q_VALUE)
         if self.settings["consider_periodic_conditions"].GetBool() == True:
             self.main_model_part.AddNodalSolutionStepVariable(KratosCFD.PATCH_INDEX)
 
         KratosMultiphysics.Logger.PrintInfo("NavierStokesSolverFractionalStep", "Fluid solver variables added correctly.")
 
+    def AddDofs(self):
+        super(NavierStokesSolverFractionalStep, self).AddDofs()
+
+        if self.turbulence_model_configuration is not None:
+            self.turbulence_model_configuration.AddDofs()
+
     def PrepareModelPart(self):
         if not self.main_model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED]:
             self._set_physical_properties()
         super(NavierStokesSolverFractionalStep, self).PrepareModelPart()
+
+        if self.turbulence_model_configuration is not None:
+            self.turbulence_model_configuration.PrepareModelPart()
 
     def Initialize(self):
         self.computing_model_part = self.GetComputingModelPart()
@@ -169,6 +199,10 @@ class NavierStokesSolverFractionalStep(FluidSolver):
                                          self.settings["pressure_tolerance"].GetDouble(),
                                          self.settings["maximum_pressure_iterations"].GetInt())
 
+
+        if (self.turbulence_model_configuration is not None):
+            self.turbulence_model_configuration.Initialize()
+            self.solver_settings.SetTurbulenceModel(self.turbulence_model_configuration.GetTurbulenceSolvingProcess())
 
         if self.settings["consider_periodic_conditions"].GetBool() == True:
             self.solver = KratosCFD.FSStrategy(self.computing_model_part,
@@ -212,3 +246,21 @@ class NavierStokesSolverFractionalStep(FluidSolver):
 
         KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.DENSITY, rho, self.main_model_part.Nodes)
         KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.VISCOSITY, kin_viscosity, self.main_model_part.Nodes)
+
+    def InitializeSolutionStep(self):
+        super(NavierStokesSolverFractionalStep, self).InitializeSolutionStep()
+
+        if (self._TimeBufferIsInitialized() and self.turbulence_model_configuration is not None):
+            self.turbulence_model_configuration.InitializeSolutionStep()
+
+    def FinalizeSolutionStep(self):
+        super(NavierStokesSolverFractionalStep, self).FinalizeSolutionStep()
+
+        if (self.turbulence_model_configuration is not None):
+            self.turbulence_model_configuration.FinalizeSolutionStep()
+
+    def Check(self):
+        super(NavierStokesSolverFractionalStep, self).Check()
+
+        if (self.turbulence_model_configuration is not None):
+            self.turbulence_model_configuration.Check()

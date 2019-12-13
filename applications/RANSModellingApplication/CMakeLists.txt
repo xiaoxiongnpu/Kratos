@@ -18,6 +18,7 @@ set( KRATOS_RANS_MODELLING_APPLICATION_CORE
     ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/evm_k_epsilon/evm_low_re_k_element.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/evm_k_epsilon/evm_epsilon_element.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/custom_elements/evm_k_epsilon/evm_low_re_epsilon_element.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/custom_conditions/evm_k_epsilon/evm_vms_fractionalstep_wall_condition.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/custom_strategies/relaxed_dof_updater.cpp
 )
 
