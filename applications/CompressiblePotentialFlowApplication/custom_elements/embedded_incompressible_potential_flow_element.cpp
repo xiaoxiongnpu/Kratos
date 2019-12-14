@@ -81,8 +81,14 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
 
     array_1d<double, NumNodes> potential;
     Vector distances(NumNodes);
-    for(unsigned int i_node = 0; i_node<NumNodes; i_node++)
-        distances(i_node) = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
+    const EmbeddedIncompressiblePotentialFlowElement& r_this = *this;
+    const int kutta = r_this.GetValue(KUTTA);
+    for(unsigned int i_node = 0; i_node<NumNodes; i_node++) {
+        if ((kutta == 1) && (this->GetGeometry()[i_node].GetValue(TRAILING_EDGE)))
+            distances(i_node) = this->GetGeometry()[i_node].GetValue(TEMPERATURE);
+        else
+            distances(i_node) = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
+    }
 
     potential = PotentialFlowUtilities::GetPotentialOnNormalElement<Dim, NumNodes>(*this);
 
@@ -94,7 +100,7 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
         positive_side_sh_func,
         positive_side_sh_func_gradients,
         positive_side_weights,
-        GeometryData::GI_GAUSS_2);
+        GeometryData::GI_GAUSS_1);
 
     const double free_stream_density = rCurrentProcessInfo[FREE_STREAM_DENSITY];
 
@@ -110,24 +116,21 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
         noalias(rLeftHandSideMatrix) += free_stream_density*prod(DN_DX,trans(DN_DX))*positive_side_weights(i_gauss);;
         noalias(lhs_kutta) += free_stream_density * positive_side_weights(i_gauss) * prod(test,trans(test));
     }
-    const EmbeddedIncompressiblePotentialFlowElement& r_this = *this;
 
-    const int kutta = r_this.GetValue(KUTTA);
 
-    auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
-    // lhs_kutta = penalty*(lhs_kutta);
+    // auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
     // if (kutta==1){
-    for (unsigned int i = 0; i < NumNodes; ++i)
-    {
-        if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
-        {
-            for (unsigned int j = 0; j < NumNodes; ++j)
-            {
-                rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
-                // rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
-            }
-        }
-    }
+    // for (unsigned int i = 0; i < NumNodes; ++i)
+    // {
+    //     if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+    //     {
+    //         for (unsigned int j = 0; j < NumNodes; ++j)
+    //         {
+    //             rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+    //             // rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
+    //         }
+    //     }
+    // }
     // }
     noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix, potential);
 }
