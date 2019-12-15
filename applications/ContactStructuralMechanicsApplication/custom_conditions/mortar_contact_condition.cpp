@@ -306,7 +306,7 @@ void MortarContactCondition<TDim, TNumNodes, TFrictional, TNormalVariation, TNum
 
     // Create the current contact data
     DerivativeDataType derivative_data;
-    derivative_data.Initialize(r_slave_geometry, rCurrentProcessInfo);
+    derivative_data.Initialize(r_slave_geometry, this->GetProperties(), rCurrentProcessInfo);
 
     const NormalDerivativesComputation consider_normal_variation = static_cast<NormalDerivativesComputation>(rCurrentProcessInfo[CONSIDER_NORMAL_VARIATION]);
 
