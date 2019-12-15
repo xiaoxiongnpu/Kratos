@@ -787,28 +787,30 @@ public:
 
     /**
      * @brief Initializer method
-     * @param SlaveGeometry The geometry of the slave
+     * @param rSlaveGeometry The geometry of the slave
+     * @param rProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     virtual void Initialize(
-        const GeometryType& SlaveGeometry,
+        const GeometryType& rSlaveGeometry,
+        const Properties& rProperties,
         const ProcessInfo& rCurrentProcessInfo
         )
     {
         // The normals of the nodes
-        noalias(NormalSlave) = MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry,  NORMAL, 0);
+        noalias(NormalSlave) = MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry,  NORMAL, 0);
 
         // Displacements and velocities of the slave
         const IndexType step = (rCurrentProcessInfo[STEP] == 1) ? 0 : 1;
         noalias(u1) = step == 0 ?
-                      MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry, DISPLACEMENT, 0) :
-                      MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry, DISPLACEMENT, 0)
-                    - MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry, DISPLACEMENT, 1);
-        noalias(X1) = MortarUtilities::GetCoordinates<TDim,TNumNodes>(SlaveGeometry, false, step);
+                      MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 0) :
+                      MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 0)
+                    - MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 1);
+        noalias(X1) = MortarUtilities::GetCoordinates<TDim,TNumNodes>(rSlaveGeometry, false, step);
 
         // We get the ALM variables
         for (IndexType i = 0; i < TNumNodes; ++i)
-            PenaltyParameter[i] = SlaveGeometry[i].GetValue(INITIAL_PENALTY);
+            PenaltyParameter[i] = rSlaveGeometry[i].GetValue(INITIAL_PENALTY);
         ScaleFactor = rCurrentProcessInfo[SCALE_FACTOR];
 
         // We initialize the derivatives
@@ -1071,19 +1073,21 @@ public:
 
     /**
      * @brief Initializer method
-     * @param SlaveGeometry The geometry of the slave
+     * @param rSlaveGeometry The geometry of the slave
+     * @param rProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     void Initialize(
-        const GeometryType& SlaveGeometry,
+        const GeometryType& rSlaveGeometry,
+        const Properties& rProperties,
         const ProcessInfo& rCurrentProcessInfo
         ) override
     {
-        BaseClassType::Initialize(SlaveGeometry, rCurrentProcessInfo);
+        BaseClassType::Initialize(rSlaveGeometry, rProperties, rCurrentProcessInfo);
 
         TangentFactor = rCurrentProcessInfo[TANGENT_FACTOR];
 
-        noalias(u1old) = MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry, DISPLACEMENT, 1) - MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(SlaveGeometry, DISPLACEMENT, 2);
+        noalias(u1old) = MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 1) - MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 2);
     }
 
     /**
