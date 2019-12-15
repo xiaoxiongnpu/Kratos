@@ -90,6 +90,7 @@ PYBIND11_MODULE(KratosContactStructuralMechanicsApplication, m)
     KRATOS_REGISTER_IN_PYTHON_VARIABLE(m, ADAPT_PENALTY )                                         // To set if the penalty is recalculated or not
     KRATOS_REGISTER_IN_PYTHON_VARIABLE(m, MAX_GAP_FACTOR )                                        // The factor between the nodal H and the max gap considered to recalculate the penalty
     KRATOS_REGISTER_IN_PYTHON_VARIABLE(m, MAX_GAP_THRESHOLD )                                     // The gap considered as threshold to rescale penalty
+    KRATOS_REGISTER_IN_PYTHON_VARIABLE(m, GAP_CONTACT_THICKNESS )                                 // The thickness of the contact layer in case it is applied to slender elements (shells, membranes, beams, etc..)
     KRATOS_REGISTER_IN_PYTHON_VARIABLE(m, TRESCA_FRICTION_THRESHOLD )                             // The threshold value for Tresca frictional contact
 }
 

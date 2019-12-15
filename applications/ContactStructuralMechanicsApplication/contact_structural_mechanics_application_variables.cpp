@@ -56,6 +56,7 @@ KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( AUGMENTED_TANGENT_CONTACT_PRESSURE ) 
 KRATOS_CREATE_VARIABLE( int, CONSIDER_NORMAL_VARIATION )                          // A value used to check if consider normal variation or not
 KRATOS_CREATE_VARIABLE( bool, ADAPT_PENALTY )                                     // To set if the penalty is recalculated or not
 KRATOS_CREATE_VARIABLE( double, MAX_GAP_FACTOR )                                  // The factor between the nodal H and the max gap considered to recalculate the penalty
+KRATOS_CREATE_VARIABLE( double, GAP_CONTACT_THICKNESS )                           // The thickness of the contact layer in case it is applied to slender elements (shells, membranes, beams, etc..)
 
 /* For mesh tying mortar condition */
 KRATOS_CREATE_VARIABLE( std::string, TYING_VARIABLE )                             // The variable name for the mesh tying
