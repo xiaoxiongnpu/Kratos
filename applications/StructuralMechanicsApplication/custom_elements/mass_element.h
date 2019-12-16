@@ -47,27 +47,32 @@ public:
     /**
      * Constructor.
      */
-    MassElement(IndexType NewId = 0);
+    MassElement(IndexType NewId = 0)
+        : Element(NewId) {}
 
     /**
      * Constructor using an array of nodes
      */
-    MassElement(IndexType NewId, const NodesArrayType& ThisNodes);
+    MassElement(IndexType NewId, const NodesArrayType& ThisNodes)
+        : Element(NewId, ThisNodes) {}
 
     /**
      * Constructor using Geometry
      */
-    MassElement(IndexType NewId, GeometryType::Pointer pGeometry);
+    MassElement(IndexType NewId, GeometryType::Pointer pGeometry)
+        : Element(NewId, pGeometry) {}
 
     /**
      * Constructor using Properties
      */
-    MassElement(IndexType NewId, GeometryType::Pointer pGeometry, PropertiesType::Pointer pProperties);
+    MassElement(IndexType NewId, GeometryType::Pointer pGeometry, PropertiesType::Pointer pProperties)
+        : Element(NewId, pGeometry, pProperties) {}
 
     /**
      * Copy Constructor
      */
-    MassElement(MassElement const& rOther);
+    MassElement(MassElement const& rOther)
+        : Element(rOther) {}
 
     /**
      * Destructor

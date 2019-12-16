@@ -30,46 +30,6 @@ namespace Kratos
 ///@name Kratos Classes
 ///@{
 
-/**
- * Constructor.
- */
-MassElement::MassElement(IndexType NewId)
-    : Element(NewId)
-{
-}
-
-/**
- * Constructor using an array of nodes
- */
-MassElement::MassElement(IndexType NewId, const NodesArrayType& ThisNodes)
-    : Element(NewId, ThisNodes)
-{
-}
-
-/**
- * Constructor using Geometry
- */
-MassElement::MassElement(IndexType NewId, GeometryType::Pointer pGeometry)
-    : Element(NewId, pGeometry)
-{
-}
-
-/**
- * Constructor using Properties
- */
-MassElement::MassElement(IndexType NewId, GeometryType::Pointer pGeometry, PropertiesType::Pointer pProperties)
-    : Element(NewId, pGeometry, pProperties)
-{
-}
-
-/**
- * Copy Constructor
- */
-MassElement::MassElement(MassElement const& rOther)
-    : Element(rOther)
-{
-}
-
 ///@}
 ///@name Operators
 ///@{
@@ -168,11 +128,11 @@ void MassElement::GenericGetValuesVector(Vector& rValues, int Step, const ArrayV
         rValues.resize(system_size, false);
     }
 
-    for (IndexType i = 0; i < number_of_nodes; ++i) {
+    for (IndexType i=0; i<number_of_nodes; ++i) {
         int index = i * 3;
         const auto& r_vals = GetGeometry()[i].FastGetSolutionStepValue(rVariable, Step);
 
-        rValues[index] =     r_vals[0];
+        rValues[index]     = r_vals[0];
         rValues[index + 1] = r_vals[1];
         rValues[index + 2] = r_vals[2];
     }
@@ -286,7 +246,8 @@ void MassElement::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo
 
 double MassElement::GetElementMass() const
 {
-    // TODO this should be coming from total_mass_process
+    // TODO this should be coming from total_mass_process (currently not working bcs not threadsafe!)
+    // => we need a better solution for accessing things in the initial condiguration
     KRATOS_TRY
 
     const auto& r_geom = GetGeometry();
