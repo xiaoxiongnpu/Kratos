@@ -136,8 +136,7 @@ public:
     Element::Pointer Clone(IndexType NewId, NodesArrayType const& ThisNodes) const override;
 
     /**
-     * this determines the elemental equation ID vector for all elemental
-     * DOFs
+     * this determines the elemental equation ID vector for all elemental DOFs
      * @param rResult: the elemental equation ID vector
      * @param rCurrentProcessInfo: the current process info instance
      */
@@ -149,13 +148,6 @@ public:
      * @param rCurrentProcessInfo: the current process info instance
      */
     void GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& CurrentProcessInfo) override;
-
-    /**
-     * ELEMENTS inherited from this class have to implement next
-     * CalculateLocalSystem, CalculateLeftHandSide and CalculateRightHandSide methods
-     * they can be managed internally with a private method to do the same calculations
-     * only once: MANDATORY
-     */
 
     /**
      * this is called during the assembling process in order
@@ -185,76 +177,6 @@ public:
      * @param rCurrentProcessInfo: the current process info instance
      */
     void CalculateRightHandSide(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the first derivatives contributions for the LHS and RHS
-     * @param rLeftHandSideMatrix: the elemental left hand side matrix
-     * @param rRightHandSideVector: the elemental right hand side
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateFirstDerivativesContributions(
-        MatrixType& rLeftHandSideMatrix,
-        VectorType& rRightHandSideVector,
-        ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the elemental left hand side matrix for the first derivatives constributions
-     * @param rLeftHandSideMatrix: the elemental left hand side matrix
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateFirstDerivativesLHS(MatrixType& rLeftHandSideMatrix, ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the elemental right hand side vector for the first derivatives constributions
-     * @param rRightHandSideVector: the elemental right hand side vector
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateFirstDerivativesRHS(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * ELEMENTS inherited from this class must implement this methods
-     * if they need to add dynamic element contributions
-     * note: second derivatives means the accelerations if the displacements are the dof of the analysis
-     * note: time integration parameters must be set in the rCurrentProcessInfo before calling these methods
-     * CalculateSecondDerivativesContributions,
-     * CalculateSecondDerivativesLHS, CalculateSecondDerivativesRHS methods are : OPTIONAL
-     */
-
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the second derivative contributions for the LHS and RHS
-     * @param rLeftHandSideMatrix: the elemental left hand side matrix
-     * @param rRightHandSideVector: the elemental right hand side
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateSecondDerivativesContributions(
-        MatrixType& rLeftHandSideMatrix,
-        VectorType& rRightHandSideVector,
-        ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the elemental left hand side matrix for the second derivatives constributions
-     * @param rLeftHandSideMatrix: the elemental left hand side matrix
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateSecondDerivativesLHS(
-        MatrixType& rLeftHandSideMatrix,
-        ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called during the assembling process in order
-     * to calculate the elemental right hand side vector for the second derivatives constributions
-     * @param rRightHandSideVector: the elemental right hand side vector
-     * @param rCurrentProcessInfo: the current process info instance
-     */
-    void CalculateSecondDerivativesRHS(
-        VectorType& rRightHandSideVector,
-        ProcessInfo& rCurrentProcessInfo) override;
 
     /**
      * this is called during the assembling process in order

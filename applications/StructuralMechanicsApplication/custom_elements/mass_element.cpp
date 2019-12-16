@@ -16,8 +16,11 @@
 // External includes
 
 
-// Include Base h
+// Project includes
+#include "includes/variables.h"
+#include "includes/checks.h"
 #include "mass_element.h"
+#include "custom_utilities/structural_mechanics_element_utilities.h"
 
 
 namespace Kratos
@@ -107,11 +110,6 @@ MassElement & MassElement::operator=(MassElement const& rOther)
 ///@{
 
 /**
- * ELEMENTS inherited from this class have to implement next
- * Create and Clone methods: MANDATORY
- */
-
-/**
  * creates a new element pointer
  * @param NewId: the ID of the new element
  * @param ThisNodes: the nodes of the new element
@@ -160,17 +158,30 @@ Element::Pointer MassElement::Clone(IndexType NewId, NodesArrayType const& ThisN
 }
 
 /**
- * this determines the elemental equation ID vector for all elemental
- * DOFs
+ * this determines the elemental equation ID vector for all elemental DOFs
  * @param rResult: the elemental equation ID vector
  * @param rCurrentProcessInfo: the current process info instance
  */
 void MassElement::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& CurrentProcessInfo)
 {
-    unsigned int number_of_nodes = GetGeometry().PointsNumber();
-    if (rResult.size() != number_of_nodes)
-        rResult.resize(number_of_nodes, false);
+    KRATOS_TRY;
 
+    const SizeType local_size = GetGeometry().PointsNumber() * 3;
+
+    if (rResult.size() != local_size) {
+        rResult.resize(local_size, false);
+    }
+
+    SizeType local_index = 0;
+    const SizeType d_pos = this->GetGeometry()[0].GetDofPosition(DISPLACEMENT_X);
+
+    for (const auto& r_node : GetGeometry()) {
+        rResult[local_index++] = r_node.GetDof(DISPLACEMENT_X, d_pos).EquationId();
+        rResult[local_index++] = r_node.GetDof(DISPLACEMENT_Y, d_pos + 1).EquationId();
+        rResult[local_index++] = r_node.GetDof(DISPLACEMENT_Z, d_pos + 2).EquationId();
+    }
+
+    KRATOS_CATCH("")
 }
 
 /**
@@ -180,18 +191,24 @@ void MassElement::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& C
  */
 void MassElement::GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& CurrentProcessInfo)
 {
-    unsigned int number_of_nodes = GetGeometry().PointsNumber();
-    if (rElementalDofList.size() != number_of_nodes)
-        rElementalDofList.resize(number_of_nodes);
+    KRATOS_TRY;
 
+    const SizeType local_size = GetGeometry().PointsNumber() * 3;
+
+    if (rElementalDofList.size() != local_size) {
+        rElementalDofList.resize(local_size);
+    }
+
+    SizeType local_index = 0;
+
+    for (const auto& r_node : GetGeometry()){
+        rElementalDofList[local_index++] = r_node.pGetDof(DISPLACEMENT_X);
+        rElementalDofList[local_index++] = r_node.pGetDof(DISPLACEMENT_Y);
+        rElementalDofList[local_index++] = r_node.pGetDof(DISPLACEMENT_Z);
+    }
+
+    KRATOS_CATCH("")
 }
-
-/**
- * ELEMENTS inherited from this class have to implement next
- * CalculateLocalSystem, CalculateLeftHandSide and CalculateRightHandSide methods
- * they can be managed internally with a private method to do the same calculations
- * only once: MANDATORY
- */
 
 /**
  * this is called during the assembling process in order
@@ -230,112 +247,40 @@ void MassElement::CalculateRightHandSide(VectorType& rRightHandSideVector, Proce
 
 /**
  * this is called during the assembling process in order
- * to calculate the first derivatives contributions for the LHS and RHS
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rRightHandSideVector: the elemental right hand side
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateFirstDerivativesContributions(
-    MatrixType& rLeftHandSideMatrix,
-    VectorType& rRightHandSideVector,
-    ProcessInfo& rCurrentProcessInfo)
-{
-    if (rLeftHandSideMatrix.size1() != 0)
-        rLeftHandSideMatrix.resize(0, 0, false);
-    if (rRightHandSideVector.size() != 0)
-        rRightHandSideVector.resize(0, false);
-}
-
-/**
- * this is called during the assembling process in order
- * to calculate the elemental left hand side matrix for the first derivatives constributions
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateFirstDerivativesLHS(MatrixType& rLeftHandSideMatrix, ProcessInfo& rCurrentProcessInfo)
-{
-    if (rLeftHandSideMatrix.size1() != 0)
-        rLeftHandSideMatrix.resize(0, 0, false);
-}
-
-/**
- * this is called during the assembling process in order
- * to calculate the elemental right hand side vector for the first derivatives constributions
- * @param rRightHandSideVector: the elemental right hand side vector
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateFirstDerivativesRHS(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo)
-{
-    if (rRightHandSideVector.size() != 0)
-        rRightHandSideVector.resize(0, false);
-}
-
-/**
- * ELEMENTS inherited from this class must implement this methods
- * if they need to add dynamic element contributions
- * note: second derivatives means the accelerations if the displacements are the dof of the analysis
- * note: time integration parameters must be set in the rCurrentProcessInfo before calling these methods
- * CalculateSecondDerivativesContributions,
- * CalculateSecondDerivativesLHS, CalculateSecondDerivativesRHS methods are : OPTIONAL
- */
-
-
-/**
- * this is called during the assembling process in order
- * to calculate the second derivative contributions for the LHS and RHS
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rRightHandSideVector: the elemental right hand side
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateSecondDerivativesContributions(
-    MatrixType& rLeftHandSideMatrix,
-    VectorType& rRightHandSideVector,
-    ProcessInfo& rCurrentProcessInfo)
-{
-    if (rLeftHandSideMatrix.size1() != 0)
-        rLeftHandSideMatrix.resize(0, 0, false);
-    if (rRightHandSideVector.size() != 0)
-        rRightHandSideVector.resize(0, false);
-}
-
-/**
- * this is called during the assembling process in order
- * to calculate the elemental left hand side matrix for the second derivatives constributions
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateSecondDerivativesLHS(
-    MatrixType& rLeftHandSideMatrix,
-    ProcessInfo& rCurrentProcessInfo)
-{
-    if (rLeftHandSideMatrix.size1() != 0)
-        rLeftHandSideMatrix.resize(0, 0, false);
-}
-
-/**
- * this is called during the assembling process in order
- * to calculate the elemental right hand side vector for the second derivatives constributions
- * @param rRightHandSideVector: the elemental right hand side vector
- * @param rCurrentProcessInfo: the current process info instance
- */
-void MassElement::CalculateSecondDerivativesRHS(
-    VectorType& rRightHandSideVector,
-    ProcessInfo& rCurrentProcessInfo)
-{
-    if (rRightHandSideVector.size() != 0)
-        rRightHandSideVector.resize(0, false);
-}
-
-/**
- * this is called during the assembling process in order
  * to calculate the elemental mass matrix
  * @param rMassMatrix: the elemental mass matrix
  * @param rCurrentProcessInfo: the current process info instance
  */
 void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo)
 {
-    if (rMassMatrix.size1() != 0)
-        rMassMatrix.resize(0, 0, false);
+    KRATOS_TRY
+    auto& r_geom = GetGeometry();
+
+    // lumped mass matrix
+    SizeType number_of_nodes = r_geom.size();
+    SizeType mat_size = number_of_nodes * 3;
+
+    if (rMassMatrix.size1() != mat_size) {
+        rMassMatrix.resize(mat_size, mat_size, false);
+    }
+
+    noalias(rMassMatrix) = ZeroMatrix(mat_size, mat_size);
+
+    const double total_mass = r_geom.Area() * GetProperties()[THICKNESS] * StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
+
+    Vector lump_fact = ZeroVector(number_of_nodes);
+    r_geom.LumpingFactors(lump_fact);
+
+    for (SizeType i=0; i<number_of_nodes; ++i) {
+        const double temp = lump_fact[i] * total_mass;
+
+        for (SizeType j=0; j<3; ++j) {
+            const SizeType index = i * 3 + j;
+            rMassMatrix(index, index) = temp;
+        }
+    }
+
+    KRATOS_CATCH("")
 }
 
 /**
