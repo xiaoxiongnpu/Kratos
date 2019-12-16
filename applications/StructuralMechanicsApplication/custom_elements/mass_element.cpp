@@ -254,7 +254,7 @@ void MassElement::CalculateRightHandSide(VectorType& rRightHandSideVector, Proce
 void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo)
 {
     KRATOS_TRY
-    auto& r_geom = GetGeometry();
+    const auto& r_geom = GetGeometry();
 
     // lumped mass matrix
     SizeType number_of_nodes = r_geom.size();
@@ -266,19 +266,62 @@ void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCur
 
     noalias(rMassMatrix) = ZeroMatrix(mat_size, mat_size);
 
-    const double total_mass = r_geom.Area() * GetProperties()[THICKNESS] * StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
+    const SizeType local_dim = GetGeometry().LocalSpaceDimension();
 
-    Vector lump_fact = ZeroVector(number_of_nodes);
-    r_geom.LumpingFactors(lump_fact);
-
-    for (SizeType i=0; i<number_of_nodes; ++i) {
-        const double temp = lump_fact[i] * total_mass;
-
-        for (SizeType j=0; j<3; ++j) {
-            const SizeType index = i * 3 + j;
-            rMassMatrix(index, index) = temp;
+    if (local_dim == 2) { // line
+        // Clear matrix
+        if (rMassVector.size() != msLocalSize) {
+            rMassVector.resize(msLocalSize, false);
         }
+
+        const double A = GetProperties()[CROSS_AREA];
+        const double L = StructuralMechanicsElementUtilities::CalculateReferenceLength3D2N(*this);
+        const double rho = GetProperties()[DENSITY];
+
+        const double total_mass = A * L * rho;
+
+        for (int i = 0; i < msNumberOfNodes; ++i) {
+            for (int j = 0; j < msDimension; ++j) {
+                int index = i * msDimension + j;
+
+                rMassVector[index] = total_mass * 0.50;
+            }
+        }
+
+        // Compute lumped mass matrix
+        VectorType temp_vector(msLocalSize);
+        CalculateLumpedMassVector(temp_vector);
+
+        // Clear matrix
+        if (rMassMatrix.size1() != msLocalSize || rMassMatrix.size2() != msLocalSize) {
+            rMassMatrix.resize(msLocalSize, msLocalSize, false);
+        }
+        rMassMatrix = ZeroMatrix(msLocalSize, msLocalSize);
+
+        // Fill the matrix
+        for (IndexType i = 0; i < msLocalSize; ++i) {
+            rMassMatrix(i, i) = temp_vector[i];
+        }
+
+    } else if (local_dim == 3 || local_dim == 4) { // tri / quad
+        const double total_mass = r_geom.Area() * GetProperties()[THICKNESS] * StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
+
+        Vector lump_fact = ZeroVector(number_of_nodes);
+        r_geom.LumpingFactors(lump_fact);
+
+        for (SizeType i=0; i<number_of_nodes; ++i) {
+            const double temp = lump_fact[i] * total_mass;
+
+            for (SizeType j=0; j<3; ++j) {
+                const SizeType index = i * 3 + j;
+                rMassMatrix(index, index) = temp;
+            }
+        }
+    } else {
+        KRATOS_ERROR << "Wrong local space dimension!" << std::endl;
     }
+
+
 
     KRATOS_CATCH("")
 }
@@ -310,8 +353,7 @@ int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
 
     KRATOS_ERROR_IF(this->Id() < 1) <<"MassElement found with Id 0 or negative" << std::endl;
 
-    KRATOS_ERROR_IF(this->GetGeometry().Area() <= 0) << "On MassElement -> "
-        << this->Id() <<  "; Area cannot be less than or equal to 0" << std::endl;
+    // KRATOS_ERROR_IF(this->GetGeometry().Area() <= 0) << "On MassElement #" << this->Id() <<  "; Area cannot be less than or equal to 0" << std::endl;
 
     return 0;
 
