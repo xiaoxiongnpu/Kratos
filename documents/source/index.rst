@@ -6,11 +6,13 @@
 Welcome to KratosMultiphysics's documentation!
 ==============================================
 
+Overview of Kratos.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :glob:
+   :titlesonly:
 
-
+   *
 
 Indices and tables
 ==================
