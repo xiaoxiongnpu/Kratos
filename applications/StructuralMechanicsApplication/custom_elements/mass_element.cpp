@@ -21,6 +21,7 @@
 #include "includes/checks.h"
 #include "mass_element.h"
 #include "custom_utilities/structural_mechanics_element_utilities.h"
+#include "structural_mechanics_application_variables.h"
 
 
 namespace Kratos
@@ -109,13 +110,6 @@ MassElement & MassElement::operator=(MassElement const& rOther)
 ///@name Operations
 ///@{
 
-/**
- * creates a new element pointer
- * @param NewId: the ID of the new element
- * @param ThisNodes: the nodes of the new element
- * @param pProperties: the properties assigned to the new element
- * @return a Pointer to the new element
- */
 Element::Pointer MassElement::Create(
     IndexType NewId,
     NodesArrayType const& ThisNodes,
@@ -126,13 +120,6 @@ Element::Pointer MassElement::Create(
     KRATOS_CATCH("");
 }
 
-/**
- * creates a new element pointer
- * @param NewId: the ID of the new element
- * @param pGeom: the geometry to be employed
- * @param pProperties: the properties assigned to the new element
- * @return a Pointer to the new element
- */
 Element::Pointer MassElement::Create(
     IndexType NewId,
     GeometryType::Pointer pGeom,
@@ -143,13 +130,6 @@ Element::Pointer MassElement::Create(
     KRATOS_CATCH("");
 }
 
-/**
- * creates a new element pointer and clones the previous element data
- * @param NewId: the ID of the new element
- * @param ThisNodes: the nodes of the new element
- * @param pProperties: the properties assigned to the new element
- * @return a Pointer to the new element
- */
 Element::Pointer MassElement::Clone(IndexType NewId, NodesArrayType const& ThisNodes) const
 {
     KRATOS_TRY
@@ -157,11 +137,6 @@ Element::Pointer MassElement::Clone(IndexType NewId, NodesArrayType const& ThisN
     KRATOS_CATCH("");
 }
 
-/**
- * this determines the elemental equation ID vector for all elemental DOFs
- * @param rResult: the elemental equation ID vector
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& CurrentProcessInfo)
 {
     KRATOS_TRY;
@@ -184,11 +159,6 @@ void MassElement::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& C
     KRATOS_CATCH("")
 }
 
-/**
- * determines the elemental list of DOFs
- * @param ElementalDofList: the list of DOFs
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& CurrentProcessInfo)
 {
     KRATOS_TRY;
@@ -210,14 +180,45 @@ void MassElement::GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& Cur
     KRATOS_CATCH("")
 }
 
-/**
- * this is called during the assembling process in order
- * to calculate all elemental contributions to the global system
- * matrix and the right hand side
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rRightHandSideVector: the elemental right hand side
- * @param rCurrentProcessInfo: the current process info instance
- */
+
+void MassElement::GenericGetValuesVector(Vector& rValues, int Step, const ArrayVariableType& rVariable)
+{
+    KRATOS_TRY
+
+    const SizeType number_of_nodes = GetGeometry().PointsNumber();
+    const SizeType local_size = number_of_nodes * 3;
+
+    if (rValues.size() != local_size) {
+        rValues.resize(local_size, false);
+    }
+
+    for (IndexType i = 0; i < number_of_nodes; ++i) {
+        int index = i * 3;
+        const auto& r_vals = GetGeometry()[i].FastGetSolutionStepValue(rVariable, Step);
+
+        rValues[index] =     r_vals[0];
+        rValues[index + 1] = r_vals[1];
+        rValues[index + 2] = r_vals[2];
+    }
+
+    KRATOS_CATCH("")
+}
+
+void MassElement::GetValuesVector(Vector& rValues, int Step)
+{
+    GenericGetValuesVector(rValues, Step, DISPLACEMENT);
+}
+
+void MassElement::GetFirstDerivativesVector(Vector& rValues, int Step)
+{
+    GenericGetValuesVector(rValues, Step, VELOCITY);
+}
+
+void MassElement::GetSecondDerivativesVector(Vector& rValues, int Step)
+{
+    GenericGetValuesVector(rValues, Step, ACCELERATION);
+}
+
 void MassElement::CalculateLocalSystem(
     MatrixType& rLeftHandSideMatrix,
     VectorType& rRightHandSideVector,
@@ -225,100 +226,61 @@ void MassElement::CalculateLocalSystem(
 {
 }
 
-/**
- * this is called during the assembling process in order
- * to calculate the elemental left hand side matrix only
- * @param rLeftHandSideMatrix: the elemental left hand side matrix
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::CalculateLeftHandSide(MatrixType& rLeftHandSideMatrix, ProcessInfo& rCurrentProcessInfo)
 {
+    const SizeType local_size = GetGeometry().PointsNumber() * 3;
+    if (rLeftHandSideMatrix.size1() != local_size) {
+        rLeftHandSideMatrix.resize(local_size, local_size, false);
+    }
+
+    noalias(rLeftHandSideMatrix) = ZeroMatrix(local_size, local_size);
 }
 
-/**
- * this is called during the assembling process in order
- * to calculate the elemental right hand side vector only
- * @param rRightHandSideVector: the elemental right hand side vector
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::CalculateRightHandSide(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo)
 {
 }
 
-/**
- * this is called during the assembling process in order
- * to calculate the elemental mass matrix
- * @param rMassMatrix: the elemental mass matrix
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo)
 {
     KRATOS_TRY
     const auto& r_geom = GetGeometry();
 
     // lumped mass matrix
-    SizeType number_of_nodes = r_geom.size();
-    SizeType mat_size = number_of_nodes * 3;
+    const SizeType number_of_nodes = GetGeometry().PointsNumber();
+    const SizeType local_size = number_of_nodes * 3;
 
-    if (rMassMatrix.size1() != mat_size) {
-        rMassMatrix.resize(mat_size, mat_size, false);
+    if (rMassMatrix.size1() != local_size) {
+        rMassMatrix.resize(local_size, local_size, false);
     }
 
-    noalias(rMassMatrix) = ZeroMatrix(mat_size, mat_size);
+    noalias(rMassMatrix) = ZeroMatrix(local_size, local_size);
 
     const SizeType local_dim = GetGeometry().LocalSpaceDimension();
 
-    if (local_dim == 2) { // line
-        // Clear matrix
-        if (rMassVector.size() != msLocalSize) {
-            rMassVector.resize(msLocalSize, false);
-        }
+    double total_mass;
 
-        const double A = GetProperties()[CROSS_AREA];
-        const double L = StructuralMechanicsElementUtilities::CalculateReferenceLength3D2N(*this);
-        const double rho = GetProperties()[DENSITY];
+    if (local_dim == 1) { // line
+        total_mass = GetProperties()[CROSS_AREA] * StructuralMechanicsElementUtilities::CalculateReferenceLength3D2N(*this);
 
-        const double total_mass = A * L * rho;
+    } else if (local_dim == 2) { // tri / quad
+        total_mass = GetProperties()[THICKNESS]* r_geom.Area(); // TODO Area is calculated o the current configuration, fix this!
 
-        for (int i = 0; i < msNumberOfNodes; ++i) {
-            for (int j = 0; j < msDimension; ++j) {
-                int index = i * msDimension + j;
-
-                rMassVector[index] = total_mass * 0.50;
-            }
-        }
-
-        // Compute lumped mass matrix
-        VectorType temp_vector(msLocalSize);
-        CalculateLumpedMassVector(temp_vector);
-
-        // Clear matrix
-        if (rMassMatrix.size1() != msLocalSize || rMassMatrix.size2() != msLocalSize) {
-            rMassMatrix.resize(msLocalSize, msLocalSize, false);
-        }
-        rMassMatrix = ZeroMatrix(msLocalSize, msLocalSize);
-
-        // Fill the matrix
-        for (IndexType i = 0; i < msLocalSize; ++i) {
-            rMassMatrix(i, i) = temp_vector[i];
-        }
-
-    } else if (local_dim == 3 || local_dim == 4) { // tri / quad
-        const double total_mass = r_geom.Area() * GetProperties()[THICKNESS] * StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
-
-        Vector lump_fact = ZeroVector(number_of_nodes);
-        r_geom.LumpingFactors(lump_fact);
-
-        for (SizeType i=0; i<number_of_nodes; ++i) {
-            const double temp = lump_fact[i] * total_mass;
-
-            for (SizeType j=0; j<3; ++j) {
-                const SizeType index = i * 3 + j;
-                rMassMatrix(index, index) = temp;
-            }
-        }
     } else {
         KRATOS_ERROR << "Wrong local space dimension!" << std::endl;
+    }
+
+    Vector lump_fact = ZeroVector(number_of_nodes);
+    r_geom.LumpingFactors(lump_fact);
+
+    total_mass *= StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
+
+    for (SizeType i=0; i<number_of_nodes; ++i) {
+        const double temp = lump_fact[i] * total_mass;
+
+        for (SizeType j=0; j<3; ++j) {
+            const SizeType index = i * 3 + j;
+            rMassMatrix(index, index) = temp;
+        }
     }
 
 
@@ -326,34 +288,65 @@ void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCur
     KRATOS_CATCH("")
 }
 
-/**
- * this is called during the assembling process in order
- * to calculate the elemental damping matrix
- * @param rDampingMatrix: the elemental damping matrix
- * @param rCurrentProcessInfo: the current process info instance
- */
 void MassElement::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
 {
-    if (rDampingMatrix.size1() != 0)
-        rDampingMatrix.resize(0, 0, false);
+    StructuralMechanicsElementUtilities::CalculateRayleighDampingMatrix(
+        *this,
+        rDampingMatrix,
+        rCurrentProcessInfo,
+        GetGeometry().PointsNumber() * 3);
 }
 
-/**
- * This method provides the place to perform checks on the completeness of the input
- * and the compatibility with the problem options as well as the contitutive laws selected
- * It is designed to be called only once (or anyway, not often) typically at the beginning
- * of the calculations, so to verify that nothing is missing from the input
- * or that no common error is found.
- * @param rCurrentProcessInfo
- * this method is: MANDATORY
- */
 int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
 {
     KRATOS_TRY
 
-    KRATOS_ERROR_IF(this->Id() < 1) <<"MassElement found with Id 0 or negative" << std::endl;
+    KRATOS_ERROR_IF(this->Id() < 1) << "Element found with Id 0 or negative" << std::endl;
 
-    // KRATOS_ERROR_IF(this->GetGeometry().Area() <= 0) << "On MassElement #" << this->Id() <<  "; Area cannot be less than or equal to 0" << std::endl;
+    const double numerical_limit = std::numeric_limits<double>::epsilon();
+    const SizeType number_of_nodes = GetGeometry().PointsNumber();
+    const SizeType dim = GetGeometry().WorkingSpaceDimension();
+    const SizeType local_dim = GetGeometry().WorkingSpaceDimension();
+
+    // Check that the element's nodes contain all required SolutionStepData and Degrees of freedom
+    for (const auto& r_node : GetGeometry()) {
+        KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(DISPLACEMENT, r_node);
+
+        KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_X, r_node);
+        KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Y, r_node);
+        KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Z, r_node);
+    }
+
+    // verify that the variables are correctly initialized
+    KRATOS_CHECK_VARIABLE_KEY(DISPLACEMENT);
+    KRATOS_CHECK_VARIABLE_KEY(VELOCITY);
+    KRATOS_CHECK_VARIABLE_KEY(ACCELERATION);
+    KRATOS_CHECK_VARIABLE_KEY(DENSITY);
+    KRATOS_CHECK_VARIABLE_KEY(CROSS_AREA);
+    KRATOS_CHECK_VARIABLE_KEY(THICKNESS);
+    KRATOS_CHECK_VARIABLE_KEY(VOLUME_ACCELERATION)
+
+    if (GetProperties().Has(DENSITY) == false) {
+        KRATOS_ERROR << "DENSITY not provided for this element #" << Id() << std::endl;
+    }
+
+    // dimension specific checks
+    if (dim == 1) { // line
+        KRATOS_ERROR_IF(number_of_nodes != 2) << "Wrong number of nodes!" << std::endl;
+
+        KRATOS_ERROR_IF(StructuralMechanicsElementUtilities::CalculateReferenceLength3D2N(*this) <= 0) << "On element #" << Id() << "; Length cannot be less than or equal to 0" << std::endl;
+
+        KRATOS_ERROR_IF(GetProperties().Has(CROSS_AREA) == false || GetProperties()[CROSS_AREA] <= numerical_limit) << "CROSS_AREA not provided for this element #" << Id() << std::endl;
+    } else if (local_dim == 2) { // tri / quad
+        KRATOS_ERROR_IF(number_of_nodes != 3 && number_of_nodes != 4) << "Wrong number of nodes!" << std::endl;
+
+        KRATOS_ERROR_IF(GetGeometry().Area() <= 0) << "On element #" << Id() << "; Area cannot be less than or equal to 0" << std::endl;
+
+        KRATOS_ERROR_IF(GetProperties().Has(THICKNESS) == false || GetProperties()[THICKNESS] <= numerical_limit) << "THICKNESS not provided for this element #" << Id() << std::endl;
+
+    } else {
+        KRATOS_ERROR << "Wrong local space dimension, can only be 2 (line) or 3 (surface)!" << std::endl;
+    }
 
     return 0;
 

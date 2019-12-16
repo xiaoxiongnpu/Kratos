@@ -53,8 +53,11 @@ public:
     ///@name Type Definitions
     ///@{
 
+    typedef Variable< array_1d< double, 3> > ArrayVariableType;
+
     ///@}
     ///@name Pointer Definitions
+
     /// Pointer definition of MassElement
     KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION(MassElement);
 
@@ -148,6 +151,22 @@ public:
      * @param rCurrentProcessInfo: the current process info instance
      */
     void GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& CurrentProcessInfo) override;
+
+
+        /**
+     * Getting method to obtain the variable which defines the degrees of freedom
+     */
+    void GetValuesVector(Vector& values, int Step = 0) override;
+
+    /**
+     * Getting method to obtain the time derivative of variable which defines the degrees of freedom
+     */
+    void GetFirstDerivativesVector(Vector& values, int Step = 0) override;
+
+    /**
+     * Getting method to obtain the second time derivative of variable which defines the degrees of freedom
+     */
+    void GetSecondDerivativesVector(Vector& values, int Step = 0) override;
 
     /**
      * this is called during the assembling process in order
@@ -277,6 +296,8 @@ private:
     ///@}
     ///@name Private Operations
     ///@{
+
+    void GenericGetValuesVector(Vector& rValues, int Step, const ArrayVariableType& rVariable);
 
     ///@}
     ///@name Serialization
