@@ -13,36 +13,15 @@
 #if !defined(KRATOS_MASS_ELEMENT_H_INCLUDED)
 #define KRATOS_MASS_ELEMENT_H_INCLUDED
 
-
 // System includes
 
-
 // External includes
-
 
 // Project includes
 #include "includes/element.h"
 
-
 namespace Kratos
 {
-
-///@name Kratos Globals
-///@{
-
-///@}
-///@name Type Definitions
-///@{
-
-///@}
-///@name  Enum's
-///@{
-
-///@}
-///@name  Functions
-///@{
-
-///@}
 ///@name Kratos Classes
 ///@{
 
@@ -93,7 +72,7 @@ public:
     /**
      * Destructor
      */
-    ~MassElement() override;
+    ~MassElement() override = default;
 
     ///@}
     ///@name Operators
@@ -105,11 +84,6 @@ public:
     ///@}
     ///@name Operations
     ///@{
-
-    /**
-     * ELEMENTS inherited from this class have to implement next
-     * Create and Clone methods: MANDATORY
-     */
 
     /**
      * creates a new element pointer
@@ -225,16 +199,6 @@ public:
     int Check(const ProcessInfo& rCurrentProcessInfo) override;
 
     ///@}
-    ///@name Access
-    ///@{
-
-
-    ///@}
-    ///@name Inquiry
-    ///@{
-
-
-    ///@}
     ///@name Input and output
     ///@{
 
@@ -248,52 +212,9 @@ public:
     void PrintData(std::ostream& rOStream) const override;
 
     ///@}
-    ///@name Friends
-    ///@{
-
-    ///@}
-
-protected:
-
-    ///@name Protected static Member Variables
-    ///@{
-
-    ///@}
-    ///@name Protected member Variables
-    ///@{
-
-    ///@}
-    ///@name Protected Operators
-    ///@{
-
-    ///@}
-    ///@name Protected Operations
-    ///@{
-
-    ///@}
-    ///@name Protected  Access
-    ///@{
-
-    ///@}
-    ///@name Protected Inquiry
-    ///@{
-
-    ///@}
-    ///@name Protected LifeCycle
-    ///@{
-
-    ///@}
 
 private:
 
-    ///@name Member Variables
-    ///@{
-
-    ///@}
-    ///@name Private Operators
-    ///@{
-
-    ///@}
     ///@name Private Operations
     ///@{
 
@@ -311,29 +232,8 @@ private:
     void load(Serializer& rSerializer) override;
 
     ///@}
-    ///@name Private  Access
-    ///@{
-
-    ///@}
-    ///@name Private Inquiry
-    ///@{
-
-    ///@}
-    ///@name Un accessible methods
-    ///@{
-
-    ///@}
 
 }; // Class MassElement
-
-///@}
-
-///@name Type Definitions
-///@{
-
-///@}
-///@name Input and output
-///@{
 
 ///@}
 

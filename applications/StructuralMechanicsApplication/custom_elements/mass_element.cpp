@@ -70,13 +70,6 @@ MassElement::MassElement(MassElement const& rOther)
 {
 }
 
-/**
- * Destructor
- */
-MassElement::~MassElement()
-{
-}
-
 ///@}
 ///@name Operators
 ///@{
