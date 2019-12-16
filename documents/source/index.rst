@@ -3,16 +3,19 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to KratosMultiphysics's documentation!
+KratosMultiphysics's documentation
 ==============================================
 
-Overview of Kratos.
+**WORK IN PROGRESS**
+
+KratosMultiphysics (*Katos*) is a framework for building parallel, multi-disciplinary simulation software, aiming at modularity, extensibility, and high performance, under a BSD license. Kratos is written in C++, and counts with an extensive Python interface
+
 
 .. toctree::
-   :glob:
-   :titlesonly:
+   :maxdepth: 2
 
-   *
+   overview
+   installation/installation_bin_linux
 
 Indices and tables
 ==================
