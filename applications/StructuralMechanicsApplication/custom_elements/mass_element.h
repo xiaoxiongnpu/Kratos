@@ -299,6 +299,8 @@ private:
 
     void GenericGetValuesVector(Vector& rValues, int Step, const ArrayVariableType& rVariable);
 
+    double GetElementMass() const;
+
     ///@}
     ///@name Serialization
     ///@{

@@ -27,22 +27,6 @@
 namespace Kratos
 {
 
-///@name Kratos Globals
-///@{
-
-///@}
-///@name Type Definitions
-///@{
-
-///@}
-///@name  Enum's
-///@{
-
-///@}
-///@name  Functions
-///@{
-
-///@}
 ///@name Kratos Classes
 ///@{
 
@@ -141,10 +125,10 @@ void MassElement::EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& C
 {
     KRATOS_TRY;
 
-    const SizeType local_size = GetGeometry().PointsNumber() * 3;
+    const SizeType system_size = GetGeometry().PointsNumber() * 3;
 
-    if (rResult.size() != local_size) {
-        rResult.resize(local_size, false);
+    if (rResult.size() != system_size) {
+        rResult.resize(system_size, false);
     }
 
     SizeType local_index = 0;
@@ -163,10 +147,10 @@ void MassElement::GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& Cur
 {
     KRATOS_TRY;
 
-    const SizeType local_size = GetGeometry().PointsNumber() * 3;
+    const SizeType system_size = GetGeometry().PointsNumber() * 3;
 
-    if (rElementalDofList.size() != local_size) {
-        rElementalDofList.resize(local_size);
+    if (rElementalDofList.size() != system_size) {
+        rElementalDofList.resize(system_size);
     }
 
     SizeType local_index = 0;
@@ -180,16 +164,15 @@ void MassElement::GetDofList(DofsVectorType& rElementalDofList, ProcessInfo& Cur
     KRATOS_CATCH("")
 }
 
-
 void MassElement::GenericGetValuesVector(Vector& rValues, int Step, const ArrayVariableType& rVariable)
 {
     KRATOS_TRY
 
     const SizeType number_of_nodes = GetGeometry().PointsNumber();
-    const SizeType local_size = number_of_nodes * 3;
+    const SizeType system_size = number_of_nodes * 3;
 
-    if (rValues.size() != local_size) {
-        rValues.resize(local_size, false);
+    if (rValues.size() != system_size) {
+        rValues.resize(system_size, false);
     }
 
     for (IndexType i = 0; i < number_of_nodes; ++i) {
@@ -224,20 +207,47 @@ void MassElement::CalculateLocalSystem(
     VectorType& rRightHandSideVector,
     ProcessInfo& rCurrentProcessInfo)
 {
+    CalculateLeftHandSide(rLeftHandSideMatrix, rCurrentProcessInfo);
+    CalculateRightHandSide(rRightHandSideVector, rCurrentProcessInfo);
 }
 
 void MassElement::CalculateLeftHandSide(MatrixType& rLeftHandSideMatrix, ProcessInfo& rCurrentProcessInfo)
 {
-    const SizeType local_size = GetGeometry().PointsNumber() * 3;
-    if (rLeftHandSideMatrix.size1() != local_size) {
-        rLeftHandSideMatrix.resize(local_size, local_size, false);
+    const SizeType system_size = GetGeometry().PointsNumber() * 3;
+    if (rLeftHandSideMatrix.size1() != system_size) {
+        rLeftHandSideMatrix.resize(system_size, system_size, false);
     }
 
-    noalias(rLeftHandSideMatrix) = ZeroMatrix(local_size, local_size);
+    noalias(rLeftHandSideMatrix) = ZeroMatrix(system_size, system_size);
 }
 
 void MassElement::CalculateRightHandSide(VectorType& rRightHandSideVector, ProcessInfo& rCurrentProcessInfo)
 {
+    KRATOS_TRY
+    const SizeType system_size = GetGeometry().PointsNumber() * 3;
+    if (rRightHandSideVector.size() != system_size) {
+        rRightHandSideVector.resize(system_size, false);
+    }
+
+    rRightHandSideVector = ZeroVector(system_size);
+
+    const auto& r_geom = GetGeometry();
+    const SizeType number_of_nodes = r_geom.PointsNumber();
+
+    const double total_mass = GetElementMass();
+
+    Vector lump_fact = ZeroVector(number_of_nodes);
+    r_geom.LumpingFactors(lump_fact);
+
+    for (SizeType i=0; i<number_of_nodes; ++i) {
+        const double temp = lump_fact[i] * total_mass;
+
+        for (SizeType j=0; j<3; ++j) {
+            const SizeType index = i * 3 + j;
+            rRightHandSideVector[index] += temp * r_geom[i].FastGetSolutionStepValue(VOLUME_ACCELERATION)[j];
+        }
+    }
+    KRATOS_CATCH("")
 }
 
 void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo)
@@ -247,14 +257,46 @@ void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCur
 
     // lumped mass matrix
     const SizeType number_of_nodes = GetGeometry().PointsNumber();
-    const SizeType local_size = number_of_nodes * 3;
+    const SizeType system_size = number_of_nodes * 3;
 
-    if (rMassMatrix.size1() != local_size) {
-        rMassMatrix.resize(local_size, local_size, false);
+    if (rMassMatrix.size1() != system_size) {
+        rMassMatrix.resize(system_size, system_size, false);
     }
 
-    noalias(rMassMatrix) = ZeroMatrix(local_size, local_size);
+    noalias(rMassMatrix) = ZeroMatrix(system_size, system_size);
 
+    Vector lump_fact = ZeroVector(number_of_nodes);
+    r_geom.LumpingFactors(lump_fact);
+
+    const double total_mass = GetElementMass();
+
+    for (SizeType i=0; i<number_of_nodes; ++i) {
+        const double temp = lump_fact[i] * total_mass;
+
+        for (SizeType j=0; j<3; ++j) {
+            const SizeType index = i * 3 + j;
+            rMassMatrix(index, index) = temp;
+        }
+    }
+
+    KRATOS_CATCH("")
+}
+
+void MassElement::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
+{
+    StructuralMechanicsElementUtilities::CalculateRayleighDampingMatrix(
+        *this,
+        rDampingMatrix,
+        rCurrentProcessInfo,
+        GetGeometry().PointsNumber() * 3);
+}
+
+double MassElement::GetElementMass() const
+{
+    // TODO this should be coming from total_mass_process
+    KRATOS_TRY
+
+    const auto& r_geom = GetGeometry();
     const SizeType local_dim = GetGeometry().LocalSpaceDimension();
 
     double total_mass;
@@ -269,32 +311,11 @@ void MassElement::CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCur
         KRATOS_ERROR << "Wrong local space dimension!" << std::endl;
     }
 
-    Vector lump_fact = ZeroVector(number_of_nodes);
-    r_geom.LumpingFactors(lump_fact);
-
     total_mass *= StructuralMechanicsElementUtilities::GetDensityForMassMatrixComputation(*this);
 
-    for (SizeType i=0; i<number_of_nodes; ++i) {
-        const double temp = lump_fact[i] * total_mass;
-
-        for (SizeType j=0; j<3; ++j) {
-            const SizeType index = i * 3 + j;
-            rMassMatrix(index, index) = temp;
-        }
-    }
-
-
+    return total_mass;
 
     KRATOS_CATCH("")
-}
-
-void MassElement::CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo)
-{
-    StructuralMechanicsElementUtilities::CalculateRayleighDampingMatrix(
-        *this,
-        rDampingMatrix,
-        rCurrentProcessInfo,
-        GetGeometry().PointsNumber() * 3);
 }
 
 int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
@@ -354,22 +375,13 @@ int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
 }
 
 ///@}
-///@name Access
-///@{
-
-
-///@}
-///@name Inquiry
-///@{
-
-
-///@}
 ///@name Input and output
 ///@{
 
 /// Turn back information as a string.
 
-std::string MassElement::Info() const {
+std::string MassElement::Info() const
+{
     std::stringstream buffer;
     buffer << "MassElement #" << Id();
     return buffer.str();
@@ -377,65 +389,17 @@ std::string MassElement::Info() const {
 
 /// Print information about this object.
 
-void MassElement::PrintInfo(std::ostream& rOStream) const {
+void MassElement::PrintInfo(std::ostream& rOStream) const
+{
     rOStream << "MassElement #" << Id();
 }
 
 /// Print object's data.
 
-void MassElement::PrintData(std::ostream& rOStream) const {
+void MassElement::PrintData(std::ostream& rOStream) const
+{
     pGetGeometry()->PrintData(rOStream);
 }
-
-///@}
-///@name Friends
-///@{
-
-///@}
-
-///@name Protected static Member Variables
-///@{
-
-///@}
-///@name Protected member Variables
-///@{
-
-///@}
-///@name Protected Operators
-///@{
-
-///@}
-///@name Protected Operations
-///@{
-
-///@}
-///@name Protected  Access
-///@{
-
-///@}
-///@name Protected Inquiry
-///@{
-
-///@}
-///@name Protected LifeCycle
-///@{
-
-///@}
-
-///@name Static Member Variables
-///@{
-
-///@}
-///@name Member Variables
-///@{
-
-///@}
-///@name Private Operators
-///@{
-
-///@}
-///@name Private Operations
-///@{
 
 ///@}
 ///@name Serialization
@@ -444,34 +408,12 @@ void MassElement::PrintData(std::ostream& rOStream) const {
 void MassElement::save(Serializer& rSerializer) const
 {
     KRATOS_SERIALIZE_SAVE_BASE_CLASS(rSerializer, Element );
-
-    // List
-    // To be completed with the class member list
 }
 
 void MassElement::load(Serializer& rSerializer)
 {
     KRATOS_SERIALIZE_LOAD_BASE_CLASS(rSerializer, Element );
-
-    // List
-    // To be completed with the class member list
 }
-
-///@}
-///@name Private  Access
-///@{
-
-///@}
-///@name Private Inquiry
-///@{
-
-///@}
-///@name Un accessible methods
-///@{
-
-///@}
-///@name Type Definitions
-///@{
 
 ///@}
 ///@name Input and output
