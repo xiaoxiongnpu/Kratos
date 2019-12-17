@@ -6,16 +6,16 @@
 KratosMultiphysics's documentation
 ==============================================
 
-**WORK IN PROGRESS**
+**DOCUMENTATION IN PROGRESS...**
 
-KratosMultiphysics (*Katos*) is a framework for building parallel, multi-disciplinary simulation software, aiming at modularity, extensibility, and high performance, under a BSD license. Kratos is written in C++, and counts with an extensive Python interface
+KratosMultiphysics ("*Kratos*") is a framework for building parallel, multi-disciplinary simulation software, aiming at modularity, extensibility, and high performance, under a BSD license. Kratos is written in C++, and counts with an extensive Python interface
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    overview
-   installation/installation_bin_linux
+   install
 
 Indices and tables
 ==================
