@@ -76,7 +76,9 @@ namespace Kratos {
 
     this->EvaluatePropertyFromANotRigidNode(Density,DENSITY);
     this->EvaluatePropertyFromANotRigidNode(FluidBulkModulus,BULK_MODULUS);
-    this->EvaluatePropertyFromANotRigidNode(FluidYieldShear,YIELD_SHEAR);
+    // this->EvaluatePropertyFromANotRigidNode(FluidYieldShear,YIELD_SHEAR);
+    bool boundaryElement=false;
+    boundaryElement=this->EvaluatePropertyForSlipCase(FluidYieldShear,YIELD_SHEAR);
     this->EvaluatePropertyFromANotRigidNode(staticFrictionCoefficient,STATIC_FRICTION);
     this->EvaluatePropertyFromANotRigidNode(regularizationCoefficient,REGULARIZATION_COEFFICIENT);
     // this->EvaluatePropertyFromANotRigidNode(inertialNumberThreshold,INERTIAL_NUMBER_ONE);
@@ -89,7 +91,9 @@ namespace Kratos {
 
     if(FluidYieldShear!=0){
       // std::cout<<"For a Newtonian fluid I should not enter here"<<std::endl;
-      DeviatoricCoeff=this->ComputeNonLinearViscosity(rElementalVariables.EquivalentStrainRate);
+      // DeviatoricCoeff=this->ComputeNonLinearViscosity(rElementalVariables.EquivalentStrainRate);
+      DeviatoricCoeff=this->ComputeFrictionViscosityVajont(rElementalVariables,boundaryElement);
+
     }else if(staticFrictionCoefficient!=0){
       DeviatoricCoeff=this->ComputePapanastasiouMuIrheologyViscosity(rElementalVariables);
       // if(regularizationCoefficient!=0 && inertialNumberThreshold==0){
@@ -129,6 +133,34 @@ namespace Kratos {
 
   }
 
+
+  template< unsigned int TDim>
+  double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeFrictionViscosityVajont(ElementalVariables &rElementalVariables,
+                                                                                               bool boundaryElement)
+  {
+    double FluidViscosity=0;
+    double tanFi=1.0;
+
+    if (boundaryElement==true){
+      tanFi=1.0;
+    }
+
+    double meanPressure=rElementalVariables.MeanPressure;
+    if(meanPressure>0){
+      meanPressure=0.0000001;
+    }
+
+    double FluidAdaptiveExponent=0;
+    this->EvaluatePropertyFromANotRigidNode(FluidViscosity,DYNAMIC_VISCOSITY);
+    this->EvaluatePropertyFromANotRigidNode(FluidAdaptiveExponent,ADAPTIVE_EXPONENT);
+    double exponent=-FluidAdaptiveExponent*rElementalVariables.EquivalentStrainRate;
+    if(rElementalVariables.EquivalentStrainRate!=0 && fabs(meanPressure)!=0){
+      FluidViscosity+=(tanFi*fabs(meanPressure)/rElementalVariables.EquivalentStrainRate)*(1-exp(exponent));
+    }else{
+      FluidViscosity=0.001;
+    }
+    return FluidViscosity;
+  }
 
 
   template< unsigned int TDim>
@@ -1783,9 +1815,9 @@ namespace Kratos {
 	const ShapeFunctionsType& N = row(NContainer,g);
 	const ShapeFunctionDerivativesType& rDN_DX = DN_DX[g];
 	computeElement=this->CalcCompleteStrainRate(rElementalVariables,rCurrentProcessInfo,rDN_DX,theta);
-	
+
 	if(computeElement==true){
-	  
+
 	  // double BulkCoeff =GaussWeight/(VolumetricCoeff);
 	  // this->ComputeBulkMatrix(BulkVelMatrix,N,BulkCoeff);
 	  // double BulkStabCoeff=BulkCoeff*Tau*Density/TimeStep;

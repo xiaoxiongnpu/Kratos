@@ -333,9 +333,7 @@ void QSVMSDEMCoupled<TElementData>::AddMassStabilization(TElementData& rData,
                 {
                     rMassMatrix(row+d, col+d) += K;
                     rMassMatrix(row+Dim,col+d) += weight * fluid_fraction * rData.DN_DX(i,d) * rData.N[j];
-                    rMassMatrix(row+Dim,col+Dim) += weight * fluid_fraction_gradient[d] * rData.N[i] * rData.N[j]; // Delta(u) * TauOne * alpha * Grad(q)
-                    //for (unsigned int e; e < Dim; ++e)
-                    //    rMassMatrix(row+Dim, col+Dim) += weight * fluid_fraction_gradient[e] * rData.N[i] * rData.N[j];
+                    rMassMatrix(row+Dim,col+d) += weight * fluid_fraction_gradient[d] * rData.N[i] * rData.N[j]; // Delta(u) * TauOne * alpha * Grad(q)
                 }
             }
         }
@@ -574,7 +572,6 @@ void QSVMSDEMCoupled<TElementData>::CalculateTau(
 
     double inv_tau = c1 * viscosity / (h*h) + density * (rData.DynamicTau/rData.DeltaTime + c2 * velocity_norm / h);
     tau_one = 1.0/inv_tau;
-
     tau_two = viscosity + c2 * density * velocity_norm * h / c1;
 
 }
@@ -653,8 +650,8 @@ void QSVMSDEMCoupled<TElementData>::AddVelocitySystem(TElementData& rData,
 
                 laplacian += fluid_fraction * rData.DN_DX(j,d) * rData.DN_DX(i,d);
                 LHS(row+Dim,col+Dim) += rData.Weight * tau_one * fluid_fraction_gradient[d] * rData.N[i] * rData.DN_DX(j,d); // Stabilization: Grad(q) * tau_one * Grad(p)
-                LHS(row+d,col+Dim)   += rData.Weight * tau_one * fluid_fraction_gradient[d] * AGradN[j] * rData.N[i];
-                LHS(row+Dim,col+Dim) += rData.Weight * fluid_fraction_gradient[d] * rData.N[i] * rData.N[j];
+                LHS(row+Dim,col+d) += rData.Weight * tau_one * fluid_fraction_gradient[d] * AGradN[j] * rData.N[i];
+                LHS(row+d,col+Dim) += rData.Weight * fluid_fraction_gradient[d] * rData.N[i] * rData.N[j];
 
                 for (unsigned int e = 0; e < Dim; e++){ // Stabilization: Div(v) * tau_two * Div(u)
                     LHS(row+d,col+e) += rData.Weight * tau_two * (rData.DN_DX(i,d) * fluid_fraction * rData.DN_DX(j,e));
@@ -672,12 +669,11 @@ void QSVMSDEMCoupled<TElementData>::AddVelocitySystem(TElementData& rData,
         {
             rLocalRHS[row+d] += rData.Weight * rData.N[i] * body_force[d]; // v*BodyForce
             rLocalRHS[row+d] += rData.Weight * tau_one * AGradN[i] * (body_force[d] - momentum_projection[d]); // ( a * Grad(v) ) * tau_one * (Density * BodyForce)
-            rLocalRHS[row+d] -= rData.Weight * tau_two * rData.DN_DX(i,d) * (mass_projection + fluid_fraction_rate);
+            rLocalRHS[row+d] -= rData.Weight * tau_two * rData.DN_DX(i,d) * (mass_projection);
             forcing += (body_force[d] - momentum_projection[d]) * (fluid_fraction * rData.DN_DX(i,d) + rData.N[i] * fluid_fraction_gradient[d]);
 
         }
         rLocalRHS[row+Dim] += rData.Weight * tau_one * forcing;
-        //rLocalRHS[row+Dim] -= rData.Weight * rData.N[i] * fluid_fraction_rate;
     }
 
     // Write (the linearized part of the) local contribution into residual form (A*dx = b - A*x)
@@ -724,7 +720,7 @@ void QSVMSDEMCoupled<TElementData>::MassProjTerm(const TElementData& rData,
         const auto& fluid_fraction_gradient = rData.FluidFractionGradient;
 
         const double fluid_fraction_rate = this->GetAtCoordinate(rData.FluidFractionRate, rData.N);
-        // Compute this node's contribution to the residual (evaluated at inegration point)
+        // Compute this node's contribution to the residual (evaluated at integration point)
         for (unsigned int i = 0; i < NumNodes; i++) {
             for (unsigned int d = 0; d < Dim; ++d)
             {

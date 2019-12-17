@@ -39,14 +39,19 @@ class FluidFractionTestSolver(BaseSolver):
         self.casas_solution = casas_fluid_fraction_solution.CasasFluidFractionSolution(self.project_parameters["fluid_parameters"]["processes"]["boundary_conditions_process_list"][1]["Parameters"]["benchmark_parameters"])
         fluid_fraction_list = np.array([self.casas_solution.alpha(current_time, x, y, z) for x, y, z in zip(x, y, z)])
         fluid_fraction_rate_list = np.array([self.casas_solution.dalphat(current_time, x, y, z) for x, y, z in zip(x, y, z)])
+        fluid_fraction_gradient_list = np.array([[self.casas_solution.alpha1(current_time, x, y, z), self.casas_solution.alpha2(current_time, x, y, z), self.casas_solution.alpha3(current_time, x, y, z)] for x, y, z in zip(x, y, z)])
 
 
         iterator = 0
         for node in self.fluid_solver.main_model_part.Nodes:
             fluid_fraction = fluid_fraction_list[iterator]
             fluid_fraction_rate = fluid_fraction_rate_list[iterator]
+            fluid_fraction_gradient = fluid_fraction_gradient_list[iterator]
             node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION, fluid_fraction)
             node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION_RATE, fluid_fraction_rate)
+            node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION_GRADIENT_X, fluid_fraction_gradient[0])
+            node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION_GRADIENT_Y, fluid_fraction_gradient[1])
+            node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION_GRADIENT_Z, fluid_fraction_gradient[2])
             iterator += 1
 
     def ConstructL2ErrorProjector(self):

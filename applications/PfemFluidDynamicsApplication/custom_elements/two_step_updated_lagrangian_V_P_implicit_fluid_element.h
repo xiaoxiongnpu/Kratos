@@ -63,7 +63,7 @@ namespace Kratos
       ///@{
 
       /// Pointer definition of TwoStepUpdatedLagrangianVPImplicitFluidElement
-      KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION(TwoStepUpdatedLagrangianVPImplicitFluidElement);
+      KRATOS_CLASS_POINTER_DEFINITION(TwoStepUpdatedLagrangianVPImplicitFluidElement);
 
       ///base type:
       typedef TwoStepUpdatedLagrangianVPImplicitElement<TDim> BaseType;
@@ -108,7 +108,7 @@ namespace Kratos
 
       typedef typename BaseType::ElementalVariables ElementalVariables;
 
-      typedef GlobalPointersVector<Node<3> > NodeWeakPtrVectorType;
+      typedef WeakPointerVector<Node<3> > NodeWeakPtrVectorType;
       ///@}
       ///@name Life Cycle
       ///@{
@@ -333,6 +333,8 @@ namespace Kratos
 
       double ComputeNonLinearViscosity(double & equivalentStrainRate);
 
+      double ComputeFrictionViscosityVajont(ElementalVariables &rElementalVariables,bool boundaryElement);
+
       void ComputeMaterialParametersGranularGas(double& Density,
 						double& DeviatoricCoeff,
 						double& VolumetricCoeff,
@@ -343,7 +345,7 @@ namespace Kratos
 
       double ComputeBercovierMuIrheologyViscosity(ElementalVariables & rElementalVariables);
 
-      double ComputePapanastasiouMuIrheologyViscosity(ElementalVariables & rElementalVariables);
+      double ComputePapanastasiouMuIrheologyViscosity(ElementalVariables & rElementalVariables);      
 
       double ComputeBarkerMuIrheologyViscosity(ElementalVariables & rElementalVariables);
 

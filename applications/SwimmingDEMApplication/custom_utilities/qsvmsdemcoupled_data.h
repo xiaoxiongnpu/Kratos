@@ -46,6 +46,7 @@ NodalScalarData FluidFraction;
 NodalScalarData FluidFractionRate;
 
 NodalVectorData FluidFractionGradient;
+NodalVectorData Acceleration;
 
 double ElementSize;
 
@@ -60,6 +61,7 @@ void Initialize(const Element& rElement, const ProcessInfo& rProcessInfo) overri
     this->FillFromNodalData(FluidFraction, FLUID_FRACTION, r_geometry);
     this->FillFromNodalData(FluidFractionRate, FLUID_FRACTION_RATE, r_geometry);
     this->FillFromNodalData(FluidFractionGradient, FLUID_FRACTION_GRADIENT, r_geometry);
+    this->FillFromNodalData(Acceleration, ACCELERATION, r_geometry);
     QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Initialize(rElement,rProcessInfo);
 
     ElementSize = ElementSizeCalculator<TDim,TNumNodes>::AverageElementSize(r_geometry);

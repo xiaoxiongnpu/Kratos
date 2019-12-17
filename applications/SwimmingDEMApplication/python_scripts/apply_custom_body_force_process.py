@@ -52,12 +52,16 @@ class ApplyCustomBodyForceProcess(KratosMultiphysics.Process):
         z = np.array([node.Z for node in self.model_part.Nodes])
 
         value = np.array([self.benchmark.Velocity(current_time, x, y, z) for x, y, z in zip(x, y, z)])
+        bf_value = np.array([self.benchmark.BodyForce(current_time, x, y, z) for x, y, z in zip(x, y, z)])
 
         iterator = 0
         for node in self.model_part.Nodes:
             vel_value = Vector(list(value[iterator]))
+            b_value = Vector(list(bf_value[iterator]))
             node.SetSolutionStepValue(KratosMultiphysics.VELOCITY, vel_value)
+            node.SetSolutionStepValue(KratosMultiphysics.BODY_FORCE, b_value)
             node.SetValue(KratosMultiphysics.Y, vel_value)
+            node.SetValue(KratosMultiphysics.PRESSURE, 0.0)
             iterator += 1
 
     def ExecuteInitializeSolutionStep(self):
@@ -99,17 +103,15 @@ class ApplyCustomBodyForceProcess(KratosMultiphysics.Process):
             press_value = self.value_p[iterator]
             node.SetSolutionStepValue(self.variable, var_value)
             if node.X == 1.0 and node.Y == 0.0:
+            #if node.Y == 0.0:
                 node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
                 node.Fix(KratosMultiphysics.PRESSURE)
-            if np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) - min(radius) < 1e-3 or -np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) + max(radius) < 1e-3 or node.X == max(x) or node.Y == min(y) or node.X - node.Y < 1e-3:
-            #if node.X == max(x) or node.Y == min(y) or node.X == min(x) or node.Y == min(y):
+            #if np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) - min(radius) < 1e-3 or -np.sqrt((node.X-center_x)**2 + (node.Y-center_y)**2) + max(radius) < 1e-3 or node.X == max(x) or node.Y == min(y) or node.X - node.Y < 1e-3:
+            if node.X == max(x) or node.Y == max(y) or node.X == min(x) or node.Y == min(y):
                 node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_X, vel_value[0])
                 node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_Y, vel_value[1])
                 node.Fix(KratosMultiphysics.VELOCITY_X)
                 node.Fix(KratosMultiphysics.VELOCITY_Y)
-            # else:
-            #     node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
-            #     node.Fix(KratosMultiphysics.PRESSURE)
 
             iterator += 1
 

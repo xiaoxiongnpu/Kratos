@@ -21,7 +21,7 @@ class CasasFluidFractionSolution(ManufacturedSolution):
                 "frequency"   : 1.0,
                 "damping"     : 1.0,
                 "alpha0"      : 0.7,
-                "alpha_min"   : 0.5,
+                "alpha_min"   : 0.4,
                 "period"      : 0.1,
                 "center_x1"   : 0.0,
                 "center_x2"   : 0.0
@@ -40,7 +40,7 @@ class CasasFluidFractionSolution(ManufacturedSolution):
         alpha_min = settings["alpha_min"].GetDouble()
         self.delta_alpha = min(self.alpha0 - alpha_min, 1.0 - self.alpha0)
         self.omega = 2 * np.pi / period
-        #self.delta_alpha = 0.0
+        #self.delta_alpha = 0.6
         #self.omega = 0.0
         self.centerx1 = settings["center_x1"].GetDouble()
         self.centerx2 = settings["center_x2"].GetDouble()
@@ -65,15 +65,6 @@ class CasasFluidFractionSolution(ManufacturedSolution):
 
     def u2(self, time, x1, x2, x3):
         return (-0.5*self.delta_alpha*self.omega*(-self.centerx2 + x2)*np.cos(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))) + 100*(-self.centerx2 + x2)**2*(-100*(-2*self.centerx1 + 2*x1)*(self.centerx1 - x1 + 1)**2 - 100*(-self.centerx1 + x1)**2*(-2*self.centerx1 + 2*x1 - 2))*(self.centerx2 - x2 + 1)**2*np.exp(-time)*np.cos(np.pi*time))/(self.alpha0 + self.delta_alpha*np.sin(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))))
-
-    def p(self, time, x1, x2, x3):
-        return 0.0
-
-    def dp1(self, time, x1, x2, x3):
-        return 0.0
-
-    def dp2(self, time, x1, x2, x3):
-        return 0.0
 
     def du1dt(self, time, x1, x2, x3):
         return -self.delta_alpha*self.omega*(-0.5*self.delta_alpha*self.omega*np.sqrt(-(-self.centerx2 + x2)**2/((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2) + 1)*np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2)*np.cos(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))) + 100*(-self.centerx1 + x1)**2*(100*(-2*self.centerx2 + 2*x2)*(self.centerx2 - x2 + 1)**2 + 100*(-self.centerx2 + x2)**2*(-2*self.centerx2 + 2*x2 - 2))*(self.centerx1 - x1 + 1)**2*np.exp(-time)*np.cos(np.pi*time))*np.cos(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2)))/(self.alpha0 + self.delta_alpha*np.sin(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))))**2 + (0.5*self.delta_alpha*self.omega**2*np.sqrt(-(-self.centerx2 + x2)**2/((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2) + 1)*np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2)*np.sin(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))) - 100*np.pi*(-self.centerx1 + x1)**2*(100*(-2*self.centerx2 + 2*x2)*(self.centerx2 - x2 + 1)**2 + 100*(-self.centerx2 + x2)**2*(-2*self.centerx2 + 2*x2 - 2))*(self.centerx1 - x1 + 1)**2*np.exp(-time)*np.sin(np.pi*time) - 100*(-self.centerx1 + x1)**2*(100*(-2*self.centerx2 + 2*x2)*(self.centerx2 - x2 + 1)**2 + 100*(-self.centerx2 + x2)**2*(-2*self.centerx2 + 2*x2 - 2))*(self.centerx1 - x1 + 1)**2*np.exp(-time)*np.cos(np.pi*time))/(self.alpha0 + self.delta_alpha*np.sin(self.omega*time + np.arcsin((-self.centerx2 + x2)/np.sqrt((-self.centerx1 + x1)**2 + (-self.centerx2 + x2)**2))))
