@@ -281,7 +281,7 @@ int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
     const double numerical_limit = std::numeric_limits<double>::epsilon();
     const SizeType number_of_nodes = GetGeometry().PointsNumber();
     const SizeType dim = GetGeometry().WorkingSpaceDimension();
-    const SizeType local_dim = GetGeometry().WorkingSpaceDimension();
+    const SizeType local_dim = GetGeometry().LocalSpaceDimension();
 
     // Check that the element's nodes contain all required SolutionStepData and Degrees of freedom
     for (const auto& r_node : GetGeometry()) {
@@ -306,7 +306,7 @@ int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
     }
 
     // dimension specific checks
-    if (dim == 1) { // line
+    if (local_dim == 1) { // line
         KRATOS_ERROR_IF(number_of_nodes != 2) << "Wrong number of nodes!" << std::endl;
 
         KRATOS_ERROR_IF(StructuralMechanicsElementUtilities::CalculateReferenceLength3D2N(*this) <= 0) << "On element #" << Id() << "; Length cannot be less than or equal to 0" << std::endl;
@@ -320,7 +320,7 @@ int MassElement::Check(const ProcessInfo& rCurrentProcessInfo)
         KRATOS_ERROR_IF(GetProperties().Has(THICKNESS) == false || GetProperties()[THICKNESS] <= numerical_limit) << "THICKNESS not provided for this element #" << Id() << std::endl;
 
     } else {
-        KRATOS_ERROR << "Wrong local space dimension, can only be 2 (line) or 3 (surface)!" << std::endl;
+        KRATOS_ERROR << "Wrong local space dimension, can only be 2 (line) or 3 (surface), got: " << dim << " !" << std::endl;
     }
 
     return 0;
