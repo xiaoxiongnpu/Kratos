@@ -58,6 +58,7 @@ void KratosCompressiblePotentialFlowApplication::Register()
 
   //Embedded variables
   KRATOS_REGISTER_VARIABLE(GEOMETRY_DISTANCE);
+  KRATOS_REGISTER_VARIABLE(GEOMETRY_ELEMENTAL_DISTANCES);
   KRATOS_REGISTER_VARIABLE(ROTATION_ANGLE);
 
   // Wake variables
