@@ -740,9 +740,10 @@ public:
     virtual ~DerivativeData()= default;
 
     /// The penalty parameter
-    array_1d<double, TNumNodes> PenaltyParameter;
+    array_1d<double, TNumNodes> PenaltyParameter = ZeroVector(TNumNodes);
+
     /// The scale factor
-    double ScaleFactor;
+    double ScaleFactor = 1.0;
 
     /// The normals of the nodes
     GeometryDoFMatrixSlaveType NormalSlave;
@@ -808,14 +809,22 @@ public:
                     - MortarUtilities::GetVariableMatrix<TDim,TNumNodes>(rSlaveGeometry, DISPLACEMENT, 1);
         noalias(X1) = MortarUtilities::GetCoordinates<TDim,TNumNodes>(rSlaveGeometry, false, step);
 
-        // We get the ALM variables
+        /* We get the ALM variables */
+
+        // Getting the penalty value
         for (IndexType i = 0; i < TNumNodes; ++i)
             PenaltyParameter[i] = rSlaveGeometry[i].GetValue(INITIAL_PENALTY);
-        ScaleFactor = rCurrentProcessInfo[SCALE_FACTOR];
+
+        // Getting the scale factor
+        if (rCurrentProcessInfo.Has(SCALE_FACTOR)) {
+            ScaleFactor = rCurrentProcessInfo.GetValue(SCALE_FACTOR);
+        } else if (rProperties.Has(SCALE_FACTOR)) {
+            ScaleFactor = rProperties.GetValue(SCALE_FACTOR);
+        }
 
         // We initialize the derivatives
-        const array_1d<double, TNumNodes> zero_vector_slave(TNumNodes, 0.0);
-        const array_1d<double, TNumNodesMaster> zero_vector_master(TNumNodesMaster, 0.0);
+        const array_1d<double, TNumNodes> zero_vector_slave = ZeroVector(TNumNodes);
+        const array_1d<double, TNumNodesMaster> zero_vector_master = ZeroVector(TNumNodesMaster);
         for (IndexType i = 0; i < DoFSizeSlaveGeometry; ++i) {
             DeltaDetjSlave[i] = 0.0;
             noalias(DeltaPhi[i]) = zero_vector_slave;
