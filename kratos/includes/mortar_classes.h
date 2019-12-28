@@ -745,6 +745,9 @@ public:
     /// The scale factor
     double ScaleFactor = 1.0;
 
+    /// The condition thickness
+    double ConditionThickness = 0.0;
+
     /// The normals of the nodes
     GeometryDoFMatrixSlaveType NormalSlave;
     GeometryDoFMatrixMasterType NormalMaster;
@@ -820,6 +823,14 @@ public:
             ScaleFactor = rCurrentProcessInfo.GetValue(SCALE_FACTOR);
         } else if (rProperties.Has(SCALE_FACTOR)) {
             ScaleFactor = rProperties.GetValue(SCALE_FACTOR);
+        }
+
+        // We get the thickness
+        if (KratosComponents<Variable<double>>::Has("GAP_CONTACT_THICKNESS")) {
+            const auto& r_variable_thickness = KratosComponents<Variable<double>>::Get("GAP_CONTACT_THICKNESS");
+            if (rProperties.Has(r_variable_thickness)) {
+                ConditionThickness = rProperties.GetValue(r_variable_thickness);
+            }
         }
 
         // We initialize the derivatives
