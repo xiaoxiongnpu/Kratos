@@ -90,6 +90,19 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
             distances(i_node) = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
     }
 
+    // Vector nodal_distances(NumNodes);
+    // for(unsigned int i_node = 0; i_node<NumNodes; i_node++) {
+    //     nodal_distances(i_node) = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
+    // }
+    bool is_te = false;
+    for (unsigned int i = 0; i < NumNodes; ++i)
+    {
+        if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+        {
+            is_te = true;
+        }
+    }
+
     potential = PotentialFlowUtilities::GetPotentialOnNormalElement<Dim, NumNodes>(*this);
 
     ModifiedShapeFunctions::Pointer pModifiedShFunc = this->pGetModifiedShapeFunctions(distances);
@@ -103,12 +116,51 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
         GeometryData::GI_GAUSS_1);
 
     const double free_stream_density = rCurrentProcessInfo[FREE_STREAM_DENSITY];
+    // Computing Normal
+    std::vector<Vector> cut_normal;
+    pModifiedShFunc -> ComputePositiveSideInterfaceAreaNormals(cut_normal,GeometryData::GI_GAUSS_1);
+    double norm_normal = sqrt(inner_prod(cut_normal[0],cut_normal[0]));
+    auto unit_normal = cut_normal[0]/norm_normal;
+    this->SetValue(VELOCITY_LOWER,unit_normal);
+
+    BoundedMatrix<double, 2, 1 > n_kutta;
+    n_kutta(0,0)=cut_normal[0][0]/norm_normal;
+    n_kutta(1,0)=cut_normal[0][1]/norm_normal;
+    BoundedMatrix<double, 2, 1 > n_angle;
+
+    double angle_in_deg = rCurrentProcessInfo[ROTATION_ANGLE];
+    n_angle(0,0)=sin(angle_in_deg*Globals::Pi/180);
+    n_angle(1,0)=cos(angle_in_deg*Globals::Pi/180);
+    double projection = -n_kutta(0,0)*n_angle(1,0)+n_kutta(1,0)*n_angle(0,0);
+
+    bool is_neighbour = false;
+    for (unsigned int i = 0; i < NumNodes; ++i){
+        const GlobalPointersVector<Element>& r_node_elem_candidates = this -> GetGeometry()[i].GetValue(NEIGHBOUR_ELEMENTS);
+        for (std::size_t j = 0; j < r_node_elem_candidates.size(); j++) {
+            auto r_elem = r_node_elem_candidates(j);
+            if (r_elem->Is(STRUCTURE))
+                is_neighbour = true;
+        }
+    }
+    bool is_projection = false;
+    if (std::abs(projection)>0.5 && is_te)
+    // if ((std::abs(projection)>0.5 && is_te) || (is_te))
+    // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour && kutta == 1))
+    // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour && kutta == 0))
+    // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour))
+    // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour) || (kutta==1 && is_te))
+    // if ((std::abs(projection)>0.5 && is_te) || (kutta==1 && is_te))
+    {
+        KRATOS_WATCH(this->Id())
+        KRATOS_WATCH(projection)
+        n_kutta = n_angle;
+        is_projection = true;
+    }
+
+    // }else{
+    // }
 
     BoundedMatrix<double,NumNodes,Dim> DN_DX;
-    BoundedMatrix<double, 2, 1 > n_kutta;
-    double angle_in_deg = rCurrentProcessInfo[ROTATION_ANGLE];
-    n_kutta(0,0)=sin(angle_in_deg*Globals::Pi/180);
-    n_kutta(1,0)=cos(angle_in_deg*Globals::Pi/180);
     BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
     for (unsigned int i_gauss=0;i_gauss<positive_side_sh_func_gradients.size();i_gauss++){
         DN_DX=positive_side_sh_func_gradients(i_gauss);
@@ -118,20 +170,30 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     }
 
 
-    // auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
+    auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
     // if (kutta==1){
-    // for (unsigned int i = 0; i < NumNodes; ++i)
-    // {
-    //     if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
-    //     {
-    //         for (unsigned int j = 0; j < NumNodes; ++j)
-    //         {
-    //             rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
-    //             // rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
-    //         }
-    //     }
+    for (unsigned int i = 0; i < NumNodes; ++i)
+    {
+        if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+        // if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+        {
+            for (unsigned int j = 0; j < NumNodes; ++j)
+            {
+                // rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+                rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
+            }
+        }
+
+        if (is_projection && (this->GetGeometry()[i].GetValue(WING_TIP)   ))
+        {
+            for (unsigned int j = 0; j < NumNodes; ++j)
+            {
+                // rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+                rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
+            }
+        }
     // }
-    // }
+    }
     noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix, potential);
 }
 

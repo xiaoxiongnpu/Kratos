@@ -183,12 +183,14 @@ private:
     void GetEquationIdVectorNormalElement(EquationIdVectorType& rResult) const;
 
     void GetEquationIdVectorKuttaElement(EquationIdVectorType& rResult) const;
+    void GetEquationIdVectorUpperElement(EquationIdVectorType& rResult) const;
 
     void GetEquationIdVectorWakeElement(EquationIdVectorType& rResult) const;
 
     void GetDofListNormalElement(DofsVectorType& rElementalDofList) const;
 
     void GetDofListKuttaElement(DofsVectorType& rElementalDofList) const;
+    void GetDofListUpperElement(DofsVectorType& rElementalDofList) const;
 
     void GetDofListWakeElement(DofsVectorType& rElementalDofList) const;
 

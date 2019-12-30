@@ -25,18 +25,29 @@ template <int Dim, int NumNodes>
 BoundedVector<double, NumNodes> GetPotentialOnNormalElement(const Element& rElement)
 {
     const int kutta = rElement.GetValue(KUTTA);
+    const int upper = rElement.GetValue(UPPER_WAKE);
     array_1d<double, NumNodes> potentials;
 
     const auto r_geometry = rElement.GetGeometry();
 
-    if (kutta == 0) {
+    if (kutta == 0 && upper == 0) {
         for (unsigned int i = 0; i < NumNodes; i++) {
             potentials[i] = r_geometry[i].FastGetSolutionStepValue(VELOCITY_POTENTIAL);
         }
     }
-    else {
+    else if (kutta==1) {
         for (unsigned int i = 0; i < NumNodes; i++) {
             if (!r_geometry[i].GetValue(TRAILING_EDGE)) {
+                potentials[i] = r_geometry[i].FastGetSolutionStepValue(VELOCITY_POTENTIAL);
+            }
+            else {
+                potentials[i] = r_geometry[i].FastGetSolutionStepValue(AUXILIARY_VELOCITY_POTENTIAL);
+            }
+        }
+    }
+    else {
+        for (unsigned int i = 0; i < NumNodes; i++) {
+            if (!r_geometry[i].GetValue(WING_TIP)) {
                 potentials[i] = r_geometry[i].FastGetSolutionStepValue(VELOCITY_POTENTIAL);
             }
             else {

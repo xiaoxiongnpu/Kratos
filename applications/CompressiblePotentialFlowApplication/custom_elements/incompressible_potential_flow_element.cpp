@@ -94,11 +94,14 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::EquationIdVector(
             rResult.resize(NumNodes, false);
 
         const int kutta = r_this.GetValue(KUTTA);
+        const int upper = r_this.GetValue(UPPER_WAKE);
 
-        if (kutta == 0)
+        if (kutta == 0 && upper == 0)
             GetEquationIdVectorNormalElement(rResult);
-        else
+        else if (kutta == 1)
             GetEquationIdVectorKuttaElement(rResult);
+        else
+            GetEquationIdVectorUpperElement(rResult);
     }
     else // Wake element
     {
@@ -122,11 +125,14 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetDofList(DofsVectorTyp
             rElementalDofList.resize(NumNodes);
 
         const int kutta = r_this.GetValue(KUTTA);
+        const int upper = r_this.GetValue(UPPER_WAKE);
 
-        if (kutta == 0)
+        if (kutta == 0 && upper==0)
             GetDofListNormalElement(rElementalDofList);
-        else
+        else if (kutta == 1)
             GetDofListKuttaElement(rElementalDofList);
+        else
+            GetDofListUpperElement(rElementalDofList);
     }
     else // wake element
     {
@@ -298,6 +304,20 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetEquationIdVectorKutta
 }
 
 template <int Dim, int NumNodes>
+void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetEquationIdVectorUpperElement(EquationIdVectorType& rResult) const
+{
+    // Kutta elements have only negative part
+    for (unsigned int i = 0; i < NumNodes; i++)
+    {
+        if (!GetGeometry()[i].GetValue(WING_TIP))
+            rResult[i] = GetGeometry()[i].GetDof(VELOCITY_POTENTIAL).EquationId();
+        else
+            rResult[i] = GetGeometry()[i].GetDof(AUXILIARY_VELOCITY_POTENTIAL).EquationId();
+    }
+}
+
+
+template <int Dim, int NumNodes>
 void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetEquationIdVectorWakeElement(EquationIdVectorType& rResult) const
 {
     array_1d<double, NumNodes> distances;
@@ -344,6 +364,20 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetDofListKuttaElement(D
             rElementalDofList[i] = GetGeometry()[i].pGetDof(AUXILIARY_VELOCITY_POTENTIAL);
     }
 }
+
+template <int Dim, int NumNodes>
+void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetDofListUpperElement(DofsVectorType& rElementalDofList) const
+{
+    // Kutta elements have only negative part
+    for (unsigned int i = 0; i < NumNodes; i++)
+    {
+        if (!GetGeometry()[i].GetValue(WING_TIP))
+            rElementalDofList[i] = GetGeometry()[i].pGetDof(VELOCITY_POTENTIAL);
+        else
+            rElementalDofList[i] = GetGeometry()[i].pGetDof(AUXILIARY_VELOCITY_POTENTIAL);
+    }
+}
+
 
 template <int Dim, int NumNodes>
 void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetDofListWakeElement(DofsVectorType& rElementalDofList) const
@@ -537,8 +571,8 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
     // lhs_positive = lhs_kutta_positive + lhs_kutta_negative;
     // lhs_negative = lhs_kutta_negative + lhs_kutta_positive;
 
-    lhs_positive = lhs_kutta_positive;
-    lhs_negative = lhs_kutta_negative;
+    // lhs_positive = lhs_kutta_positive;
+    // lhs_negative = lhs_kutta_negative;
     // lhs_positive += lhs_negative;
 
     // lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
@@ -567,19 +601,34 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
     BoundedMatrix<double, NumNodes, NumNodes>& lhs_total,
     const ElementalData<NumNodes, Dim>& data) const
 {
+    array_1d<double, NumNodes> distances;
+    GetWakeDistances(distances);
     for (unsigned int i = 0; i < NumNodes; ++i)
     {
         // The TE node takes the contribution of the subdivided element and
         // we do not apply the wake condition on the TE node
-        if (GetGeometry()[i].GetValue(TRAILING_EDGE))
+        // if (GetGeometry()[i].GetValue(WING_TIP) || GetGeometry()[i].GetValue(TRAILING_EDGE))
+        if (GetGeometry()[i].GetValue(WING_TIP))
         // if (true)
         {
 
+            // Positive part
+            if (distances[i] > 0.0) {
             // AssignLocalSystemKuttaWakeNode(rLeftHandSideMatrix, lhs_total, lhs_positive, lhs_negative, data, i);
-            for (unsigned int j = 0; j < NumNodes; ++j)
-            {
+                for (unsigned int j = 0; j < NumNodes; ++j)
+                {
+                    rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
+                    rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
+                }
+            }
+            else {
+
+                for (unsigned int j = 0; j < NumNodes; ++j)
+                {
                 rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
                 rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
+                }
+
             }
         }
         else
