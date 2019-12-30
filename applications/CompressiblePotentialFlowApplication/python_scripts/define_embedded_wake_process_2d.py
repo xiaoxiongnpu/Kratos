@@ -128,6 +128,16 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
     def _RedefineWake(self):
         ini_time = time.time()
 
+<<<<<<< HEAD
+=======
+        # self._DefineWakeModelPart()
+        # self._MoveAndRotateWake()
+        # # Executing define wake process
+        # CPFApp.DefineEmbeddedWakeProcess(self.main_model_part, self.wake_model_part).Execute()
+
+
+        self.__FindWakeElements()
+>>>>>>> 7f8e763270eecbdc4c137f501531a96a73fe90ab
         max_inactive_x = -1e30
         for elem in self.main_model_part.Elements:
             if elem.IsNot(KratosMultiphysics.ACTIVE):
@@ -394,7 +404,7 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         self.trailing_edge_node = trailing_edge_candidate
         KratosMultiphysics.Logger.PrintInfo('Time spent finding trailing edge node:', time.time() - ini_time)
         # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
-        self.trailing_edge_node = self.main_model_part.GetNode(74353)
+        #self.trailing_edge_node = self.main_model_part.GetNode(74353)
         self.trailing_edge_node.SetValue(CPFApp.TRAILING_EDGE, True)
 
     def CheckIfValid(self, trailing_edge_candidate):

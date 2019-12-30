@@ -247,6 +247,9 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetValueOnIntegrationPoi
         for (unsigned int k = 0; k < Dim; k++)
             v[k] = vaux[k];
         rValues[0] = v;
+    }else if (rVariable == NORMAL)
+    {
+        rValues[0] =this->GetValue(VELOCITY_LOWER);
     }
 }
 
@@ -659,16 +662,16 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemKuttaWa
     for (unsigned int column = 0; column < NumNodes; ++column)
     {
         rLeftHandSideMatrix(row, column) = lhs_positive(row, column);
-        rLeftHandSideMatrix(row + NumNodes, column + NumNodes) = lhs_positive(row, column);
+        rLeftHandSideMatrix(row + NumNodes, column + NumNodes) = lhs_negative(row, column);
     }
 
     // Applying wake condition on the AUXILIARY_VELOCITY_POTENTIAL dofs
     if (data.distances[row] < 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row, column + NumNodes) = -lhs_total(row, column); // Side 1
+            rLeftHandSideMatrix(row, column + NumNodes) = -lhs_negative(row, column); // Side 1
     else if (data.distances[row] > 0.0)
         for (unsigned int column = 0; column < NumNodes; ++column)
-            rLeftHandSideMatrix(row + NumNodes, column) = -lhs_total(row, column); // Side 2
+            rLeftHandSideMatrix(row + NumNodes, column) = -lhs_positive(row, column); // Side 2
 }
 
 template <int Dim, int NumNodes>
