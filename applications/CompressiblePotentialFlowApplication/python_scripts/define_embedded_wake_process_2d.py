@@ -128,16 +128,6 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
     def _RedefineWake(self):
         ini_time = time.time()
 
-<<<<<<< HEAD
-=======
-        # self._DefineWakeModelPart()
-        # self._MoveAndRotateWake()
-        # # Executing define wake process
-        # CPFApp.DefineEmbeddedWakeProcess(self.main_model_part, self.wake_model_part).Execute()
-
-
-        self.__FindWakeElements()
->>>>>>> 7f8e763270eecbdc4c137f501531a96a73fe90ab
         max_inactive_x = -1e30
         for elem in self.main_model_part.Elements:
             if elem.IsNot(KratosMultiphysics.ACTIVE):
