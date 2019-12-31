@@ -306,6 +306,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     const double c_mu_50 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO_STAR], 0.50);
     const double b0_2 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_BETA_ZERO], 2);
     const double vk = rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double omega_sigma = rCurrentProcessInfo[TURBULENCE_RANS_SIGMA_OMEGA];
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
@@ -322,6 +323,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             r_geometry, TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
         const double y_plus = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
+        const double effective_kinematic_viscosity = nu + omega_sigma * nu_t;
 
         const double coefficient = 2.0;
         if (y_plus > rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
@@ -332,7 +334,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         if (y_plus > eps)
         {
             const double value =
-                weight * coefficient * u_tau / (y_plus * nu);
+                weight * coefficient * effective_kinematic_viscosity * u_tau / (y_plus * nu);
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {
