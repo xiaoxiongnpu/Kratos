@@ -6,8 +6,12 @@
 //
 //  License:		 BSD License
 //					 Kratos default license: kratos/license.txt
+
+//  Main authors:    Dharmin Shah (https://github.com/sdharmin)
+//                   Bence Rochlitz (https://github.com/bencerochlitz)
 //
-//  Main authors:    Suneth Warnakulasuriya (https://github.com/sunethwarna)
+//  Supervised by:   Jordi Cotela (https://github.com/jcotela)
+//                   Suneth Warnakulasuriya (https://github.com/sunethwarna)
 //
 
 #ifndef KRATOS_RANS_EVM_K_OMEGA_OMEGA_WALL_H

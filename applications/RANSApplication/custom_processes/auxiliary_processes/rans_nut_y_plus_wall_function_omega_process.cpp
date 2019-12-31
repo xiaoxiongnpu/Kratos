@@ -7,8 +7,14 @@
 //  License:		 BSD License
 //					 Kratos default license: kratos/license.txt
 //
-//  Main authors:    Suneth Warnakulasuriya (https://github.com/sunethwarna)
+//  Main authors:    Dharmin Shah (https://github.com/sdharmin)
+//                   Bence Rochlitz (https://github.com/bencerochlitz)
 //
+//  Supervised by:   Jordi Cotela (https://github.com/jcotela)
+//                   Suneth Warnakulasuriya (https://github.com/sunethwarna)
+
+
+
 
 // System includes
 

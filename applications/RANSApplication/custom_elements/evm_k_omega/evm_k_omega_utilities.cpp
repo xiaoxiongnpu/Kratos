@@ -1,3 +1,18 @@
+//    |  /           |
+//    ' /   __| _` | __|  _ \   __|
+//    . \  |   (   | |   (   |\__ `
+//   _|\_\_|  \__,_|\__|\___/ ____/
+//                   Multi-Physics
+//
+//  License:		 BSD License
+//					 Kratos default license: kratos/license.txt
+//
+//  Main authors:    Dharmin Shah (https://github.com/sdharmin)
+//                   Bence Rochlitz (https://github.com/bencerochlitz)
+//
+//  Supervised by:   Jordi Cotela (https://github.com/jcotela)
+//                   Suneth Warnakulasuriya (https://github.com/sunethwarna)
+
 #include "evm_k_omega_utilities.h"
 #include <cmath>
 #include <iostream>
