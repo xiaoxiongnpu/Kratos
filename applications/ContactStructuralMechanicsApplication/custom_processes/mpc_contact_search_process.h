@@ -222,7 +222,8 @@ private:
      * @param pCondMaster The pointer to the master condition
      * @param rMasterNormal The normal of the master condition
      * @param pIndexesPairs The map of indexes considered
-     * @param pProperties The pointer to the Properties of the condition
+     * @param pSlaveProperties The pointer to the Properties of the slave condition
+     * @param pMasterProperties The pointer to the Properties of the master condition
      * @return The new created condition
      */
     Condition::Pointer AddPairing(
@@ -233,7 +234,8 @@ private:
         GeometricalObject::Pointer pCondMaster,
         const array_1d<double, 3>& rMasterNormal,
         IndexMap::Pointer pIndexesPairs,
-        Properties::Pointer pProperties
+        Properties::Pointer pSlaveProperties,
+        Properties::Pointer pMasterProperties
         ) override;
 
     ///@}

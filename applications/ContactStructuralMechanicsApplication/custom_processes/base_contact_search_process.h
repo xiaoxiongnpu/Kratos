@@ -337,7 +337,8 @@ protected:
      * @param pObjectMaster The pointer to the master condition
      * @param rMasterNormal The normal of the master condition
      * @param pIndexesPairs The map of indexes considered
-     * @param pProperties The pointer to the Properties of the condition
+     * @param pSlaveProperties The pointer to the Properties of the slave condition
+     * @param pMasterProperties The pointer to the Properties of the master condition
      * @return The new created condition
      */
     virtual Condition::Pointer AddPairing(
@@ -348,7 +349,8 @@ protected:
         GeometricalObject::Pointer pObjectMaster,
         const array_1d<double, 3>& rMasterNormal,
         IndexMap::Pointer pIndexesPairs,
-        Properties::Pointer pProperties
+        Properties::Pointer pSlaveProperties,
+        Properties::Pointer pMasterProperties
         );
 
     /**
@@ -513,7 +515,8 @@ private:
      * @param pObjectMaster The pointer to the master condition
      * @param rMasterNormal The normal of the master condition
      * @param pIndexesPairs The id sets of potential pairs
-     * @param pProperties The pointer to the Properties of the condition
+     * @param pSlaveProperties The pointer to the Properties of the slave condition
+     * @param pMasterProperties The pointer to the Properties of the master condition
      * @param ActiveCheckFactor The value used auxiliarly to check if the node is in the potential contact zone
      * @param FrictionalProblem If the problem is frictional or not
      */
@@ -525,7 +528,8 @@ private:
         GeometricalObject::Pointer pObjectMaster,
         const array_1d<double, 3>& rMasterNormal,
         IndexMap::Pointer pIndexesPairs,
-        Properties::Pointer pProperties,
+        Properties::Pointer pSlaveProperties,
+        Properties::Pointer pMasterProperties,
         const double ActiveCheckFactor,
         const bool FrictionalProblem
         );

@@ -123,10 +123,11 @@ Condition::Pointer MPCContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::Ad
     GeometricalObject::Pointer pObjectMaster,
     const array_1d<double, 3>& rMasterNormal,
     IndexMap::Pointer pIndexesPairs,
-    Properties::Pointer pProperties
+    Properties::Pointer pSlaveProperties,
+    Properties::Pointer pMasterProperties
     )
 {
-    Condition::Pointer p_cond = BaseType::AddPairing(rComputingModelPart, rConditionId, pObjectSlave, rSlaveNormal, pObjectMaster, rMasterNormal, pIndexesPairs, pProperties);
+    Condition::Pointer p_cond = BaseType::AddPairing(rComputingModelPart, rConditionId, pObjectSlave, rSlaveNormal, pObjectMaster, rMasterNormal, pIndexesPairs, pSlaveProperties, pMasterProperties);
 
     const bool is_frictional = BaseType::mrMainModelPart.Is(SLIP);
     const bool is_rigid = is_frictional ? false : BaseType::mrMainModelPart.Is(RIGID);

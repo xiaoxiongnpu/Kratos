@@ -664,7 +664,7 @@ void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::SearchUsingKDTr
                         const bool frictional_problem = mrMainModelPart.Is(SLIP);
 
                         // Slave geometry and data
-                        Properties::Pointer p_prop = it_cond->pGetProperties();
+                        Properties::Pointer p_slave_properties = it_cond->pGetProperties();
                         const array_1d<double, 3>& r_normal_slave = it_cond->GetValue(NORMAL);
 
                         for (IndexType i_point = 0; i_point < number_points_found; ++i_point ) {
@@ -679,7 +679,7 @@ void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::SearchUsingKDTr
                                 }
                             }
 
-                            AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, p_cond_master->GetValue(NORMAL), p_indexes_pairs, p_prop, active_check_factor, frictional_problem);
+                            AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, p_cond_master->GetValue(NORMAL), p_indexes_pairs, p_slave_properties, p_cond_master->pGetProperties(), active_check_factor, frictional_problem);
                         }
                     }
                 }
@@ -776,14 +776,14 @@ void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::SearchUsingOcTr
                     const bool frictional_problem = mrMainModelPart.Is(SLIP);
 
                     // Slave geometry and data
-                    Properties::Pointer p_prop = it_cond->pGetProperties();
+                    Properties::Pointer p_slave_properties = it_cond->pGetProperties();
                     const array_1d<double, 3>& r_normal_slave = it_cond->GetValue(NORMAL);
 
                     for (auto p_leaf : leaves) {
                         for (auto p_cond_master : *(p_leaf->pGetObjects())) {
                             if (p_cond_master->Is(SELECTED)) {
                                 const array_1d<double, 3>& r_normal_master = (p_cond_master->GetGeometry()).UnitNormal(zero_array);
-                                AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, r_normal_master, p_indexes_pairs, p_prop, active_check_factor, frictional_problem);
+                                AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, r_normal_master, p_indexes_pairs, p_slave_properties, nullptr, active_check_factor, frictional_problem);
                             }
                         }
                     }
@@ -807,7 +807,8 @@ Condition::Pointer BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::A
     GeometricalObject::Pointer pObjectMaster,
     const array_1d<double, 3>& rMasterNormal,
     IndexMap::Pointer pIndexesPairs,
-    Properties::Pointer pProperties
+    Properties::Pointer pSlaveProperties,
+    Properties::Pointer pMasterProperties
     )
 {
     KRATOS_TRY
@@ -818,7 +819,7 @@ Condition::Pointer BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::A
     if (mOptions.Is(BaseContactSearchProcess::CREATE_AUXILIAR_CONDITIONS)) { // TODO: Check this!!
         ++rConditionId;
         const PairedCondition& r_reference_condition = dynamic_cast<const PairedCondition&>(KratosComponents<Condition>::Get(mConditionName));
-        Condition::Pointer p_auxiliar_condition = r_reference_condition.Create(rConditionId, pObjectSlave->pGetGeometry(), pProperties, pObjectMaster->pGetGeometry());
+        Condition::Pointer p_auxiliar_condition = r_reference_condition.Create(rConditionId, pObjectSlave->pGetGeometry(), pSlaveProperties, pObjectMaster->pGetGeometry());
         // We set the geometrical values
         rComputingModelPart.AddCondition(p_auxiliar_condition);
         pIndexesPairs->SetNewEntityId(pObjectMaster->Id(), rConditionId);
@@ -1256,7 +1257,8 @@ inline void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::AddPoten
     GeometricalObject::Pointer pObjectMaster,
     const array_1d<double, 3>& rMasterNormal,
     IndexMap::Pointer pIndexesPairs,
-    Properties::Pointer pProperties,
+    Properties::Pointer pSlaveProperties,
+    Properties::Pointer pMasterProperties,
     const double ActiveCheckFactor,
     const bool FrictionalProblem
     )
@@ -1357,7 +1359,7 @@ inline void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::AddPoten
     }
 
     if (at_least_one_node_potential_contact)
-        AddPairing(rComputingModelPart, rConditionId, pObjectSlave, rSlaveNormal, pObjectMaster, rMasterNormal, pIndexesPairs, pProperties);
+        AddPairing(rComputingModelPart, rConditionId, pObjectSlave, rSlaveNormal, pObjectMaster, rMasterNormal, pIndexesPairs, pSlaveProperties, pMasterProperties);
 
     KRATOS_CATCH("")
 }
@@ -1639,7 +1641,7 @@ inline void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::CreateAu
             for (auto it_pair = p_indexes_pairs->begin(); it_pair != p_indexes_pairs->end(); ++it_pair ) {
                 if (it_pair->second == 0) { // If different than 0 it is an existing condition
                     Condition::Pointer p_cond_master = mrMainModelPart.pGetCondition(it_pair->first); // MASTER
-                    AddPairing(rComputingModelPart, rConditionId, (*it_cond.base()), it_cond->GetValue(NORMAL), p_cond_master, p_cond_master->GetValue(NORMAL), p_indexes_pairs, it_cond->pGetProperties());
+                    AddPairing(rComputingModelPart, rConditionId, (*it_cond.base()), it_cond->GetValue(NORMAL), p_cond_master, p_cond_master->GetValue(NORMAL), p_indexes_pairs, it_cond->pGetProperties(), p_cond_master->pGetProperties());
                 }
             }
         }
