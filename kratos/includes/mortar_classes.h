@@ -890,13 +890,23 @@ public:
     /**
      * @brief Updating the Master pair
      * @param MasterGeometry The master geometry
+     * @param rProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     virtual void UpdateMasterPair(
         const GeometryType& MasterGeometry,
+        const Properties& rProperties,
         const ProcessInfo& rCurrentProcessInfo
         )
     {
+        // We get the thickness
+        if (KratosComponents<Variable<double>>::Has("GAP_CONTACT_THICKNESS")) {
+            const auto& r_variable_thickness = KratosComponents<Variable<double>>::Get("GAP_CONTACT_THICKNESS");
+            if (rProperties.Has(r_variable_thickness)) {
+                MasterConditionThickness = rProperties.GetValue(r_variable_thickness);
+            }
+        }
+
         NormalMaster = MortarUtilities::GetVariableMatrix<TDim,TNumNodesMaster>(MasterGeometry,  NORMAL, 0);
 
         // Displacements, coordinates and normals of the master
@@ -1114,14 +1124,16 @@ public:
     /**
      * @brief Updating the Master pair
      * @param MasterGeometry The geometry of the master
+     * @param rProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     void UpdateMasterPair(
         const GeometryType& MasterGeometry,
+        const Properties& rProperties,
         const ProcessInfo& rCurrentProcessInfo
         ) override
     {
-        BaseClassType::UpdateMasterPair(MasterGeometry, rCurrentProcessInfo);
+        BaseClassType::UpdateMasterPair(MasterGeometry, rProperties, rCurrentProcessInfo);
 
         noalias(u2old) = MortarUtilities::GetVariableMatrix<TDim,TNumNodesMaster>(MasterGeometry, DISPLACEMENT, 1) - MortarUtilities::GetVariableMatrix<TDim,TNumNodesMaster>(MasterGeometry, DISPLACEMENT, 2);
     }

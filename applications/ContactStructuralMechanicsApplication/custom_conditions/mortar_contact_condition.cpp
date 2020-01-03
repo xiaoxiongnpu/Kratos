@@ -341,7 +341,7 @@ void MortarContactCondition<TDim, TNumNodes, TFrictional, TNormalVariation, TNum
         general_variables.Initialize();
 
         // Update slave element info
-        derivative_data.UpdateMasterPair(r_master_geometry, rCurrentProcessInfo);
+        derivative_data.UpdateMasterPair(r_master_geometry, this->GetPairedProperties(), rCurrentProcessInfo);
 
         // Initialize the mortar operators
         mortar_operators.Initialize();
