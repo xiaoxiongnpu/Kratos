@@ -96,7 +96,7 @@ public:
         GeometryType::Pointer pGeometry
         ) :Condition(NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, nullptr))
     {
-        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "This class pairs two geometries, please use the other constructor (the one with two geometries as input)" << std::endl;
+        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "This class pairs two geometries and two properties, please use the other constructor (the one with two geometries and two properties as input)" << std::endl;
     }
 
     // Constructor 2
@@ -106,7 +106,7 @@ public:
         PropertiesType::Pointer pProperties
         ) :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, nullptr), pProperties )
     {
-        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "This class pairs two geometries, please use the other constructor (the one with two geometries as input)" << std::endl;
+        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "This class pairs two geometries and two properties, please use the other constructor (the one with two geometries  and two properties as input)" << std::endl;
     }
 
     // Constructor 3
@@ -117,7 +117,34 @@ public:
         GeometryType::Pointer pPairedGeometry
         )
         :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, pPairedGeometry), pProperties )
-    {}
+    {
+        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "This class pairs two geometries and two properties, please use the other constructor (the one with two geometries and two properties as input)" << std::endl;
+    }
+
+    // Constructor 4
+    PairedCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pPairedGeometry,
+        PropertiesType::Pointer pPairedProperties
+        )
+        :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, pPairedGeometry), pProperties )
+    {
+        mpPairedProperties = pPairedProperties;
+    }
+
+    // Constructor 5
+    PairedCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        Condition::Pointer pPairedCondition
+        )
+        :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, pPairedCondition->pGetGeometry()), pProperties )
+    {
+        mpPairedProperties = pPairedCondition->pGetProperties();
+    }
 
     ///Copy constructor
     PairedCondition( PairedCondition const& rOther){}
@@ -152,11 +179,11 @@ public:
     void InitializeNonLinearIteration(ProcessInfo& rCurrentProcessInfo) override;
 
     /**
-     * @brief Creates a new element pointer from an arry of nodes
-     * @param NewId the ID of the new element
-     * @param rThisNodes the nodes of the new element
-     * @param pProperties the properties assigned to the new element
-     * @return a Pointer to the new element
+     * @brief Creates a new condition pointer from an arry of nodes
+     * @param NewId the ID of the new condition
+     * @param rThisNodes the nodes of the new condition
+     * @param pProperties the properties assigned to the new condition
+     * @return a Pointer to the new condition
      */
     Condition::Pointer Create(
         IndexType NewId,
@@ -165,11 +192,11 @@ public:
         ) const override;
 
     /**
-     * @brief Creates a new element pointer from an existing geometry
-     * @param NewId the ID of the new element
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
      * @param pGeometry the  geometry taken to create the condition
-     * @param pProperties the properties assigned to the new element
-     * @return a Pointer to the new element
+     * @param pProperties the properties assigned to the new condition
+     * @return a Pointer to the new condition
      */
     Condition::Pointer Create(
         IndexType NewId,
@@ -178,18 +205,35 @@ public:
         ) const override;
 
     /**
-     * @brief Creates a new element pointer from an existing geometry
-     * @param NewId the ID of the new element
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
      * @param pGeometry the  geometry taken to create the condition
-     * @param pProperties the properties assigned to the new element
+     * @param pProperties the properties assigned to the new condition
      * @param pPairedGeom the paired geometry
-     * @return a Pointer to the new element
+     * @return a Pointer to the new condition
      */
     virtual Condition::Pointer Create(
         IndexType NewId,
         GeometryType::Pointer pGeometry,
         PropertiesType::Pointer pProperties,
         GeometryType::Pointer pPairedGeom
+        ) const;
+
+    /**
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
+     * @param pGeometry the  geometry taken to create the condition
+     * @param pProperties the properties assigned to the new condition
+     * @param pPairedGeom the paired geometry
+     * @param pPairedProperties thepaired properties assigned to the new condition
+     * @return a Pointer to the new condition
+     */
+    virtual Condition::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pPairedGeom,
+        PropertiesType::Pointer pPairedProperties
         ) const;
 
     ///@}
@@ -248,6 +292,61 @@ public:
     array_1d<double, 3> const& GetPairedNormal() const
     {
         return mPairedNormal;
+    }
+
+    /**
+     * @brief Returns the pointer to the property of the paired condition.
+     *        Does not throw an error, to allow copying of
+     *        conditions which don't have any property assigned.
+     * @return Property pointer
+     */
+    PropertiesType::Pointer pGetPairedProperties()
+    {
+        return mpPairedProperties;
+    }
+
+    /**
+     * @brief Returns the pointer to the property of the paired condition.
+     *        Does not throw an error, to allow copying of
+     *        conditions which don't have any property assigned.
+     * @return Property pointer
+     */
+    const PropertiesType::Pointer pGetPairedProperties() const
+    {
+        return mpPairedProperties;
+    }
+
+    /**
+     * @brief Returns a reference to the property of the paired condition.
+     * @return Property reference
+     */
+    PropertiesType& GetPairedProperties()
+    {
+        KRATOS_DEBUG_ERROR_IF(mpPairedProperties == nullptr)
+            << "Tryining to get the properties of " << Info()
+            << ", which are uninitialized." << std::endl;
+        return *mpPairedProperties;
+    }
+
+    /**
+     * @brief Returns a reference to the property of the paired condition.
+     * @return Property reference
+     */
+    PropertiesType const& GetPairedProperties() const
+    {
+        KRATOS_DEBUG_ERROR_IF(mpPairedProperties == nullptr)
+            << "Tryining to get the properties of " << Info()
+            << ", which are uninitialized." << std::endl;
+        return *mpPairedProperties;
+    }
+
+    /**
+     * @brief Sets the pointer to the property of the paired condition.
+     * @param pProperties Property pointer
+     */
+    void SetPairedProperties(PropertiesType::Pointer pProperties)
+    {
+        mpPairedProperties = pProperties;
     }
 
     ///@}
@@ -323,7 +422,8 @@ private:
     ///@name Member Variables
     ///@{
 
-    array_1d<double, 3> mPairedNormal = ZeroVector(3);
+    array_1d<double, 3> mPairedNormal = ZeroVector(3); /// The normal of the paired condition
+    Properties::Pointer mpPairedProperties = nullptr;  /// The properties of the paired properties
 
     ///@}
     ///@name Private Operators
@@ -353,12 +453,14 @@ private:
     {
         KRATOS_SERIALIZE_SAVE_BASE_CLASS( rSerializer, Condition );
         rSerializer.save("PairedNormal", mPairedNormal);
+        rSerializer.save("PairedProperties", mpPairedProperties);
     }
 
     void load(Serializer& rSerializer) override
     {
         KRATOS_SERIALIZE_LOAD_BASE_CLASS( rSerializer, Condition );
         rSerializer.load("PairedNormal", mPairedNormal);
+        rSerializer.load("PairedProperties", mpPairedProperties);
     }
 
     ///@}

@@ -54,6 +54,22 @@ Condition::Pointer PairedCondition::Create(
     return Kratos::make_intrusive< PairedCondition >( NewId, pGeometry, pProperties, pPairedGeom);
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+Condition::Pointer PairedCondition::Create(
+    IndexType NewId,
+    GeometryType::Pointer pGeometry,
+    PropertiesType::Pointer pProperties,
+    GeometryType::Pointer pPairedGeom,
+    PropertiesType::Pointer pPairedProperties) const
+{
+    if (pPairedProperties == nullptr) {
+        KRATOS_WARNING_FIRST_N("PairedCondition", 10) << "Paired properties not provided" << std::endl;
+    }
+    return Kratos::make_intrusive< PairedCondition >( NewId, pGeometry, pProperties, pPairedGeom, pPairedProperties);
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 
