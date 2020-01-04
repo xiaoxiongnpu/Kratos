@@ -57,6 +57,20 @@ Condition::Pointer MeshTyingMortarCondition<TDim,TNumNodesElem, TNumNodesElemMas
     return Kratos::make_intrusive< MeshTyingMortarCondition<TDim,TNumNodesElem, TNumNodesElemMaster> >( NewId, pGeom, pProperties, pMasterGeom);
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< SizeType TDim, SizeType TNumNodesElem, SizeType TNumNodesElemMaster>
+Condition::Pointer MeshTyingMortarCondition<TDim,TNumNodesElem, TNumNodesElemMaster>::Create(
+    IndexType NewId,
+    GeometryType::Pointer pGeom,
+    PropertiesType::Pointer pProperties,
+    GeometryType::Pointer pMasterGeom,
+    PropertiesType::Pointer pMasterProperties) const
+{
+    return Kratos::make_intrusive< MeshTyingMortarCondition<TDim,TNumNodesElem, TNumNodesElemMaster> >( NewId, pGeom, pProperties, pMasterGeom, pMasterProperties);
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 

@@ -59,6 +59,20 @@ Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondi
     return Kratos::make_intrusive< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties, pMasterGeometry);
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< std::size_t TNumNodes, bool TNormalVariation >
+Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create(
+    IndexType NewId,
+    GeometryPointerType pGeom,
+    PropertiesPointerType pProperties,
+    GeometryType::Pointer pMasterGeometry,
+    PropertiesPointerType pMasterProperties) const
+{
+    return Kratos::make_intrusive< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties, pMasterGeometry, pMasterProperties);
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 

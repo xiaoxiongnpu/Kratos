@@ -247,6 +247,23 @@ public:
         GeometryType::Pointer pMasterGeom
         ) const override;
 
+    /**
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
+     * @param pGeom the  geometry taken to create the condition
+     * @param pProperties the properties assigned to the new condition
+     * @param pMasterGeom the paired geometry
+     * @param pMasterProperties thepaired properties assigned to the new condition
+     * @return a Pointer to the new condition
+     */
+    Condition::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeom,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pMasterGeom,
+        PropertiesType::Pointer pMasterProperties
+        ) const override;
+
    /**
     * @brief Called at the beginning of each solution step
     */

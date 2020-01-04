@@ -59,6 +59,20 @@ Condition::Pointer PenaltyMethodFrictionlessMortarContactAxisymCondition<TNumNod
     return Kratos::make_intrusive< PenaltyMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties, pMasterGeom );
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< std::size_t TNumNodes, bool TNormalVariation >
+Condition::Pointer PenaltyMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create(
+    IndexType NewId,
+    GeometryPointerType pGeom,
+    PropertiesPointerType pProperties,
+    GeometryPointerType pMasterGeom,
+    PropertiesPointerType pMasterProperties) const
+{
+    return Kratos::make_intrusive< PenaltyMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties, pMasterGeom, pMasterProperties );
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 

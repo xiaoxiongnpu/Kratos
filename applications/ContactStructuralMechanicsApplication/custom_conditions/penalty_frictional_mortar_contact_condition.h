@@ -260,6 +260,23 @@ public:
         ) const override;
 
     /**
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
+     * @param pGeom the  geometry taken to create the condition
+     * @param pProperties the properties assigned to the new condition
+     * @param pMasterGeom the paired geometry
+     * @param pMasterProperties thepaired properties assigned to the new condition
+     * @return a Pointer to the new condition
+     */
+    Condition::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeom,
+        PropertiesPointerType pProperties,
+        GeometryType::Pointer pMasterGeom,
+        PropertiesPointerType pMasterProperties
+        ) const override;
+
+    /**
      * @brief This is called during the assembling process in order
      * to calculate the condition contribution in explicit calculation.
      * NodalData is modified Inside the function, so the

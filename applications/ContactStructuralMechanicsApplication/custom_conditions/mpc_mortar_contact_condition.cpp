@@ -63,6 +63,20 @@ Condition::Pointer MPCMortarContactCondition<TDim,TNumNodes,TNumNodesMaster>::Cr
     return Kratos::make_intrusive< MPCMortarContactCondition<TDim,TNumNodes,TNumNodesMaster> >( NewId, pGeom, pProperties, pMasterGeom );
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< SizeType TDim, SizeType TNumNodes, SizeType TNumNodesMaster>
+Condition::Pointer MPCMortarContactCondition<TDim,TNumNodes,TNumNodesMaster>::Create(
+    IndexType NewId,
+    GeometryType::Pointer pGeom,
+    PropertiesType::Pointer pProperties,
+    GeometryType::Pointer pMasterGeom,
+    PropertiesType::Pointer pMasterProperties) const
+{
+    return Kratos::make_intrusive< MPCMortarContactCondition<TDim,TNumNodes,TNumNodesMaster> >( NewId, pGeom, pProperties, pMasterGeom, pMasterProperties );
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 
