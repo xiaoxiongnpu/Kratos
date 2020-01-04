@@ -131,7 +131,7 @@ public:
         )
         :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, pPairedGeometry), pProperties )
     {
-        mpPairedProperties = pPairedProperties;
+        this->SetPairedProperties(pPairedProperties);
     }
 
     // Constructor 5
@@ -143,7 +143,7 @@ public:
         )
         :Condition( NewId, Kratos::make_shared<CouplingGeometryType>(pGeometry, pPairedCondition->pGetGeometry()), pProperties )
     {
-        mpPairedProperties = pPairedCondition->pGetProperties();
+        this->SetPairedProperties(pPairedCondition->pGetProperties());
     }
 
     ///Copy constructor
