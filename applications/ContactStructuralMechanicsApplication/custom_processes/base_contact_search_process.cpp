@@ -783,7 +783,7 @@ void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::SearchUsingOcTr
                         for (auto p_cond_master : *(p_leaf->pGetObjects())) {
                             if (p_cond_master->Is(SELECTED)) {
                                 const array_1d<double, 3>& r_normal_master = (p_cond_master->GetGeometry()).UnitNormal(zero_array);
-                                AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, r_normal_master, p_indexes_pairs, p_slave_properties, nullptr, active_check_factor, frictional_problem);
+                                AddPotentialPairing(rSubComputingContactModelPart, condition_id, (*it_cond.base()), r_normal_slave, p_cond_master, r_normal_master, p_indexes_pairs, p_slave_properties, (*(r_master_model_part.PropertiesBegin().base())), active_check_factor, frictional_problem);
                             }
                         }
                     }
