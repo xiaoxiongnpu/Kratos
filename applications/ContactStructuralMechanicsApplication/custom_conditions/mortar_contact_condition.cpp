@@ -72,6 +72,22 @@ Condition::Pointer MortarContactCondition<TDim,TNumNodes,TFrictional, TNormalVar
     return Kratos::make_intrusive< MortarContactCondition<TDim,TNumNodes,TFrictional, TNormalVariation,TNumNodesMaster> >( NewId, pGeom, pProperties, pMasterGeom );
 }
 
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< SizeType TDim, SizeType TNumNodes, FrictionalCase TFrictional, bool TNormalVariation, SizeType TNumNodesMaster>
+Condition::Pointer MortarContactCondition<TDim,TNumNodes,TFrictional, TNormalVariation,TNumNodesMaster>::Create(
+    IndexType NewId,
+    GeometryType::Pointer pGeom,
+    PropertiesType::Pointer pProperties,
+    GeometryType::Pointer pMasterGeom,
+    PropertiesType::Pointer pMasterProperties) const
+{
+    KRATOS_ERROR << "You are calling to the base class method Create, check your condition declaration" << std::endl;
+
+    return Kratos::make_intrusive< MortarContactCondition<TDim,TNumNodes,TFrictional, TNormalVariation,TNumNodesMaster> >( NewId, pGeom, pProperties, pMasterGeom, pMasterProperties );
+}
+
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 

@@ -272,11 +272,11 @@ public:
         ) override;
 
     /**
-     * @brief Creates a new element pointer from an arry of nodes
-     * @param NewId the ID of the new element
-     * @param rThisNodes the nodes of the new element
-     * @param pProperties the properties assigned to the new element
-     * @return a Pointer to the new element
+     * @brief Creates a new condition pointer from an arry of nodes
+     * @param NewId the ID of the new condition
+     * @param rThisNodes the nodes of the new condition
+     * @param pProperties the properties assigned to the new condition
+     * @return a Pointer to the new condition
      */
     Condition::Pointer Create(
         IndexType NewId,
@@ -285,11 +285,11 @@ public:
         ) const override;
 
     /**
-     * @brief Creates a new element pointer from an existing geometry
-     * @param NewId the ID of the new element
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
      * @param pGeom the  geometry taken to create the condition
-     * @param pProperties the properties assigned to the new element
-     * @return a Pointer to the new element
+     * @param pProperties the properties assigned to the new condition
+     * @return a Pointer to the new condition
      */
     Condition::Pointer Create(
         IndexType NewId,
@@ -298,18 +298,35 @@ public:
         ) const override;
 
     /**
-     * @brief Creates a new element pointer from an existing geometry
-     * @param NewId the ID of the new element
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
      * @param pGeom the  geometry taken to create the condition
-     * @param pProperties the properties assigned to the new element
+     * @param pProperties the properties assigned to the new condition
      * @param pMasterGeom the paired geometry
-     * @return a Pointer to the new element
+     * @return a Pointer to the new condition
      */
     Condition::Pointer Create(
         IndexType NewId,
         GeometryType::Pointer pGeom,
         PropertiesType::Pointer pProperties,
         GeometryType::Pointer pMasterGeom
+        ) const override;
+
+    /**
+     * @brief Creates a new condition pointer from an existing geometry
+     * @param NewId the ID of the new condition
+     * @param pGeom the  geometry taken to create the condition
+     * @param pProperties the properties assigned to the new condition
+     * @param pMasterGeom the paired geometry
+     * @param pMasterProperties thepaired properties assigned to the new condition
+     * @return a Pointer to the new condition
+     */
+    Condition::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeom,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pMasterGeom,
+        PropertiesType::Pointer pMasterProperties
         ) const override;
 
     /**
@@ -320,7 +337,7 @@ public:
     void AddExplicitContribution(ProcessInfo& rCurrentProcessInfo) override;
 
     /**
-     * @brief This function is designed to make the element to assemble an rRHS vector identified by a variable rRHSVariable by assembling it to the nodes on the variable rDestinationVariable (double version)
+     * @brief This function is designed to make the condition to assemble an rRHS vector identified by a variable rRHSVariable by assembling it to the nodes on the variable rDestinationVariable (double version)
      * @details The "AddEXplicit" FUNCTIONS THE ONLY FUNCTIONS IN WHICH AN ELEMENT IS ALLOWED TO WRITE ON ITS NODES. The caller is expected to ensure thread safety hence SET/UNSETLOCK MUST BE PERFORMED IN THE STRATEGY BEFORE CALLING THIS FUNCTION
      * @param rRHSVector input variable containing the RHS vector to be assembled
      * @param rRHSVariable variable describing the type of the RHS vector to be assembled
@@ -335,7 +352,7 @@ public:
         ) override;
 
     /**
-     * @brief This function is designed to make the element to assemble an rRHS vector identified by a variable rRHSVariable by assembling it to the nodes on the variable (array_1d<double, 3>) version rDestinationVariable.
+     * @brief This function is designed to make the condition to assemble an rRHS vector identified by a variable rRHSVariable by assembling it to the nodes on the variable (array_1d<double, 3>) version rDestinationVariable.
      * @details The "AddEXplicit" FUNCTIONS THE ONLY FUNCTIONS IN WHICH AN ELEMENT IS ALLOWED TO WRITE ON ITS NODES.
      * The caller is expected to ensure thread safety hence SET/UNSETLOCK MUST BE PERFORMED IN THE STRATEGY BEFORE CALLING THIS FUNCTION
      * @param rRHSVector input variable containing the RHS vector to be assembled
@@ -354,7 +371,7 @@ public:
     /******************************************************************/
 
     /**
-     * @brief Sets on rResult the ID's of the element degrees of freedom
+     * @brief Sets on rResult the ID's of the condition degrees of freedom
      * @param rResult The result vector with the ID's of the DOF
      * @param rCurrentProcessInfo the current process info instance
      */
@@ -364,7 +381,7 @@ public:
         ) override;
 
     /**
-     * @brief Sets on ConditionalDofList the degrees of freedom of the considered element geometry
+     * @brief Sets on ConditionalDofList the degrees of freedom of the considered condition geometry
      * @param rConditionalDofList The list of DoF
      * @param rCurrentProcessInfo the current process info instance
      */
@@ -612,7 +629,7 @@ protected:
     }
 
     /**
-     * @brief It checks if the element is isolated or not
+     * @brief It checks if the condition is isolated or not
      * @param DeltaTime The increment of time in each time step
      * @param HalfJump If the increment of time considered is just half or the whole time step
      */
