@@ -138,6 +138,29 @@ public:
     {
     }
 
+    // Constructor 4
+    PenaltyMethodFrictionlessMortarContactAxisymCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesPointerType pProperties,
+        GeometryType::Pointer pMasterGeometry,
+        PropertiesPointerType pMasterProperties
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterGeometry, pMasterProperties)
+    {
+    }
+
+    // Constructor 5
+    PenaltyMethodFrictionlessMortarContactAxisymCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesPointerType pProperties,
+        Condition::Pointer pMasterCondition
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterCondition)
+    {
+    }
+
     ///Copy constructor
     PenaltyMethodFrictionlessMortarContactAxisymCondition( PenaltyMethodFrictionlessMortarContactAxisymCondition const& rOther)
     {

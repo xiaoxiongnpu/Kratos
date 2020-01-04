@@ -163,6 +163,29 @@ public:
     {
     }
 
+    // Constructor 4
+    PenaltyMethodFrictionlessMortarContactCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pMasterGeometry,
+        PropertiesType::Pointer pMasterProperties
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterGeometry, pMasterProperties)
+    {
+    }
+
+    // Constructor 5
+    PenaltyMethodFrictionlessMortarContactCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        Condition::Pointer pMasterCondition
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterCondition)
+    {
+    }
+
     ///Copy constructor
     PenaltyMethodFrictionlessMortarContactCondition( PenaltyMethodFrictionlessMortarContactCondition const& rOther)
     {

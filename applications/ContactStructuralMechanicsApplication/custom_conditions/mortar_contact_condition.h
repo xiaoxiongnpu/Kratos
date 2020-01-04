@@ -156,14 +156,14 @@ public:
 
     /// Default constructor
     MortarContactCondition()
-        : PairedCondition()
+        : BaseType()
     {}
 
     // Constructor 1
     MortarContactCondition(
         IndexType NewId,
         GeometryType::Pointer pGeometry
-        ) :PairedCondition(NewId, pGeometry)
+        ) :BaseType(NewId, pGeometry)
     {}
 
     // Constructor 2
@@ -171,7 +171,7 @@ public:
         IndexType NewId,
         GeometryType::Pointer pGeometry,
         PropertiesType::Pointer pProperties
-        ) :PairedCondition( NewId, pGeometry, pProperties )
+        ) :BaseType( NewId, pGeometry, pProperties )
     {}
 
     // Constructor 3
@@ -181,8 +181,31 @@ public:
         PropertiesType::Pointer pProperties,
         GeometryType::Pointer pMasterGeometry
         )
-        :PairedCondition( NewId, pGeometry, pProperties, pMasterGeometry)
+        :BaseType( NewId, pGeometry, pProperties, pMasterGeometry)
     {}
+
+    // Constructor 4
+    MortarContactCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        GeometryType::Pointer pMasterGeometry,
+        PropertiesType::Pointer pMasterProperties
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterGeometry, pMasterProperties)
+    {
+    }
+
+    // Constructor 5
+    MortarContactCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesType::Pointer pProperties,
+        Condition::Pointer pMasterCondition
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterCondition)
+    {
+    }
 
     ///Copy constructor
     MortarContactCondition( MortarContactCondition const& rOther){}

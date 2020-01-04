@@ -138,6 +138,29 @@ public:
     {
     }
 
+    // Constructor 4
+    AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesPointerType pProperties,
+        GeometryType::Pointer pMasterGeometry,
+        PropertiesPointerType pMasterProperties
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterGeometry, pMasterProperties)
+    {
+    }
+
+    // Constructor 5
+    AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition(
+        IndexType NewId,
+        GeometryType::Pointer pGeometry,
+        PropertiesPointerType pProperties,
+        Condition::Pointer pMasterCondition
+        )
+        :BaseType( NewId, pGeometry, pProperties, pMasterCondition)
+    {
+    }
+
     ///Copy constructor
     AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition( AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition const& rOther)
     {
