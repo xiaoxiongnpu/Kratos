@@ -96,7 +96,7 @@ namespace Kratos
 
             // Create the initial contact data
             DerivativeData<TDim, TNumNodes, true> rDerivativeData0;
-            rDerivativeData0.Initialize(r_slave_geometry_0, SlaveCondition0->GetProperties(), rModelPart.GetProcessInfo());
+            rDerivativeData0.Initialize(r_slave_geometry_0, SlaveCondition0->pGetProperties(), rModelPart.GetProcessInfo());
 
             // We call the exact integration utility
             IntegrationUtility integration_utility = IntegrationUtility (2);
@@ -147,7 +147,7 @@ namespace Kratos
 
                 // Create the current contact data
                 DerivativeData<TDim, TNumNodes, true> rDerivativeData;
-                rDerivativeData.Initialize(r_slave_geometry_1, SlaveCondition1->GetProperties(), rModelPart.GetProcessInfo());
+                rDerivativeData.Initialize(r_slave_geometry_1, SlaveCondition1->pGetProperties(), rModelPart.GetProcessInfo());
 
                 // We compute the normal derivatives
                 if (consider_normal_variation == NODAL_ELEMENTAL_DERIVATIVES) {

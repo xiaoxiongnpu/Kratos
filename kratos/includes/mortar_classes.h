@@ -793,12 +793,12 @@ public:
     /**
      * @brief Initializer method
      * @param rSlaveGeometry The geometry of the slave
-     * @param rProperties The properties of the contact condition
+     * @param pProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     virtual void Initialize(
         const GeometryType& rSlaveGeometry,
-        const Properties& rProperties,
+        const Properties::Pointer pProperties,
         const ProcessInfo& rCurrentProcessInfo
         )
     {
@@ -822,16 +822,20 @@ public:
         // Getting the scale factor
         if (rCurrentProcessInfo.Has(SCALE_FACTOR)) {
             ScaleFactor = rCurrentProcessInfo.GetValue(SCALE_FACTOR);
-        } else if (rProperties.Has(SCALE_FACTOR)) {
-            ScaleFactor = rProperties.GetValue(SCALE_FACTOR);
+        } else if (pProperties != nullptr && pProperties->Has(SCALE_FACTOR)) {
+            ScaleFactor = pProperties->GetValue(SCALE_FACTOR);
         }
 
         // We get the thickness
-        if (KratosComponents<Variable<double>>::Has("GAP_CONTACT_THICKNESS")) {
-            const auto& r_variable_thickness = KratosComponents<Variable<double>>::Get("GAP_CONTACT_THICKNESS");
-            if (rProperties.Has(r_variable_thickness)) {
-                SlaveConditionThickness = rProperties.GetValue(r_variable_thickness);
+        if (pProperties != nullptr) {
+            if (KratosComponents<Variable<double>>::Has("GAP_CONTACT_THICKNESS")) {
+                const auto& r_variable_thickness = KratosComponents<Variable<double>>::Get("GAP_CONTACT_THICKNESS");
+                if (pProperties->Has(r_variable_thickness)) {
+                    SlaveConditionThickness = pProperties->GetValue(r_variable_thickness);
+                }
             }
+        } else {
+            KRATOS_WARNING_FIRST_N("DerivativeData", 1) << "Properties not defined" << std::endl;
         }
 
         // We initialize the derivatives
@@ -1109,16 +1113,16 @@ public:
     /**
      * @brief Initializer method
      * @param rSlaveGeometry The geometry of the slave
-     * @param rProperties The properties of the contact condition
+     * @param pProperties The properties of the contact condition
      * @param rCurrentProcessInfo The process info from the system
      */
     void Initialize(
         const GeometryType& rSlaveGeometry,
-        const Properties& rProperties,
+        const Properties::Pointer pProperties,
         const ProcessInfo& rCurrentProcessInfo
         ) override
     {
-        BaseClassType::Initialize(rSlaveGeometry, rProperties, rCurrentProcessInfo);
+        BaseClassType::Initialize(rSlaveGeometry, pProperties, rCurrentProcessInfo);
 
         TangentFactor = rCurrentProcessInfo[TANGENT_FACTOR];
 
