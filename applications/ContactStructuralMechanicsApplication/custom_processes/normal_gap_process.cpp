@@ -94,6 +94,12 @@ void NormalGapProcess<TDim, TNumNodes, TNumNodesMaster>::ComputeNormalGap(NodesA
 {
     KRATOS_TRY
 
+//     Properties::Pointer p_master_properties = (*mrMasterModelPart.PropertiesBegin().base());
+//     Properties::Pointer p_slave_properties = (*mrSlaveModelPart.PropertiesBegin().base());
+
+    const double master_thickness = 0.0;// p_master_properties->Has(GAP_CONTACT_THICKNESS) ? p_master_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
+    const double slave_thickness = 0.0;// p_slave_properties->Has(GAP_CONTACT_THICKNESS) ? p_slave_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
+
     array_1d<double, 3> normal, auxiliar_coordinates, components_gap;
     double gap = 0.0;
 
@@ -109,7 +115,7 @@ void NormalGapProcess<TDim, TNumNodes, TNumNodesMaster>::ComputeNormalGap(NodesA
             noalias(normal) = it_node->FastGetSolutionStepValue(NORMAL);
             noalias(auxiliar_coordinates) = it_node->GetValue(AUXILIAR_COORDINATES);
             noalias(components_gap) = ( it_node->Coordinates() - auxiliar_coordinates);
-            gap = inner_prod(components_gap, - normal);
+            gap = inner_prod(components_gap, - normal) - 0.5 * (master_thickness + slave_thickness);
 
             // We activate if the node is close enough
             if (norm_2(auxiliar_coordinates) > ZeroTolerance)
