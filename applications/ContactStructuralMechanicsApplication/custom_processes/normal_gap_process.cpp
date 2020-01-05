@@ -94,11 +94,11 @@ void NormalGapProcess<TDim, TNumNodes, TNumNodesMaster>::ComputeNormalGap(NodesA
 {
     KRATOS_TRY
 
-//     Properties::Pointer p_master_properties = (*mrMasterModelPart.PropertiesBegin().base());
-//     Properties::Pointer p_slave_properties = (*mrSlaveModelPart.PropertiesBegin().base());
+    Properties::Pointer p_master_properties = (*mrMasterModelPart.PropertiesBegin().base());
+    Properties::Pointer p_slave_properties = (*mrSlaveModelPart.PropertiesBegin().base());
 
-    const double master_thickness = 0.0;// p_master_properties->Has(GAP_CONTACT_THICKNESS) ? p_master_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
-    const double slave_thickness = 0.0;// p_slave_properties->Has(GAP_CONTACT_THICKNESS) ? p_slave_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
+    const double master_thickness = p_master_properties->Has(GAP_CONTACT_THICKNESS) ? p_master_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
+    const double slave_thickness = p_slave_properties->Has(GAP_CONTACT_THICKNESS) ? p_slave_properties->GetValue(GAP_CONTACT_THICKNESS) : 0.0;
 
     array_1d<double, 3> normal, auxiliar_coordinates, components_gap;
     double gap = 0.0;
