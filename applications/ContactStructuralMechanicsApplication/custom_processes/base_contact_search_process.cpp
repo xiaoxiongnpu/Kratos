@@ -22,6 +22,7 @@
 #include "includes/gid_io.h"
 
 /* Custom utilities */
+#include "utilities/auxiliar_model_part_utilities.h"
 #include "custom_utilities/contact_utilities.h"
 #include "custom_utilities/self_contact_utilities.h"
 #include "custom_processes/base_contact_search_process.h"
@@ -320,6 +321,10 @@ void BaseContactSearchProcess<TDim, TNumNodes, TNumNodesMaster>::SetOriginDestin
 
     KRATOS_ERROR_IF(r_master_model_part.Conditions().size() == 0) << "No origin conditions. Check your flags are properly set" << std::endl;
     KRATOS_ERROR_IF(r_slave_model_part.Conditions().size() == 0) << "No destination conditions. Check your flags are properly set" << std::endl;
+
+    // Ensure properties in model parts
+    AuxiliarModelPartUtilities(r_slave_model_part).EnsureModelPartOwnsProperties();
+    AuxiliarModelPartUtilities(r_master_model_part).EnsureModelPartOwnsProperties();
 
     KRATOS_CATCH("")
 }
