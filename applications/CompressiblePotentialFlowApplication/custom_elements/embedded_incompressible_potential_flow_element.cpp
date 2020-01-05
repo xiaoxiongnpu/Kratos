@@ -174,8 +174,9 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     // if (kutta==1){
     for (unsigned int i = 0; i < NumNodes; ++i)
     {
+        // if (this->GetGeometry()[i].GetValue(TRAILING_EDGE) && !is_projection)
+        // if (this->GetGeometry()[i].FastGetSolutionStepValue(GEOMETRY_DISTANCE) < 0.0 && !is_projection)
         if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
-        // if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
         {
             for (unsigned int j = 0; j < NumNodes; ++j)
             {
@@ -184,14 +185,14 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
             }
         }
 
-        if (is_projection && (this->GetGeometry()[i].GetValue(WING_TIP)   ))
-        {
-            for (unsigned int j = 0; j < NumNodes; ++j)
-            {
-                // rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
-                rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
-            }
-        }
+        // if (is_projection && (this->GetGeometry()[i].GetValue(TRAILING_EDGE)   ) )
+        // {
+        //     for (unsigned int j = 0; j < NumNodes; ++j)
+        //     {
+        //         // rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+        //         rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
+        //     }
+        // }
     // }
     }
     noalias(rRightHandSideVector) = -prod(rLeftHandSideMatrix, potential);

@@ -306,20 +306,20 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         self.moving_parameters["rotation_angle"].SetDouble(angle)
 
 
-        # max_x = -1e30
-        # for element in self.main_model_part.Elements:
-        #     if element.IsNot(KratosMultiphysics.ACTIVE):
-        #         x_center = element.GetGeometry().Center().X
-        #         if x_center > max_x:
-        #             max_x = x_center
-        #             max_y = element.GetGeometry().Center().Y
-        # wake_origin = KratosMultiphysics.Vector(3, 0.0)
-        # wake_origin[0] = max_x - 0.00
-        # wake_origin[1] = max_y
+        max_x = -1e30
+        for element in self.main_model_part.Elements:
+            if element.IsNot(KratosMultiphysics.ACTIVE):
+                x_center = element.GetGeometry().Center().X
+                if x_center > max_x:
+                    max_x = x_center
+                    max_y = element.GetGeometry().Center().Y
+        wake_origin = KratosMultiphysics.Vector(3, 0.0)
+        wake_origin[0] = max_x - 0.00
+        wake_origin[1] = max_y
 
-        # self.moving_parameters["origin"].SetVector(wake_origin)
-        # self.moving_parameters.AddEmptyValue("rotation_angle")
-        # self.moving_parameters["rotation_angle"].SetDouble(0.0)
+        self.moving_parameters["origin"].SetVector(wake_origin)
+        self.moving_parameters.AddEmptyValue("rotation_angle")
+        self.moving_parameters["rotation_angle"].SetDouble(0.0)
 
 
         CPFApp.MoveModelPartProcess(self.wake_model_part, self.moving_parameters).Execute()
