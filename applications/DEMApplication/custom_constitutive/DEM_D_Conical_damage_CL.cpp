@@ -386,6 +386,10 @@ namespace Kratos {
         const double neighbour_tg_of_friction_angle = element2->GetTgOfFrictionAngle();
         double equiv_tg_of_fri_ang                  = 0.5 * (my_tg_of_friction_angle + neighbour_tg_of_friction_angle);
 
+        if(equiv_tg_of_fri_ang < 0.0) {
+            KRATOS_ERROR << "The averaged friction is negative for one contact of element with Id: "<< element1->Id()<<std::endl;
+        }
+
         if (fabs(equiv_tg_of_fri_ang) > 1.0e-12) {
             double critical_force = 0.166666667 * pow(Globals::Pi * element1->GetParticleConicalDamageMaxStress(), 3) * pow(original_equiv_radius / equiv_young, 2);
             if (LocalElasticContactForce[2] > critical_force) {
