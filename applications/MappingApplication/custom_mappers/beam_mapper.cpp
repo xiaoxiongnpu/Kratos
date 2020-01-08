@@ -357,7 +357,7 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeams(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                                                        const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                                                        const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
-{   //size_t i = 0;
+{   
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
         if( r_local_sys->HasInterfaceInfo())
@@ -516,7 +516,7 @@ template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation(const Variable< array_1d<double, 3> >& rOriginVariablesDisplacements,
                                                                                  const Variable< array_1d<double, 3> >& rOriginVariablesRotations,
                                                                                  const Variable< array_1d<double, 3> >& rDestinationVariableDisplacement)
-{   size_t i = 0;
+{   std::cout << "---------------- Calling Map() ----------------" << std::endl;
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
         if( r_local_sys->HasInterfaceInfo())
@@ -538,7 +538,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
                                                                _pNode);
 
             KRATOS_ERROR_IF_NOT(_pNode) << "Node is a nullptr"<< std::endl;
-            std::cout << "Surface node : " << _pNode->Coordinates() << std::endl;
 
             const std::vector<std::string> var_comps{"_X", "_Y", "_Z"};
             VectorType displacementNode1_G(3); //Expresses in global coordinates
@@ -732,11 +731,8 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsCorotation
             displacement( 1 ) = phi_G( 1 ) - _X( 1 );
             displacement( 2 ) = phi_G( 2 ) - _X( 2 );
 
-            std::cout << "Final displacement : " << displacement << std::endl;
-
             // For conservative mapping
             VectorType rotationOfSection(3);
-            std::cout << "Matrix product : " << MatrixProduct << std::endl;
             getRotationVector(MatrixProduct, rotationOfSection);
             r_local_sys->SaveRotationVectorValue(rotationOfSection);
 
@@ -756,12 +752,12 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
                                                                               const Variable< array_1d<double, 3> >& rOriginVariablesMoments,
                                                                               const Variable< array_1d<double, 3> >& rDestinationVariableForces,
                                                                               const Kratos::Flags& rMappingOptions)
-{   
+{   std::cout << "---------------- Calling MapInverse() ----------------" << std::endl;
     const double factor = rMappingOptions.Is(MapperFlags::SWAP_SIGN) ? -1.0 : 1.0;
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
         if( r_local_sys->HasInterfaceInfo())
-        {
+        {           
             MatrixType _rotationMatrix_G_B(3, 3);
             VectorType _translationVector_B_P(3);
             VectorType _linearShapeValues(2);
@@ -789,30 +785,41 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
             for (const auto& var_ext : var_comps)
             {
                 const auto& var_destination_force = KratosComponents<ComponentVariableType>::Get(rDestinationVariableForces.Name() + var_ext);
+                //std::cout << "Name of variable force of fluid : " << rDestinationVariableForces.Name() << std::endl;
                 surfaceForce(k) = _pNode->FastGetSolutionStepValue(var_destination_force);
                 k++;
             }
             VectorType rotationVectorOfSection(3);
             MatrixType rotationMatrixOfSection(3, 3);
             r_local_sys->GetValue(rotationVectorOfSection);
-            std::cout << "rotationVectorOfSection : " << rotationVectorOfSection << std::endl;
-            double angle = norm_2(rotationVectorOfSection);
-            rotationVectorOfSection = rotationVectorOfSection / angle;
-            CalculateRotationMatrixWithAngle(rotationVectorOfSection, angle, rotationMatrixOfSection);
+            //std::cout << "rotationVectorOfSection : " << rotationVectorOfSection << std::endl;
 
+            double angle = norm_2(rotationVectorOfSection);
+            if (angle != 0.0){
+                rotationVectorOfSection(0) = rotationVectorOfSection(0) / angle;
+                rotationVectorOfSection(1) = rotationVectorOfSection(1) / angle;
+                rotationVectorOfSection(2) = rotationVectorOfSection(2) / angle;
+            }
+
+            //std::cout << "rotationVectorOfSection : " << rotationVectorOfSection << std::endl;
+
+            CalculateRotationMatrixWithAngle(rotationVectorOfSection, angle, rotationMatrixOfSection);
             pointP = _translationVector_B_P;
             pointQ = _pNode->Coordinates();
             distancePQ = pointQ - pointP;
-            std::cout << "distancePQ : " << distancePQ << std::endl;
-            std::cout << "rotationMatrixOfSection : " << rotationMatrixOfSection << std::endl;
+            //std::cout << "_linearShapeValues : " << _linearShapeValues << std::endl;
+            //std::cout << "rotationMatrixOfSection : " << rotationMatrixOfSection << std::endl;
+            //std::cout << "distancePQ : " << distancePQ << std::endl;
             TDenseSpace::Mult(rotationMatrixOfSection, distancePQ, distancePQMoved);
-            std::cout << "distancePQMoved : " << distancePQMoved << std::endl;
+            //std::cout << "distancePQMoved : " << distancePQMoved << std::endl;
 
             surfaceMoment(0) = distancePQMoved(1) * surfaceForce(2) - distancePQMoved(2) * surfaceForce(1);
             surfaceMoment(1) = distancePQMoved(2) * surfaceForce(0) - distancePQMoved(0) * surfaceForce(2);
             surfaceMoment(2) = distancePQMoved(0) * surfaceForce(1) - distancePQMoved(1) * surfaceForce(0);
 
-            std::cout << "Linear shape function values " << _linearShapeValues << std::endl;
+            //std::cout << "surface force :" << surfaceForce << std::endl;
+            //std::cout << "surface moment :" << surfaceMoment << std::endl;
+
 
             size_t c = 0;
             for (const auto& var_ext : var_comps)
@@ -825,13 +832,6 @@ void BeamMapper<TSparseSpace, TDenseSpace>::InitializeInformationBeamsInverse(co
                 _r_geom[1].FastGetSolutionStepValue(var_origin_force)  +=  _linearShapeValues(1) * surfaceForce(c) * factor;
                 _r_geom[1].FastGetSolutionStepValue(var_origin_moment) +=  _linearShapeValues(1) * surfaceMoment(c) * factor; 
                 c++;
-            }
-            for (const auto& var_ext : var_comps)
-            {
-                const auto& var_origin_force = KratosComponents<ComponentVariableType>::Get(rOriginVariablesForces.Name() + var_ext);
-                const auto& var_origin_moment = KratosComponents<ComponentVariableType>::Get(rOriginVariablesMoments.Name() + var_ext);
-                std::cout << "_r_geom[0].force" << var_ext << " : " << _r_geom[0].FastGetSolutionStepValue(var_origin_force) << " , _r_geom[0].moment" << var_ext << " : " <<  _r_geom[0].FastGetSolutionStepValue(var_origin_moment) << std::endl;
-                std::cout << "_r_geom[1].force" << var_ext << " : " << _r_geom[1].FastGetSolutionStepValue(var_origin_force) << " , _r_geom[1].moment" << var_ext << " : " <<  _r_geom[1].FastGetSolutionStepValue(var_origin_moment) << std::endl; 
             }
         }
     }
@@ -961,7 +961,7 @@ void BeamMapper<TSparseSpace, TDenseSpace>::getRotationVector(const MatrixType& 
 template<class TSparseSpace, class TDenseSpace>
 void BeamMapper<TSparseSpace, TDenseSpace>::InitializeOriginForcesAndMoments(const Variable< array_1d<double, 3> >& rOriginVariablesForces,
                                     const Variable< array_1d<double, 3> >& rOriginVariablesMoments)                                    
-{   //size_t i = 0;
+{   
     for( auto& r_local_sys : mMapperLocalSystems )
     {   
         if( r_local_sys->HasInterfaceInfo())

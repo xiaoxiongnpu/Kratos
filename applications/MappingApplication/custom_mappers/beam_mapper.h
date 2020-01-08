@@ -199,7 +199,10 @@ class BeamMapperLocalSystem : public MapperLocalSystem
 public:
     typedef Kratos::shared_ptr<BeamMapperInterfaceInfo> BeamMapperInterfaceInfoPointerType;
 
-    explicit BeamMapperLocalSystem(NodePointerType pNode) : mpNode(pNode) {}
+    explicit BeamMapperLocalSystem(NodePointerType pNode) : mpNode(pNode) {
+        VectorType zeroVector(3, 0.0);
+        mRotationVectorOfSection = zeroVector;
+    }
 
     void CalculateAll(MatrixType& rLocalMappingMatrix,
                       EquationIdVectorType& rOriginIds,
@@ -240,7 +243,12 @@ public:
 
     void GetValue(VectorType& rotVectorValue) override
     {
-        rotVectorValue = mRotationVectorOfSection;
+        //std::cout << "This is mRotationVectorOfSection from GetValue Function : " << mRotationVectorOfSection << std::endl;
+        //rotVectorValue = mRotationVectorOfSection;
+        rotVectorValue(0) = mRotationVectorOfSection(0);
+        rotVectorValue(1) = mRotationVectorOfSection(1);
+        rotVectorValue(2) = mRotationVectorOfSection(2);
+        //std::cout << "This is the copied vector : " << rotVectorValue << std::endl;
     }
 
     /// Turn back information as a string.
