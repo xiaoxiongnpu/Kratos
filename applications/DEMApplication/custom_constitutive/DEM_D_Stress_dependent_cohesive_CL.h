@@ -34,10 +34,12 @@ namespace Kratos {
 
         void InitializeContact(ContactInfoSphericParticle* const element1,
                                ContactInfoSphericParticle* const element2,
+                               double& contact_area,
                                const double indentation);
 
         void InitializeContactWithFEM(ContactInfoSphericParticle* const element,
                                       Condition* const wall,
+                                      double& contact_area,
                                       const double indentation,
                                       const double ini_delta = 0.0);
 
@@ -73,12 +75,14 @@ namespace Kratos {
         double CalculateCohesiveNormalForce(ContactInfoSphericParticle* const element1,
                                             ContactInfoSphericParticle* const element2,
                                             const double normal_contact_force,
+                                            const double contact_area,
                                             const double indentation,
                                             const bool initial_time_step);
 
         double CalculateCohesiveNormalForceWithFEM(ContactInfoSphericParticle* const element,
                                                    Condition* const wall,
                                                    const double normal_contact_force,
+                                                   const double contact_area,
                                                    const double indentation,
                                                    const bool initial_time_step);
 
@@ -101,6 +105,7 @@ namespace Kratos {
                                                    bool& sliding,
                                                    ContactInfoSphericParticle* const element,
                                                    NeighbourClassType* const neighbour,
+                                                   const double contact_area,
                                                    double indentation,
                                                    double previous_indentation,
                                                    double& AuxElasticShearForce,
