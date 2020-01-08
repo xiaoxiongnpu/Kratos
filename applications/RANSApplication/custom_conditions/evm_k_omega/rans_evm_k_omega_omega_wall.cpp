@@ -325,7 +325,7 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
         const double effective_kinematic_viscosity = nu + omega_sigma * nu_t;
 
-        const double coefficient = 2.0;
+        double coefficient = 2.0;
         if (y_plus > rCurrentProcessInfo[TURBULENCE_RANS_Y_PLUS_LIMIT_WALL])
             coefficient = 1.0;
         // Launder-Spalding wall functions considering u_tau relation proportional

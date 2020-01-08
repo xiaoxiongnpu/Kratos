@@ -586,7 +586,7 @@ class CustomProcessTest(UnitTest.TestCase):
                 "turbulent_intensity" : 0.05,
                 "echo_level"          : 0,
                 "is_fixed"            : false,
-                "min_k_value"         : 1e-18
+                "min_value"         : 1e-18
                 }
             }
         ]''')

@@ -30,6 +30,7 @@
 #include "custom_conditions/evm_k_epsilon/rans_evm_k_epsilon_epsilon_wall.h"
 #include "custom_conditions/evm_k_epsilon/rans_evm_k_epsilon_vms_monolithic_wall.h"
 #include "custom_conditions/evm_k_omega/rans_evm_k_omega_omega_wall.h"
+#include "custom_conditions/evm_k_omega/rans_evm_k_omega_omega_wall_blended.h"
 // Omega elements
 #include "custom_elements/evm_k_omega/rans_evm_omega_element.h"
 #include "custom_elements/evm_k_omega/rans_evm_k_omega_k_element.h"
