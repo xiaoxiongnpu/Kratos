@@ -104,7 +104,7 @@ public:
             rOriginIds      = mOriginIds;
             rDestinationIds = mDestinationIds;
         }
-        else {            
+        else {
             // This will be called if the EquationIdVectors have NOT been querried before
             // i.e. matrix-free mapping
             CalculateAll(rLocalMappingMatrix, rOriginIds, rDestinationIds, mPairingStatus);

@@ -78,7 +78,7 @@ public:
                          : mrModelPartOrigin(rModelPartOrigin),
                            mrModelPartDestination(rModelPartDestination),
                            mMapperSettings(JsonParameters)
-    { 
+    {
         mpInterfaceVectorContainerOrigin = Kratos::make_unique<InterfaceVectorContainerType>(rModelPartOrigin);
         mpInterfaceVectorContainerDestination = Kratos::make_unique<InterfaceVectorContainerType>(rModelPartDestination);
     }
@@ -112,7 +112,7 @@ public:
         const Variable<double>& rOriginVariable,
         const Variable<double>& rDestinationVariable,
         Kratos::Flags MappingOptions) override
-    {   
+    {
         if (MappingOptions.Is(MapperFlags::USE_TRANSPOSE)) {
             MappingOptions.Reset(MapperFlags::USE_TRANSPOSE);
             MappingOptions.Set(MapperFlags::INTERNAL_USE_TRANSPOSE, true);
@@ -130,7 +130,7 @@ public:
         const Variable< array_1d<double, 3> >& rOriginVariable,
         const Variable< array_1d<double, 3> >& rDestinationVariable,
         Kratos::Flags MappingOptions) override
-    {   
+    {
         if (MappingOptions.Is(MapperFlags::USE_TRANSPOSE)) {
             MappingOptions.Reset(MapperFlags::USE_TRANSPOSE);
             MappingOptions.Set(MapperFlags::INTERNAL_USE_TRANSPOSE, true);
@@ -214,7 +214,7 @@ protected:
     * pure virtual functions
     */
     void Initialize()
-    {   
+    {
         InitializeInterfaceCommunicator();
         InitializeInterface();
     }
@@ -227,10 +227,6 @@ private:
 
     ModelPart& mrModelPartOrigin;
     ModelPart& mrModelPartDestination;
-//    for (const auto& r_node : mrModelPart.Nodes())
-//    {
-//        r_node.Coordinates();
-//    }
 
     Parameters mMapperSettings;
 

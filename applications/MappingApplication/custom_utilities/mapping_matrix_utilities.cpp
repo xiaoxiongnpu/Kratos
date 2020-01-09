@@ -64,7 +64,7 @@ void ConstructMatrixStructure(Kratos::unique_ptr<typename SparseSpaceType::Matri
 {
     // one set for each row storing the corresponding col-IDs
     std::vector<std::unordered_set<IndexType> > indices(NumNodesDestination);
-    
+
     // preallocate memory for the column indices
     for (IndexType i=0; i<NumNodesDestination; ++i) {
         // TODO I guess this can be optimized...
@@ -135,6 +135,7 @@ void BuildMatrix(Kratos::unique_ptr<typename SparseSpaceType::MatrixType>& rpMdo
     for (auto& r_local_sys : rMapperLocalSystems) { // TODO omp
 
         r_local_sys->CalculateLocalSystem(local_mapping_matrix, origin_ids, destination_ids); // Assigns a local mapping matrix to the matrix of a local system
+        
         KRATOS_DEBUG_ERROR_IF(local_mapping_matrix.size1() != destination_ids.size()) << "MappingMatrixAssembly: DestinationID vector size mismatch: LocalMappingMatrix-Size1: " << local_mapping_matrix.size1() << " | DestinationIDs-size: " << destination_ids.size() << std::endl;
         KRATOS_DEBUG_ERROR_IF(local_mapping_matrix.size2() != origin_ids.size()) << "MappingMatrixAssembly: OriginID vector size mismatch: LocalMappingMatrix-Size2: " << local_mapping_matrix.size2() << " | OriginIDs-size: " << origin_ids.size() << std::endl;
 
@@ -190,11 +191,12 @@ void BuildMappingMatrix<SparseSpaceType, DenseSpaceType>(
 
     const SizeType num_nodes_origin = rModelPartOrigin.NumberOfNodes();
     const SizeType num_nodes_destination = rModelPartDestination.NumberOfNodes();
-    
+
     // Initialize the Matrix
     // This has to be done always since the Graph has changed if the Interface is updated!
     ConstructMatrixStructure(rpMappingMatrix, rMapperLocalSystems,
                              num_nodes_origin, num_nodes_destination);
+
     BuildMatrix(rpMappingMatrix, rMapperLocalSystems);
 
     if (EchoLevel > 2) {

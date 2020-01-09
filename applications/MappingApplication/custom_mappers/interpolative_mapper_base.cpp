@@ -37,9 +37,10 @@ typedef std::size_t SizeType;
 
 template<class TSparseSpace, class TDenseSpace>
 void InterpolativeMapperBase<TSparseSpace, TDenseSpace>::InitializeInterface(Kratos::Flags MappingOptions)
-{   
+{
     CreateMapperLocalSystems(mrModelPartDestination.GetCommunicator(),
                              mMapperLocalSystems);
+
     BuildMappingMatrix(MappingOptions);
 }
 
@@ -54,11 +55,13 @@ void InterpolativeMapperBase<TSparseSpace, TDenseSpace>::BuildMappingMatrix(Krat
     KRATOS_ERROR_IF_NOT(mpIntefaceCommunicator) << "mpIntefaceCommunicator is a nullptr!" << std::endl;
 
     const MapperInterfaceInfoUniquePointerType p_ref_interface_info = GetMapperInterfaceInfo();
-    mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(), // Does the search of neighbours and if they are found it calculates the linear shape functions and hermitian shape functions for each InterfaceInfos and assigns these InterfaceInfos to the LocalSystems of the mapper
+    
+    mpIntefaceCommunicator->ExchangeInterfaceData(mrModelPartDestination.GetCommunicator(),
                                                   MappingOptions,
                                                   p_ref_interface_info);
 
     const int echo_level = mMapperSettings["echo_level"].GetInt();
+    
     MappingMatrixUtilities::BuildMappingMatrix<TSparseSpace, TDenseSpace>(
         mpMappingMatrix,
         mpInterfaceVectorContainerOrigin->pGetVector(),
@@ -98,7 +101,7 @@ void InterpolativeMapperBase<TSparseSpace, TDenseSpace>::MapInternal(
     const Variable<double>& rOriginVariable,
     const Variable<double>& rDestinationVariable,
     Kratos::Flags MappingOptions)
-{   
+{
     mpInterfaceVectorContainerOrigin->UpdateSystemVectorFromModelPart(rOriginVariable, MappingOptions);
 
     TSparseSpace::Mult(

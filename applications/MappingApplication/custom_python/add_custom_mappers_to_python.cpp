@@ -26,6 +26,8 @@
 #include "custom_utilities/mapper_typedefs.h"
 
 // Mappers
+#include "custom_mappers/nearest_neighbor_mapper.h"
+#include "custom_mappers/nearest_element_mapper.h"
 #include "custom_mappers/beam_mapper.h"
 
 

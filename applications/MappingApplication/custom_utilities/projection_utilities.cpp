@@ -73,6 +73,7 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
     Point projected_point;
 
     rProjectionDistance = std::abs(GeometricalProjectionUtilities::FastProjectOnLine(rGeometry, rPointToProject, projected_point));
+    
     array_1d<double, 3> local_coords;
     PairingIndex pairing_index;
 
@@ -88,6 +89,26 @@ PairingIndex ProjectOnLine(const GeometryType& rGeometry,
         pairing_index = PairingIndex::Line_Outside;
         rGeometry.ShapeFunctionsValues(rShapeFunctionValues, local_coords);
         FillEquationIdVector(rGeometry, rEquationIds);
+    
+    } else {
+        // projection is ouside the line, searching the closest point
+        pairing_index = PairingIndex::Closest_Point;
+        const double dist_1 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[0]);
+        const double dist_2 = MapperUtilities::ComputeDistance(rPointToProject, rGeometry[1]);
+
+        rEquationIds.resize(1);
+        if (dist_1 < dist_2) {
+            KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[0].Has(INTERFACE_EQUATION_ID)) << rGeometry[0] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
+            rEquationIds[0] = rGeometry[0].GetValue(INTERFACE_EQUATION_ID);
+            rProjectionDistance = dist_1;
+        } else {
+            KRATOS_DEBUG_ERROR_IF_NOT(rGeometry[1].Has(INTERFACE_EQUATION_ID)) << rGeometry[1] << " does not have an \"INTERFACE_EQUATION_ID\"" << std::endl;
+            rEquationIds[0] = rGeometry[1].GetValue(INTERFACE_EQUATION_ID);
+            rProjectionDistance = dist_2;
+        }
+
+        rShapeFunctionValues.resize(1);
+        rShapeFunctionValues[0] = 1.0;
     }   
 
     return pairing_index;
@@ -121,11 +142,6 @@ void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions,
         hermitianShapeFunctions.resize(4, false);
     }
 
-    //hermitianShapeFunctions[0] =  0.25 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 2.0 + rCoordinates[0]);
-    //hermitianShapeFunctions[1] =  0.125 * lenght_line * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
-    //hermitianShapeFunctions[2] =  0.25 * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 2.0 - rCoordinates[0]);
-    //hermitianShapeFunctions[3] =  -0.125 * lenght_line * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 1.0 - rCoordinates[0]);
-
     hermitianShapeFunctions[0] =  0.25 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 2.0 + rCoordinates[0]);
     hermitianShapeFunctions[1] =  0.125 * ( 1.0 - rCoordinates[0]) * ( 1.0 - rCoordinates[0]) * ( 1.0 + rCoordinates[0]);
     hermitianShapeFunctions[2] =  0.25 * ( 1.0 + rCoordinates[0]) * ( 1.0 + rCoordinates[0]) * ( 2.0 - rCoordinates[0]);
@@ -135,17 +151,10 @@ void HermitianShapeFunctionsValues (Vector &hermitianShapeFunctions,
         hermitianShapeFunctionsDer.resize(4, false);
     }
 
-    //hermitianShapeFunctionsDer[0] = -(3 / (2 * lenght_line)) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
-    //hermitianShapeFunctionsDer[1] = -0.25 * ( 1.0 - rCoordinates[0] ) * ( 1.0 + 3 * rCoordinates[0]) ;
-    //hermitianShapeFunctionsDer[2] = (3 / (2 * lenght_line)) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
-    //hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;
-
     hermitianShapeFunctionsDer[0] = -(3 / 2) * ( 1.0 - rCoordinates[0] ) * ( 1.0 + rCoordinates[0] ); 
     hermitianShapeFunctionsDer[1] = -0.25 * ( 1.0 - rCoordinates[0] ) * ( 1.0 + 3 * rCoordinates[0]) ;
     hermitianShapeFunctionsDer[2] = (3 / 2) * ( 1.0 + rCoordinates[0] ) * ( 1.0 - rCoordinates[0] );
-    hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;
-    
-    
+    hermitianShapeFunctionsDer[3] = -0.25 * ( 1.0 + rCoordinates[0] ) * ( 1.0 - 3 * rCoordinates[0]) ;    
 }
 
 PairingIndex ProjectOnSurface(const GeometryType& rGeometry,

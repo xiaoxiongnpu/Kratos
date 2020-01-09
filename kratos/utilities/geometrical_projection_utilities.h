@@ -189,7 +189,9 @@ public:
         const array_1d<double, 3> p_c = rPointToProject.Coordinates();
 
         const double factor = (inner_prod(r_p_b, p_c) - inner_prod(r_p_a, p_c) - inner_prod(r_p_b, r_p_a) + inner_prod(r_p_a, r_p_a)) / inner_prod(ab, ab);
+        
         rPointProjected.Coordinates() = r_p_a + factor * ab;
+        
         return norm_2(rPointProjected.Coordinates()-p_c);
     }
 

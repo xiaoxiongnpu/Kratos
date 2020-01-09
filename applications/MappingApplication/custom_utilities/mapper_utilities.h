@@ -124,7 +124,8 @@ void UpdateSystemVectorFromModelPart(TVectorType& rVector,
                         ModelPart& rModelPart,
                         const TVarType& rVariable,
                         const Kratos::Flags& rMappingOptions)
-{   // Here we construct a function pointer to not have the if all the time inside the loop
+{
+    // Here we construct a function pointer to not have the if all the time inside the loop
     const auto fill_fct = MapperUtilities::GetFillFunction<TVarType>(rMappingOptions);
 
     const int num_local_nodes = rModelPart.GetCommunicator().LocalMesh().NumberOfNodes();
