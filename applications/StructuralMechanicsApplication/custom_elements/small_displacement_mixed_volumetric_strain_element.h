@@ -469,6 +469,13 @@ protected:
         mConstitutiveLawVector = ThisConstitutiveLawVector;
     }
 
+    void CalculateLocalSystemAuxiliary(
+        MatrixType &rLeftHandSideMatrix,
+        VectorType &rRightHandSideVector,
+        ProcessInfo &rCurrentProcessInfo,
+        bool compute_lhs
+        );
+
     /**
      * @brief It initializes the material
      */
