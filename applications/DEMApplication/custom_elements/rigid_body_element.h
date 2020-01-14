@@ -47,7 +47,7 @@ namespace Kratos {
         using Element::Initialize;
         virtual void Initialize(ProcessInfo& r_process_info);
         virtual void SetIntegrationScheme(DEMIntegrationScheme::Pointer& translational_integration_scheme, DEMIntegrationScheme::Pointer& rotational_integration_scheme);
-        virtual void CustomInitialize(ModelPart& rigid_body_element_sub_model_part);
+        virtual void CustomInitialize(ModelPart& rigid_body_element_sub_model_part, ParticleCreatorDestructor::Pointer p_creator_destructor, const bool do_seed_nodes_with_spheres, ModelPart& spheres_model_part);
         virtual void SetOrientation(const Quaternion<double> Orientation);
         virtual void UpdateLinearDisplacementAndVelocityOfNodes();
         virtual void UpdateAngularDisplacementAndVelocityOfNodes();
@@ -67,14 +67,14 @@ namespace Kratos {
         virtual std::string Info() const override
         {
 	    std::stringstream buffer;
-	    buffer << "Discrete Element #" << Id();
+	    buffer << "Rigid Body Element #" << Id();
 	    return buffer.str();
         }
 
         /// Print information about this object.
         virtual void PrintInfo(std::ostream& rOStream) const override
         {
-	    rOStream << "Discrete Element #" << Id();
+	    rOStream << "Rigid Body Element #" << Id();
         }
 
         /// Print object's data.

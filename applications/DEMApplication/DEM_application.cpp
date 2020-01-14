@@ -108,7 +108,8 @@ KRATOS_CREATE_VARIABLE(ClusterInformation, CLUSTER_INFORMATION)
 KRATOS_CREATE_VARIABLE(std::string, CLUSTER_FILE_NAME)
 KRATOS_CREATE_VARIABLE(std::string, INJECTOR_ELEMENT_TYPE)
 KRATOS_CREATE_VARIABLE(int, CONTINUUM_OPTION)
-KRATOS_CREATE_VARIABLE(int, FLOATING_OPTION)
+KRATOS_CREATE_VARIABLE(bool, FLOATING_OPTION)
+KRATOS_CREATE_VARIABLE(bool, HAS_SPHERES_ON_NODES_OPTION)
 KRATOS_CREATE_VARIABLE(double, DEM_ENGINE_POWER)
 KRATOS_CREATE_VARIABLE(double, DEM_MAX_ENGINE_FORCE)
 KRATOS_CREATE_VARIABLE(double, DEM_THRESHOLD_VELOCITY)
@@ -461,6 +462,7 @@ KratosDEMApplication::KratosDEMApplication() : KratosApplication("DEMApplication
       mAnalyticRigidFace3D3N(0, Element::GeometryType::Pointer(new Triangle3D3<Node<3> >(Element::GeometryType::PointsArrayType(3)))),
       mRigidEdge3D2N(0, Element::GeometryType::Pointer(new Line3D2<Node<3> >(Element::GeometryType::PointsArrayType(2)))),
       mRigidBodyElement3D(0, Element::GeometryType::Pointer(new Point3D<Node<3> >(Element::GeometryType::PointsArrayType(1)))),
+      mRigidBodyWithSpheresOnNodesElement3D(0, Element::GeometryType::Pointer(new Point3D<Node<3> >(Element::GeometryType::PointsArrayType(1)))),
       mShipElement3D(0, Element::GeometryType::Pointer(new Point3D<Node<3> >(Element::GeometryType::PointsArrayType(1)))),
       mContactInfoSphericParticle3D(0, Element::GeometryType::Pointer(new Sphere3D1<Node<3> >(Element::GeometryType::PointsArrayType(1)))),
       mCluster3D(0, Element::GeometryType::Pointer(new Sphere3D1<Node<3> >(Element::GeometryType::PointsArrayType(1)))),
@@ -545,6 +547,7 @@ void KratosDEMApplication::Register() {
     KRATOS_REGISTER_VARIABLE(INJECTOR_ELEMENT_TYPE)
     KRATOS_REGISTER_VARIABLE(CONTINUUM_OPTION)
     KRATOS_REGISTER_VARIABLE(FLOATING_OPTION)
+    KRATOS_REGISTER_VARIABLE(HAS_SPHERES_ON_NODES_OPTION)
     KRATOS_REGISTER_VARIABLE(DEM_ENGINE_POWER)
     KRATOS_REGISTER_VARIABLE(DEM_MAX_ENGINE_FORCE)
     KRATOS_REGISTER_VARIABLE(DEM_THRESHOLD_VELOCITY)
@@ -865,6 +868,7 @@ void KratosDEMApplication::Register() {
     KRATOS_REGISTER_ELEMENT("BondingSphericContinuumParticle3D", mBondingSphericContinuumParticle3D)
     KRATOS_REGISTER_ELEMENT("ParticleContactElement", mParticleContactElement)
     KRATOS_REGISTER_ELEMENT("RigidBodyElement3D", mRigidBodyElement3D)
+    KRATOS_REGISTER_ELEMENT("RigidBodyWithSpheresOnNodesElement3D", mRigidBodyWithSpheresOnNodesElement3D)
     KRATOS_REGISTER_ELEMENT("ShipElement3D", mShipElement3D)
     KRATOS_REGISTER_ELEMENT("ContactInfoSphericParticle3D", mContactInfoSphericParticle3D)
     KRATOS_REGISTER_ELEMENT("Cluster3D", mCluster3D)

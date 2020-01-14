@@ -26,11 +26,13 @@ namespace Kratos {
 
     void DEMIntegrationScheme::Move(Node<3> & i, const double delta_t, const double force_reduction_factor, const int StepFlag) {
         if (i.Is(DEMFlags::BELONGS_TO_A_CLUSTER)) return;
+        if (i.Is(DEMFlags::POLYHEDRON_SKIN)) return;
         CalculateTranslationalMotionOfNode(i, delta_t, force_reduction_factor, StepFlag);
     }
 
     void DEMIntegrationScheme::Rotate(Node<3> & i, const double delta_t, const double moment_reduction_factor, const int StepFlag) {
         if (i.Is(DEMFlags::BELONGS_TO_A_CLUSTER)) return;
+        if (i.Is(DEMFlags::POLYHEDRON_SKIN)) return;if (i.Is(DEMFlags::POLYHEDRON_SKIN)) return;
         CalculateRotationalMotionOfSphereNode(i, delta_t, moment_reduction_factor, StepFlag);
     }
 

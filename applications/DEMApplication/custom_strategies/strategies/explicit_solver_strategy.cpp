@@ -820,89 +820,99 @@ namespace Kratos {
                     (it)->Initialize(r_process_info);
                 }
 
-                if (!r_process_info[IS_RESTARTED]){
-                // Central Node
-                Node<3>::Pointer central_node;
-                Geometry<Node<3> >::PointsArrayType central_node_list;
+                if (!r_process_info[IS_RESTARTED]) {
+                    // Central Node
+                    Node<3>::Pointer central_node;
+                    Geometry<Node<3> >::PointsArrayType central_node_list;
 
-                array_1d<double, 3> reference_coordinates = ZeroVector(3);
+                    array_1d<double, 3> reference_coordinates = ZeroVector(3);
 
-                if (submp.Has(RIGID_BODY_CENTER_OF_MASS)) {
-                    reference_coordinates[0] = submp[RIGID_BODY_CENTER_OF_MASS][0];
-                    reference_coordinates[1] = submp[RIGID_BODY_CENTER_OF_MASS][1];
-                    reference_coordinates[2] = submp[RIGID_BODY_CENTER_OF_MASS][2];
-                }
-
-                int Node_Id_1 = mpParticleCreatorDestructor->FindMaxNodeIdInModelPart(fem_model_part);
-
-                mpParticleCreatorDestructor->CentroidCreatorForRigidBodyElements(fem_model_part, central_node, Node_Id_1 + 1, reference_coordinates);
-
-                central_node_list.push_back(central_node);
-
-                int Element_Id_1 = mpParticleCreatorDestructor->FindMaxElementIdInModelPart(fem_model_part);
-
-                Properties::Pointer properties;
-                if (submp.Has(PROPERTIES_ID)) properties = fem_model_part.GetMesh().pGetProperties(submp[PROPERTIES_ID]);
-                else properties = fem_model_part.GetMesh().pGetProperties(fem_model_part.GetMesh(0).PropertiesBegin()->GetId()); // JIG: Backward compatibility, it should be removed in the future
-
-                std::string ElementNameString = "RigidBodyElement3D";
-
-                if (submp.Has(FLOATING_OPTION)) {
-                    if (submp[FLOATING_OPTION]) {
-                        ElementNameString = "ShipElement3D";
+                    if (submp.Has(RIGID_BODY_CENTER_OF_MASS)) {
+                        reference_coordinates[0] = submp[RIGID_BODY_CENTER_OF_MASS][0];
+                        reference_coordinates[1] = submp[RIGID_BODY_CENTER_OF_MASS][1];
+                        reference_coordinates[2] = submp[RIGID_BODY_CENTER_OF_MASS][2];
                     }
-                }
 
-                const Element& r_reference_element = KratosComponents<Element>::Get(ElementNameString);
-                Element::Pointer RigidBodyElement3D_Kratos = r_reference_element.Create(Element_Id_1 + 1, central_node_list, properties);
-                RigidBodyElement3D* rigid_body_element = dynamic_cast<RigidBodyElement3D*>(RigidBodyElement3D_Kratos.get());
+                    int Node_Id_1 = mpParticleCreatorDestructor->FindMaxNodeIdInModelPart(fem_model_part);
 
-                fem_model_part.AddElement(RigidBodyElement3D_Kratos); //, Element_Id + 1);
+                    mpParticleCreatorDestructor->CentroidCreatorForRigidBodyElements(fem_model_part, central_node, Node_Id_1 + 1, reference_coordinates);
 
-                std::size_t element_id = Element_Id_1 + 1;
-                std::vector<std::size_t> ElementIds;
-                ElementIds.push_back(element_id);
+                    central_node_list.push_back(central_node);
 
-                if (submp.Has(FREE_BODY_MOTION)) { // JIG: Backward compatibility, it should be removed in the future
-                    if (submp[FREE_BODY_MOTION]) {
+                    int Element_Id_1 = mpParticleCreatorDestructor->FindMaxElementIdInModelPart(fem_model_part);
 
-                        std::vector<std::vector<Node<3>::Pointer> > thread_vectors_of_node_pointers;
-                        thread_vectors_of_node_pointers.resize(mNumberOfThreads);
-                        std::vector<std::vector<array_1d<double, 3> > > thread_vectors_of_coordinates;
-                        thread_vectors_of_coordinates.resize(mNumberOfThreads);
+                    Properties::Pointer properties;
+                    if (submp.Has(PROPERTIES_ID)) properties = fem_model_part.GetMesh().pGetProperties(submp[PROPERTIES_ID]);
+                    else properties = fem_model_part.GetMesh().pGetProperties(fem_model_part.GetMesh(0).PropertiesBegin()->GetId()); // JIG: Backward compatibility, it should be removed in the future
 
-                        #pragma omp parallel for
-                        for (int k = 0; k < (int)pNodes.size(); k++) {
-                            ModelPart::NodeIterator i = pNodes.ptr_begin() + k;
-                            thread_vectors_of_node_pointers[OpenMPUtils::ThisThread()].push_back(*(i.base())); //TODO: this could be raw pointers. It would be a lot faster here (same speed when reading later on)
-                            thread_vectors_of_coordinates[OpenMPUtils::ThisThread()].push_back(i->Coordinates() - reference_coordinates);
-                        }
-                        for (int i = 0; i < mNumberOfThreads; i++) {
-                            rigid_body_element->mListOfNodes.insert(rigid_body_element->mListOfNodes.end(), thread_vectors_of_node_pointers[i].begin(), thread_vectors_of_node_pointers[i].end());
-                            rigid_body_element->mListOfCoordinates.insert(rigid_body_element->mListOfCoordinates.end(), thread_vectors_of_coordinates[i].begin(), thread_vectors_of_coordinates[i].end());
-                        }
+                    std::string ElementNameString = "RigidBodyElement3D";
 
-                        std::vector<std::vector<RigidFace3D*> > thread_vectors_of_rigid_faces;
-                        thread_vectors_of_rigid_faces.resize(mNumberOfThreads);
-
-                        #pragma omp parallel for
-                        for (int k = 0; k < (int)pTConditions.size(); k++) {
-                            ConditionsArrayType::iterator it = pTConditions.ptr_begin() + k;
-                            RigidFace3D* it_face = dynamic_cast<RigidFace3D*>(&(*it));
-                            thread_vectors_of_rigid_faces[OpenMPUtils::ThisThread()].push_back(it_face);
-                        }
-                        for (int i = 0; i < mNumberOfThreads; i++) {
-                            rigid_body_element->mListOfRigidFaces.insert(rigid_body_element->mListOfRigidFaces.end(), thread_vectors_of_rigid_faces[i].begin(), thread_vectors_of_rigid_faces[i].end());
+                    if (submp.Has(FLOATING_OPTION)) {
+                        if (submp[FLOATING_OPTION]) {
+                            ElementNameString = "ShipElement3D";
                         }
                     }
-                }
+                    if (submp.Has(HAS_SPHERES_ON_NODES_OPTION)) {
+                        if (submp[HAS_SPHERES_ON_NODES_OPTION]) {
+                            ElementNameString = "RigidBodyElementWithSpheresOnNodes3D";
+                        }
+                    }
+                    const Element& r_reference_element = KratosComponents<Element>::Get(ElementNameString);
+                    Element::Pointer RigidBodyElement3D_Kratos = r_reference_element.Create(Element_Id_1 + 1, central_node_list, properties);
+                    RigidBodyElement3D* rigid_body_element = dynamic_cast<RigidBodyElement3D*>(RigidBodyElement3D_Kratos.get());
 
-                rigid_body_element->Initialize(r_process_info);
-                rigid_body_element->CustomInitialize(submp);
-                }
-                else {
+                    fem_model_part.AddElement(RigidBodyElement3D_Kratos); //, Element_Id + 1);
 
-                    // There is no need to create the rigid body elements, they already there
+                    std::size_t element_id = Element_Id_1 + 1;
+                    std::vector<std::size_t> ElementIds;
+                    ElementIds.push_back(element_id);
+
+                    if (submp.Has(FREE_BODY_MOTION)) { // JIG: Backward compatibility, it should be removed in the future
+                        if (submp[FREE_BODY_MOTION]) {
+
+                            std::vector<std::vector<Node<3>::Pointer> > thread_vectors_of_node_pointers;
+                            thread_vectors_of_node_pointers.resize(mNumberOfThreads);
+                            std::vector<std::vector<array_1d<double, 3> > > thread_vectors_of_coordinates;
+                            thread_vectors_of_coordinates.resize(mNumberOfThreads);
+
+                            #pragma omp parallel for
+                            for (int k = 0; k < (int)pNodes.size(); k++) {
+                                ModelPart::NodeIterator i = pNodes.ptr_begin() + k;
+                                thread_vectors_of_node_pointers[OpenMPUtils::ThisThread()].push_back(*(i.base())); //TODO: this could be raw pointers. It would be a lot faster here (same speed when reading later on)
+                                thread_vectors_of_coordinates[OpenMPUtils::ThisThread()].push_back(i->Coordinates() - reference_coordinates);
+                            }
+                            for (int i = 0; i < mNumberOfThreads; i++) {
+                                rigid_body_element->mListOfNodes.insert(rigid_body_element->mListOfNodes.end(), thread_vectors_of_node_pointers[i].begin(), thread_vectors_of_node_pointers[i].end());
+                                rigid_body_element->mListOfCoordinates.insert(rigid_body_element->mListOfCoordinates.end(), thread_vectors_of_coordinates[i].begin(), thread_vectors_of_coordinates[i].end());
+                            }
+
+                            std::vector<std::vector<RigidFace3D*> > thread_vectors_of_rigid_faces;
+                            thread_vectors_of_rigid_faces.resize(mNumberOfThreads);
+
+                            #pragma omp parallel for
+                            for (int k = 0; k < (int)pTConditions.size(); k++) {
+                                ConditionsArrayType::iterator it = pTConditions.ptr_begin() + k;
+                                RigidFace3D* it_face = dynamic_cast<RigidFace3D*>(&(*it));
+                                thread_vectors_of_rigid_faces[OpenMPUtils::ThisThread()].push_back(it_face);
+                            }
+                            for (int i = 0; i < mNumberOfThreads; i++) {
+                                rigid_body_element->mListOfRigidFaces.insert(rigid_body_element->mListOfRigidFaces.end(), thread_vectors_of_rigid_faces[i].begin(), thread_vectors_of_rigid_faces[i].end());
+                            }
+                        }
+                    }
+
+                    rigid_body_element->Initialize(r_process_info);
+
+                    bool do_seed_nodes_with_spheres = false;
+                    if (submp.Has(HAS_SPHERES_ON_NODES_OPTION)) {
+                        if (submp[HAS_SPHERES_ON_NODES_OPTION]) {
+                            do_seed_nodes_with_spheres = true;
+                        }
+                    }
+                    rigid_body_element->CustomInitialize(submp, mpParticleCreatorDestructor, do_seed_nodes_with_spheres, GetModelPart());
+                } // No restart
+                else { // Restart
+                    // There is no need to create the rigid body elements, they are already there
                     // But they need to be initialized
                     ElementsArrayType& pFemElements = fem_model_part.GetCommunicator().LocalMesh().Elements();
 
@@ -910,7 +920,7 @@ namespace Kratos {
                         ElementsArrayType::iterator it = pFemElements.ptr_begin() + k;
                         RigidBodyElement3D& rigid_body_element = dynamic_cast<Kratos::RigidBodyElement3D&> (*it);
                         rigid_body_element.Initialize(r_process_info);
-                        rigid_body_element.CustomInitialize(submp);
+                        rigid_body_element.CustomInitialize(submp, mpParticleCreatorDestructor, false, GetModelPart());
                     }
                 }
             }

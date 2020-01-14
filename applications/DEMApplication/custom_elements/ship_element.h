@@ -34,7 +34,7 @@ namespace Kratos
         /// Destructor
         virtual ~ShipElement3D();
 
-        void CustomInitialize(ModelPart& rigid_body_element_sub_model_part) override;
+        void CustomInitialize(ModelPart& rigid_body_element_sub_model_part, ParticleCreatorDestructor::Pointer p_creator_destructor, const bool do_seed_nodes_with_spheres, ModelPart& spheres_model_part) override;
 
         void ComputeBuoyancyEffects();
         void ComputeEngineForce();

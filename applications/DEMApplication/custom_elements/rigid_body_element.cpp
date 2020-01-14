@@ -83,7 +83,7 @@ namespace Kratos {
         mpRotationalIntegrationScheme = rotational_integration_scheme->CloneRaw();
     }
 
-    void RigidBodyElement3D::CustomInitialize(ModelPart& rigid_body_element_sub_model_part) {
+    void RigidBodyElement3D::CustomInitialize(ModelPart& rigid_body_element_sub_model_part, ParticleCreatorDestructor::Pointer p_creator_destructor, const bool do_seed_nodes_with_spheres, ModelPart& spheres_model_part) {
         if (! rigid_body_element_sub_model_part[IS_RESTARTED]){
 
             Node<3>& central_node = GetGeometry()[0]; //CENTRAL NODE OF THE RBE

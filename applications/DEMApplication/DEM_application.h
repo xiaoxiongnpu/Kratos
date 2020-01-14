@@ -25,6 +25,7 @@
 #include "custom_elements/Particle_Contact_Element.h"
 #include "custom_elements/cluster3D.h"
 #include "custom_elements/rigid_body_element.h"
+#include "custom_elements/rigid_body_with_spheres_on_nodes_element.h"
 #include "custom_elements/ship_element.h"
 #include "custom_elements/contact_info_spheric_particle.h"
 #include "custom_elements/thermal_spheric_particle.h"
@@ -106,6 +107,7 @@ private:
     const AnalyticRigidFace3D  mAnalyticRigidFace3D3N;
     const RigidEdge3D  mRigidEdge3D2N;
     const RigidBodyElement3D mRigidBodyElement3D;
+    const RigidBodyWithSpheresOnNodesElement3D mRigidBodyWithSpheresOnNodesElement3D;
     const ShipElement3D mShipElement3D;
     const ContactInfoSphericParticle mContactInfoSphericParticle3D;
     const Cluster3D  mCluster3D;
