@@ -563,6 +563,40 @@ public:
      //     return p_clone;
      // }
 
+    ///@}
+    ///@name Parent
+    ///@{
+
+    /**
+    * @brief Some geometries require relations to other geometries. This is the
+    *        case for e.g. quadrature points. To reach the parent geometry
+    *        this function can be used.
+    * @return Parent geometry of this geometry object.
+    */
+    virtual GeometryType& GetGeometryParent(IndexType Index) const
+    {
+        KRATOS_ERROR <<
+            "Calling GetGeometryParent from base geometry class."
+            << std::endl;
+    }
+
+    /**
+    * @brief Some geometries require relations to other geometries. This is the
+    *        case for e.g. quadrature points. To set or change the parent geometry
+    *        this function can be used.
+    * @param Parent geometry of this geometry object.
+    */
+    virtual void SetGeometryParent(GeometryType* pGeometryParent)
+    {
+        KRATOS_ERROR <<
+            "Calling SetGeometryParent from base geometry class."
+            << std::endl;
+    }
+
+    ///@}
+    ///@name Operations
+    ///@{
+
     /**
      * @brief Lumping factors for the calculation of the lumped mass matrix
      * @param rResult Vector containing the lumping factors
@@ -1338,22 +1372,58 @@ public:
         return rResult;
     }
 
+    ///@}
+    ///@name IsInside
+    ///@{
+
     /**
-     * Returns whether given arbitrary point is inside the Geometry and the respective
-     * local point for the given global point
-     * @param rPoint The point to be checked if is inside o note in global coordinates
-     * @param rResult The local coordinates of the point
-     * @param Tolerance The  tolerance that will be considered to check if the point is inside or not
-     * @return True if the point is inside, false otherwise
-     */
+    * @brief Checks if given point in global space coordinates
+    *        is inside the geometry boundaries. This function
+    *        computes the local coordinates and checks then if
+    *        this point lays within the boundaries.
+    * @param rPointGlobalCoordinates the global coordinates of the
+    *        external point.
+    * @param rResult the local coordinates of the point.
+    * @param Tolerance the tolerance to the boundary.
+    * @return true if the point is inside, false otherwise
+    */
     virtual bool IsInside(
-        const CoordinatesArrayType& rPoint,
+        const CoordinatesArrayType& rPointGlobalCoordinates,
         CoordinatesArrayType& rResult,
         const double Tolerance = std::numeric_limits<double>::epsilon()
         ) const
     {
-        KRATOS_ERROR << "Calling base class IsInside method instead of derived class one. Please check the definition of derived class. " << *this << std::endl;
-        return false;
+        PointLocalCoordinates(
+            rResult,
+            rPointGlobalCoordinates);
+
+        if (IsInsideLocalSpace(rResult, Tolerance) == 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+    * @brief Checks if given point in local space coordinates of this geometry
+    *        is inside the geometry boundaries.
+    * @param rPointLocalCoordinates the point on the geometry,
+    *        which shall be checked if it lays within
+    *        the boundaries.
+    * @param Tolerance the tolerance to the boundary.
+    * @return -1 -> failed
+    *          0 -> outside
+    *          1 -> inside
+    *          2 -> on the boundary
+    */
+    virtual int IsInsideLocalSpace(
+        const CoordinatesArrayType& rPointLocalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        KRATOS_ERROR << "Calling IsInsideLocalSpace from base class."
+            << " Please check the definition of derived class. "
+            << *this << std::endl;
+        return 0;
     }
 
     ///@}
@@ -1672,7 +1742,7 @@ public:
     }
 
     ///@}
-    ///@name Jacobian
+    ///@name Operation within Global Space
     ///@{
 
     /** This method provides the global coordinates corresponding to the local coordinates provided
@@ -1695,6 +1765,25 @@ public:
             noalias( rResult ) += N[i] * (*this)[i];
 
         return rResult;
+    }
+
+    /** This method provides the global coordinates to
+    *   the corresponding integration point
+    * @param rResult The global coordinates
+    * @param IntegrationPointIndex The index of the integration point
+    * @return the global coordinates
+    */
+    void GlobalCoordinates(
+        CoordinatesArrayType& rResult,
+        IndexType IntegrationPointIndex
+    ) const
+    {
+        noalias(rResult) = ZeroVector(3);
+
+        const Matrix& N = this->ShapeFunctionsValues();
+
+        for (IndexType i = 0; i < this->size(); i++)
+            noalias(rResult) += N(IntegrationPointIndex, i) * (*this)[i];
     }
 
     /** This method provides the global coordinates corresponding to the local coordinates provided, considering additionally a certain increment in the coordinates
@@ -1723,6 +1812,333 @@ public:
 
         return rResult;
     }
+
+    /**
+    * @brief This method maps from dimension space to working space and computes the
+    *        number of derivatives at the dimension parameter.
+    * @param rGlobalSpaceDerivatives The derivative in global space.
+    * @param rLocalCoordinates the local coordinates
+    * @param rDerivativeOrder of computed derivatives
+    * @return std::vector<array_1d<double, 3>> with the coordinates in working space
+    *         The list is structured as following:
+    *           [0] - global coordinates
+    *           [1 - loc_space_dim] - base vectors (du, dv, dw)
+    *           [...] - second order vectors:
+    *                       1D: du^2
+    *                       2D: du^2, dudv, dv^2
+    *                       3D: du^2, dudv, dudw, dv^2, dvdw, dw^2
+    *           [...] - third order vectors:
+    *                       1D: du^3
+    *                       2D: du^3, du^2dv, dudv^2, dv^3
+    */
+    virtual void GlobalSpaceDerivatives(
+        std::vector<CoordinatesArrayType>& rGlobalSpaceDerivatives,
+        const CoordinatesArrayType& rLocalCoordinates,
+        const SizeType DerivativeOrder) const
+    {
+        if (DerivativeOrder == 0)
+        {
+            if (rGlobalSpaceDerivatives.size() != 1)
+                rGlobalSpaceDerivatives.resize(1);
+
+            this->GlobalCoordinates(
+                rGlobalSpaceDerivatives[0],
+                rLocalCoordinates);
+        }
+        else if (DerivativeOrder == 1)
+        {
+            const double local_space_dimension = LocalSpaceDimension();
+            const SizeType points_number = this->size();
+
+            if (rGlobalSpaceDerivatives.size() != 1 + local_space_dimension)
+                rGlobalSpaceDerivatives.resize(1 + local_space_dimension);
+
+            this->GlobalCoordinates(
+                rGlobalSpaceDerivatives[0],
+                rLocalCoordinates);
+
+            Matrix shape_functions_gradients(points_number, local_space_dimension);
+            this->ShapeFunctionsLocalGradients(shape_functions_gradients, rLocalCoordinates);
+
+            for (IndexType i = 0; i < points_number; ++i) {
+                const array_1d<double, 3>& r_coordinates = (*this)[i].Coordinates();
+                for (IndexType k = 0; k < WorkingSpaceDimension(); ++k) {
+                    const double value = r_coordinates[k];
+                    for (IndexType m = 0; m < local_space_dimension; ++m) {
+                        rGlobalSpaceDerivatives[m + 1][k] += value * shape_functions_gradients(i, m);
+                    }
+                }
+            }
+
+            return;
+        }
+        else
+        {
+            KRATOS_ERROR << "Calling GlobalDerivatives within geometry.h."
+                << " Please check the definition within derived class. "
+                << *this << std::endl;
+        }
+    }
+
+    /**
+    * @brief This method maps from dimension space to working space and computes the
+    *        number of derivatives at the dimension parameter.
+    * @param IntegrationPointIndex the coordinates of a certain integration point.
+    * @param rDerivativeOrder of computed derivatives
+    * @return std::vector<array_1d<double, 3>> with the coordinates in working space
+    *         The list is structured as following:
+    *           [0] - global coordinates
+    *           [1 - loc_space_dim] - base vectors
+    *           [...] - higher order vectors (2D: du^2, dudv, dv^2)
+    */
+    virtual void GlobalSpaceDerivatives(
+        std::vector<CoordinatesArrayType>& rGlobalSpaceDerivatives,
+        IndexType IntegrationPointIndex,
+        const SizeType DerivativeOrder) const
+    {
+        if (DerivativeOrder == 0)
+        {
+            if (rGlobalSpaceDerivatives.size() != 1)
+                rGlobalSpaceDerivatives.resize(1);
+
+            GlobalCoordinates(
+                rGlobalSpaceDerivatives[0],
+                IntegrationPointIndex);
+        }
+        else if (DerivativeOrder == 1)
+        {
+            const double local_space_dimension = LocalSpaceDimension();
+            const SizeType points_number = this->size();
+
+            if (rGlobalSpaceDerivatives.size() != 1 + local_space_dimension)
+                rGlobalSpaceDerivatives.resize(1 + local_space_dimension);
+
+            this->GlobalCoordinates(
+                rGlobalSpaceDerivatives[0],
+                IntegrationPointIndex);
+
+            for (IndexType k = 0; k < local_space_dimension; ++k)
+            {
+                rGlobalSpaceDerivatives[1 + k] = ZeroVector(3);
+            }
+
+            const Matrix& r_shape_functions_gradient_in_integration_point = this->ShapeFunctionLocalGradient(IntegrationPointIndex);
+
+            for (IndexType i = 0; i < points_number; ++i) {
+                const array_1d<double, 3>& r_coordinates = (*this)[i].Coordinates();
+                for (IndexType k = 0; k < WorkingSpaceDimension(); ++k) {
+                    const double value = r_coordinates[k];
+                    for (IndexType m = 0; m < local_space_dimension; ++m) {
+                        rGlobalSpaceDerivatives[m + 1][k] += value * r_shape_functions_gradient_in_integration_point(i, m);
+                    }
+                }
+            }
+        }
+        else
+        {
+            KRATOS_ERROR << "Calling GlobalDerivatives within geometry.h."
+                << " Please check the definition within derived class. "
+                << *this << std::endl;
+        }
+    }
+
+    ///@}
+    ///@name Spatial Operations
+    ///@{
+
+    /**
+    * @brief Projects a certain point on the geometry, or finds
+    *        the closest point, depending on the provided
+    *        initial guess. The external point does not necessary
+    *        lay on the geometry.
+    *        It shall deal as the interface to the mathematical
+    *        projection function e.g. the Newton-Raphson.
+    *        Thus, the breaking criteria does not necessarily mean
+    *        that it found a point on the surface, if it is really
+    *        the closest if or not. It shows only if the breaking
+    *        criteria, defined by the tolerance is reached.
+    *
+    *        This function requires an initial guess, provided by
+    *        rProjectedPointLocalCoordinates.
+    *        This function can be a very costly operation.
+    *
+    * @param rPointGlobalCoordinates the point to which the
+    *        projection has to be found.
+    * @param rProjectedPointGlobalCoordinates the location of the
+    *        projection in global coordinates.
+    * @param rProjectedPointLocalCoordinates the location of the
+    *        projection in local coordinates.
+    *        The variable is as initial guess!
+    * @param Tolerance accepted of orthogonal error to projection.
+    * @return It is chosen to take an int as output parameter to
+    *         keep more possibilities within the interface.
+    *         0 -> failed
+    *         1 -> converged
+    */
+    virtual int ProjectionPoint(
+        const CoordinatesArrayType& rPointGlobalCoordinates,
+        CoordinatesArrayType& rProjectedPointGlobalCoordinates,
+        CoordinatesArrayType& rProjectedPointLocalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        KRATOS_ERROR << "Calling ProjectionPoint within geometry base class."
+            << " Please check the definition within derived class. "
+            << *this << std::endl;
+    }
+
+    /**
+    * @brief Returns all coordinates of the closest point on
+    *        the geometry given to an arbitrary point in global coordinates.
+    *        The basic concept is to first do a projection towards
+    *        this geometry and second checking if the projection
+    *        was successfull or if no point on the geometry was found.
+    * @param rPointGlobalCoordinates the point to which the
+    *        closest point has to be found.
+    * @param rClosestPointGlobalCoordinates the location of the
+    *        closest point in global coordinates.
+    * @param rClosestPointLocalCoordinates the location of the
+    *        closest point in local coordinates.
+    *        IMPORTANT: The variable can also be used as initial guess.
+    * @param Tolerance accepted orthogonal error.
+    * @return -1 -> failed
+    *          0 -> outside
+    *          1 -> inside
+    *          2 -> on the boundary
+    */
+    virtual int ClosestPoint(
+        const CoordinatesArrayType& rPointGlobalCoordinates,
+        CoordinatesArrayType& rClosestPointGlobalCoordinates,
+        CoordinatesArrayType& rClosestPointLocalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        // 1. Make projection on geometry
+        if (ProjectionPoint(rPointGlobalCoordinates,
+            rClosestPointGlobalCoordinates,
+            rClosestPointLocalCoordinates,
+            Tolerance) == 1)
+        {
+            // 2. If projection converged check if solution lays
+            // within the boundaries of this geometry
+            // Returns either 0, 1 or 2
+            // Or -1 if IsInsideLocalSpace failed
+            return IsInsideLocalSpace(
+                rClosestPointLocalCoordinates,
+                Tolerance);
+        }
+        else
+        {
+            // Projection failed
+            return -1;
+        }
+    }
+
+    /**
+    * @brief Returns global coordinates of the closest point on
+    *        the geometry given to an arbitrary point in global coordinates.
+    *        The basic concept is to first do a projection towards
+    *        this geometry and second checking if the projection
+    *        was successfull or if no point on the geometry was found.
+    * @param rPointGlobalCoordinates the point to which the
+    *        closest point has to be found.
+    * @param rClosestPointGlobalCoordinates the location of the
+    *        closest point in global coordinates.
+    *
+    *        WARNING: This function does not provide the possibility
+    *                 to use an initial guess!!
+    *
+    * @param Tolerance accepted orthogonal error.
+    * @return -1 -> failed
+    *          0 -> outside
+    *          1 -> inside
+    *          2 -> on the boundary
+    */
+    virtual int ClosestPoint(
+        const CoordinatesArrayType& rPointGlobalCoordinates,
+        CoordinatesArrayType& rClosestPointGlobalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        CoordinatesArrayType local_coordinates(ZeroVector(3));
+
+        return ClosestPoint(
+            rPointGlobalCoordinates,
+            rClosestPointGlobalCoordinates,
+            local_coordinates,
+            Tolerance);
+    }
+
+    /**
+    * @brief Returns local coordinates of the closest point on
+    *        the geometry given to an arbitrary point in global coordinates.
+    *        The basic concept is to first do a projection towards
+    *        this geometry and second checking if the projection
+    *        was successfull or if no point on the geometry was found.
+    * @param rPointGlobalCoordinates the point to which the
+    *        closest point has to be found.
+    * @param rClosestPointLocalCoordinates the location of the
+    *        closest point in local coordinates.
+    *
+    *        IMPORTANT: The rClosestPointLocalCoordinates can
+    *                   also be used as initial guess.
+    *
+    * @param Tolerance accepted orthogonal error.
+    * @return -1 -> failed
+    *          0 -> outside
+    *          1 -> inside
+    *          2 -> on the boundary
+    */
+    virtual int ClosestPointLocalCoordinates(
+        const CoordinatesArrayType& rPointGlobalCoordinates,
+        CoordinatesArrayType& rClosestPointLocalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        CoordinatesArrayType global_coordinates(ZeroVector(3));
+
+        return ClosestPoint(
+            rPointGlobalCoordinates,
+            global_coordinates,
+            rClosestPointLocalCoordinates,
+            Tolerance);
+    }
+
+    /**
+    * @brief Computes the distance between an point in
+    *        global coordinates and the closest point
+    *        of this geometry.
+    *        If projection fails, double::max will be returned.
+    * @param rPointGlobalCoordinates the point to which the
+    *        closest point has to be found.
+    * @param Tolerance accepted orthogonal error.
+    * @return Distance to geometry.
+    *         positive -> outside of to the geometry (for 2D and solids)
+    *         0        -> on/ in the geometry.
+    */
+    virtual double CalculateDistance(
+        const CoordinatesArrayType& rPointGlobalCoordinates,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+    ) const
+    {
+        CoordinatesArrayType global_coordinates(ZeroVector(3));
+
+        if (ClosestPoint(
+            rPointGlobalCoordinates,
+            global_coordinates,
+            Tolerance) < 1)
+        {
+            // If projection fails, double::max will be returned
+            return std::numeric_limits<double>::max();
+        }
+
+        // Distance to projected point
+        return norm_2(rPointGlobalCoordinates - global_coordinates);
+    }
+
+    ///@}
+    ///@name Jacobian
+    ///@{
 
     /** Jacobians for default integration method. This method just
     call Jacobian(enum IntegrationMethod ThisMethod) with
@@ -2486,6 +2902,21 @@ public:
         return rResult;
     }
 
+    /*
+    * @brief access to the shape function derivatives.
+    * @param DerivativeOrderIndex defines the wanted order of the derivative
+    * @param IntegrationPointIndex the corresponding contorl point of this geometry
+    * @return the shape function or derivative value related to the input parameters
+    *         the matrix is structured: (derivative dN_de / dN_du , the corresponding node)
+    */
+    const Matrix& ShapeFunctionDerivatives(
+        IndexType DerivativeOrderIndex,
+        IndexType IntegrationPointIndex,
+        IntegrationMethod ThisMethod) const
+    {
+        return mpGeometryData->ShapeFunctionDerivatives(DerivativeOrderIndex, IntegrationPointIndex, ThisMethod);
+    }
+
     /** This method gives second order derivatives of all shape
      * functions evaluated in given point.
      *
@@ -2956,7 +3387,6 @@ private:
     static const GeometryDimension msGeometryDimension;
 
     PointsArrayType mPoints;
-  
     ///@}
     ///@name Serialization
     ///@{
