@@ -606,7 +606,7 @@ void QSVMSDEMCoupled<TElementData>::AddVelocitySystem(TElementData& rData,
     body_force *= density; // Force per unit of volume
     AGradN *= density; // Convective term is always multiplied by density
 
-    double PAlphaDivV, GAlpha;
+    double GAlpha;
 
     const double fluid_fraction = this->GetAtCoordinate(rData.FluidFraction, rData.N);
 
@@ -615,7 +615,7 @@ void QSVMSDEMCoupled<TElementData>::AddVelocitySystem(TElementData& rData,
     const double fluid_fraction_rate = this->GetAtCoordinate(rData.FluidFractionRate, rData.N);
 
     // Temporary containers
-    double K, G, PDivV, QDivU;
+    double K, G, PDivV, DivUQ;
 
     // Note: Dof order is (u,v,[w,]p) for each node
     for (unsigned int i = 0; i < NumNodes; i++)
@@ -643,14 +643,14 @@ void QSVMSDEMCoupled<TElementData>::AddVelocitySystem(TElementData& rData,
                 PDivV = rData.DN_DX(i,d) * rData.N[j]; // Div(v) * p
                 GAlpha = tau_one * AGradN[j] * fluid_fraction * rData.DN_DX(i,d);
                 G = tau_one * AGradN[i] * rData.DN_DX(j,d);
-                QDivU = fluid_fraction * rData.DN_DX(j,d) * rData.N[i];
+                DivUQ = fluid_fraction * rData.DN_DX(j,d) * rData.N[i];
 
                 LHS(row+d,col+Dim) += rData.Weight * (GAlpha - PDivV);
-                LHS(row+Dim,col+d) += rData.Weight * (G + QDivU);
+                LHS(row+Dim,col+d) += rData.Weight * (G + DivUQ);
 
                 laplacian += fluid_fraction * rData.DN_DX(j,d) * rData.DN_DX(i,d);
                 LHS(row+Dim,col+Dim) += rData.Weight * tau_one * fluid_fraction_gradient[d] * rData.N[i] * rData.DN_DX(j,d); // Stabilization: Grad(q) * tau_one * Grad(p)
-                LHS(row+Dim,col+d) += rData.Weight * tau_one * fluid_fraction_gradient[d] * AGradN[j] * rData.N[i];
+                LHS(row+d,col+Dim) += rData.Weight * tau_one * fluid_fraction_gradient[d] * AGradN[j] * rData.N[i];
                 LHS(row+Dim,col+d) += rData.Weight * fluid_fraction_gradient[d] * rData.N[i] * rData.N[j];
 
                 for (unsigned int e = 0; e < Dim; e++){ // Stabilization: Div(v) * tau_two * Div(u)
