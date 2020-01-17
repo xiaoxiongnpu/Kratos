@@ -347,7 +347,7 @@ namespace Kratos {
 
         // MaximumAdmisibleShearForce = normal_contact_force * equiv_tg_of_fri_ang;
 
-        MaximumAdmisibleShearForce = std::min(normal_contact_force * equiv_tg_of_fri_ang, element->GetParticleConicalDamageMaxStress() * contact_area);
+        MaximumAdmisibleShearForce = std::min(normal_contact_force * equiv_tg_of_fri_ang, element->GetParticleConicalDamageMaxStress() * contact_area * equiv_tg_of_fri_ang);
 
         const double tangential_contact_force_0 = LocalElasticContactForce[0] + ViscoDampingLocalContactForce[0];
         const double tangential_contact_force_1 = LocalElasticContactForce[1] + ViscoDampingLocalContactForce[1];
