@@ -13,9 +13,6 @@
 //  Supervised by:   Jordi Cotela (https://github.com/jcotela)
 //                   Suneth Warnakulasuriya (https://github.com/sunethwarna)
 
-
-
-
 // System includes
 
 // External includes
@@ -25,18 +22,17 @@
 #include "includes/define.h"
 
 // Application  includes
-#include "rans_application_variables.h"
 #include "custom_elements/evm_k_omega/evm_k_omega_utilities.h"
+#include "custom_utilities/rans_calculation_utilities.h"
 #include "custom_utilities/rans_check_utilities.h"
+#include "rans_application_variables.h"
 
 // Include base h
 #include "rans_nut_k_omega_high_re_calculation_process.h"
 namespace Kratos
 {
-
-
-RansNutKOmegaHighReCalculationProcess::RansNutKOmegaHighReCalculationProcess(
-    Model& rModel, Parameters& rParameters)
+RansNutKOmegaHighReCalculationProcess::RansNutKOmegaHighReCalculationProcess(Model& rModel,
+                                                                             Parameters& rParameters)
     : mrModel(rModel), mrParameters(rParameters)
 {
     KRATOS_TRY
@@ -44,13 +40,15 @@ RansNutKOmegaHighReCalculationProcess::RansNutKOmegaHighReCalculationProcess(
     Parameters default_parameters = Parameters(R"(
     {
         "model_part_name" : "PLEASE_SPECIFY_MODEL_PART_NAME",
-        "echo_level"      : 0
+        "echo_level"      : 0,
+        "min_value"       : 1e-15
     })");
 
     mrParameters.ValidateAndAssignDefaults(default_parameters);
 
     mEchoLevel = mrParameters["echo_level"].GetInt();
     mModelPartName = mrParameters["model_part_name"].GetString();
+    mMinValue = mrParameters["min_value"].GetDouble();
 
     KRATOS_CATCH("");
 }
@@ -94,10 +92,18 @@ void RansNutKOmegaHighReCalculationProcess::Execute()
         const double tke = r_node.FastGetSolutionStepValue(TURBULENT_KINETIC_ENERGY);
         const double omega =
             r_node.FastGetSolutionStepValue(TURBULENT_SPECIFIC_ENERGY_DISSIPATION_RATE);
-        const double nu_t = EvmKomegaModelUtilities::CalculateTurbulentViscosity(
-            tke, omega);
+        const double nu_t =
+            EvmKomegaModelUtilities::CalculateTurbulentViscosity(tke, omega);
 
-        r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = nu_t;
+        if (omega > 0.0)
+        {
+            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) =
+                RansCalculationUtilities::SoftMax(nu_t, mMinValue);
+        }
+        else
+        {
+            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = mMinValue;
+        }
     }
 
     KRATOS_INFO_IF(this->Info(), mEchoLevel > 1)
@@ -124,4 +130,3 @@ void RansNutKOmegaHighReCalculationProcess::PrintData(std::ostream& rOStream) co
 }
 
 } // namespace Kratos.
-

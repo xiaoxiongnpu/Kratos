@@ -169,6 +169,8 @@ private:
     Parameters& mrParameters;
     std::string mModelPartName;
 
+    double mMinValue;
+
     int mEchoLevel;
 
 
