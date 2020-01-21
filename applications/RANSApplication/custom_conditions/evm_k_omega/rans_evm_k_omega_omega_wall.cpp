@@ -331,19 +331,33 @@ void RansEvmKOmegaOmegaWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         // Launder-Spalding wall functions considering u_tau relation proportional
         // to cmu^0.25 and sqrt(kinetic energy)
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
+
+        std::cout<<"---------------------------------\n";
+        KRATOS_WATCH(this->Id());
+        KRATOS_WATCH(u_tau);
+        KRATOS_WATCH(y_plus);
+        KRATOS_WATCH(coefficient);
+        KRATOS_WATCH(nu);
+        KRATOS_WATCH(nu_t);
+        KRATOS_WATCH(omega_sigma);
+        KRATOS_WATCH(effective_kinematic_viscosity);
+        KRATOS_WATCH(omega);
+        KRATOS_WATCH(tke);
+        std::cout<<"---------------------------------\n";
+
         if (y_plus > eps)
         {
             const double value =
-                weight * coefficient * effective_kinematic_viscosity * u_tau / (y_plus * nu);
-
+                weight * coefficient * effective_kinematic_viscosity * std::pow(u_tau, 2)  * c_mu_50/ nu_t;
+                 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {
-                for (IndexType b = 0; b < TNumNodes; ++b)
-                {
-                    rDampingMatrix(a, b) -=
-                        gauss_shape_functions[a] * gauss_shape_functions[b] * value;
-                }
-                rRightHandSideVector[a] += value * gauss_shape_functions[a] * omega;
+                // for (IndexType b = 0; b < TNumNodes; ++b)
+                // {
+                //     rDampingMatrix(a, b) -=
+                //         gauss_shape_functions[a] * gauss_shape_functions[b] * value;
+                // }
+                rRightHandSideVector[a] += value * gauss_shape_functions[a];
             }
         }
     }
