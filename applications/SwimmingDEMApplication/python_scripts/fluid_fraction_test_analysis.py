@@ -1,5 +1,4 @@
 from KratosMultiphysics import Model, Parameters, Logger, Vector
-import swimming_DEM_procedures as SDP
 import KratosMultiphysics
 import KratosMultiphysics.SwimmingDEMApplication
 import os
@@ -7,6 +6,7 @@ import sys
 file_path = os.path.abspath(__file__)
 dir_path = os.path.dirname(file_path)
 sys.path.insert(0, dir_path)
+import swimming_DEM_procedures as SDP
 from swimming_DEM_analysis import SwimmingDEMAnalysis
 from swimming_DEM_analysis import Say
 import L2_error_projection_utility as error_projector

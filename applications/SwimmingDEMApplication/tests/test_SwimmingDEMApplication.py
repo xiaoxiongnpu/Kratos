@@ -1,4 +1,7 @@
 # import Kratos
+import KratosMultiphysics
+import KratosMultiphysics.ExternalSolversApplication
+import KratosMultiphysics.FluidDynamicsApplication
 import KratosMultiphysics.DEMApplication
 import KratosMultiphysics.SwimmingDEMApplication
 
@@ -17,13 +20,13 @@ def AssembleTestSuites():
 
     # Suites to run
     suites = KratosUnittest.KratosSuites
-
+    
     # SMALL TESTS
     #small_suite = SmallTests.SetTestSuite(suites)
 
     # NIGHTLY TESTS
     night_suite = NightTests.SetTestSuite(suites)
-
+    
     # include small suite in night suite
     #night_suite.addTests(small_suite)
 

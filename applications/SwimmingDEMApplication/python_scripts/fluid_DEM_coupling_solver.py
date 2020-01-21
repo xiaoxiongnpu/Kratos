@@ -3,7 +3,7 @@ import sys
 
 # Importing the Kratos Library
 import KratosMultiphysics
-from python_solver import PythonSolver
+from KratosMultiphysics.python_solver import PythonSolver
 
 # Import applications
 from KratosMultiphysics.FluidDynamicsApplication.fluid_solver import FluidSolver

@@ -16,7 +16,7 @@
 #include "../FluidDynamicsApplication/fluid_dynamics_application_variables.h"
 #include "../FluidDynamicsApplication/custom_utilities/fluid_element_data.h"
 #include "../FluidDynamicsApplication/custom_utilities/qsvms_data.h"
-#include "../FluidDynamicsApplication/custom_utilities/element_size_calculator.h"
+#include "utilities/element_size_calculator.h"
 #include "includes/checks.h"
 
 namespace Kratos {
