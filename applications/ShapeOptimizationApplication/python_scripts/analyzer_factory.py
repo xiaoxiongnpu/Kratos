@@ -186,11 +186,11 @@ class AnalyzerWithDependencies(Analyzer):
             if communicator.isRequestingValueOf(response_id):
                 for sub_response_id in sub_response_ids:
                     communicator.requestValueOf(sub_response_id)
-
+                    
             if communicator.isRequestingGradientOf(response_id):
                 for sub_response_id in sub_response_ids:
                     communicator.requestGradientOf(sub_response_id)
-
+                    
     # --------------------------------------------------------------------------
     def __CombineResponsesAccordingDependencies(self, communicator):
         for response_id, dependencies, _ in self.dependency_graph:

@@ -209,4 +209,6 @@ if __name__ == "__main__":
 
     model = KratosMultiphysics.Model()
     simulation = StructuralMechanicsAnalysis(model, parameters)
+    #JEY MODIFY
+    #print("!@$#%^&*^$$:::NOW I'M CALLED, CATCH ME IF U CAN !")
     simulation.Run()

@@ -41,6 +41,7 @@ class AnalysisStage(object):
             KratosMultiphysics.Logger.PrintWarning("Parallel Type", '"MPI" is specified as "parallel_type", but Kratos is not running distributed!')
 
         self._GetSolver().AddVariables() # this creates the solver and adds the variables
+ 
 
     def Run(self):
         """This function executes the entire AnalysisStage
@@ -74,6 +75,8 @@ class AnalysisStage(object):
         Usage: It is designed to be called ONCE, BEFORE the execution of the solution-loop
         This function has to be implemented in deriving classes!
         """
+        #print("!@$#%^&*^$$:::NOW I'M CALLED, YOUR RUN INITALIZED !")
+
         self._GetSolver().ImportModelPart()
         self._GetSolver().PrepareModelPart()
         self._GetSolver().AddDofs()
@@ -110,6 +113,8 @@ class AnalysisStage(object):
         KratosMultiphysics.Logger.PrintInfo(self._GetSimulationName(), "Analysis -START- ")
 
     def Finalize(self):
+        #print("!@$#%^&*^$$:::NOW I'M CALLED, YOUR RUN FINIALIZED !")
+        
         """This function finalizes the AnalysisStage
         Usage: It is designed to be called ONCE, AFTER the execution of the solution-loop
         """
@@ -283,6 +288,15 @@ class AnalysisStage(object):
         order_processes_initialization = self._GetOrderOfOutputProcessesInitialization()
         self._list_of_output_processes = self._CreateProcesses("output_processes", order_processes_initialization)
         self._list_of_processes.extend(self._list_of_output_processes) # Adding the output processes to the regular processes
+    
+    # def _CreateListOfProcesses(self):
+    #     """This function creates the processes and the output-processes
+    #     """
+    #     order_processes_initialization = self._GetOrderOfProcessesInitialization()
+    #     self._list_of_processes        = self._CreateProcesses("processes", order_processes_initialization)
+    #     order_processes_initialization = self._GetOrderOfOutputProcessesInitialization()
+    #     self._list_of_output_processes = self._CreateProcesses("output_processes", order_processes_initialization)
+    #     self._list_of_processes.extend(self._list_of_output_processes) # Adding the output processes to the regular processes
 
     def __CheckIfSolveSolutionStepReturnsAValue(self, is_converged):
         """In case the solver does not return the state of convergence

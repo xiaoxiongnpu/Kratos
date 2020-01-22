@@ -29,6 +29,9 @@ class Communicator:
         constraint_settings = self.__ExtractResponseSettingsRecursively(optimization_settings["constraints"])
         all_response_settings = objective_settings + constraint_settings
 
+        #JEY EDIT
+        self.jey_response_settings = all_response_settings
+
         self.list_of_requests = self.__initializeListOfRequests(all_response_settings)
         self.list_of_responses = self.__initializeListOfObjectives(objective_settings)
         self.list_of_responses.update(self.__initializeListOfConstraints(constraint_settings))
@@ -41,23 +44,29 @@ class Communicator:
     # --------------------------------------------------------------------------
     def requestValueOf(self, response_id):
         self.list_of_requests[response_id]["calculateValue"] = True
+        #print(response_id,"REQUESTED VALUE")
 
     # --------------------------------------------------------------------------
     def requestGradientOf(self, response_id):
         self.list_of_requests[response_id]["calculateGradient"] = True
+        #print(response_id,"REQUESTED GRADIENT")
 
     # --------------------------------------------------------------------------
     def isRequestingValueOf(self, response_id):
         if response_id not in self.list_of_requests.keys():
+            #print(response_id,"VALUE NOT IN REQUEST LIST !")
             return False
         else:
+            #print(response_id,"VALUE IN REQUEST LIST !")
             return self.list_of_requests[response_id]["calculateValue"]
 
     # --------------------------------------------------------------------------
     def isRequestingGradientOf(self, response_id):
         if response_id not in self.list_of_requests.keys():
+            #print(response_id,"GRADIENT NOT IN REQUEST LIST !")
             return False
         else:
+            #print(response_id,"GRADIENT IN REQUEST LIST !")
             return self.list_of_requests[response_id]["calculateGradient"]
 
     # --------------------------------------------------------------------------
@@ -69,6 +78,8 @@ class Communicator:
         standardized_value = self.__translateValueToStandardForm(response_id, value)
         self.__storeStandardizedValue(response_id, standardized_value)
 
+        #print("STANDARDIZED VALUE:::",standardized_value)
+
     # --------------------------------------------------------------------------
     def reportGradient(self, response_id, gradient):
         dimension = len(next(iter(gradient.values())))
@@ -79,6 +90,8 @@ class Communicator:
 
         standardized_gradient = self.__translateGradientToStandardForm(response_id, gradient)
         self.__storeStandardizedGradient(response_id, standardized_gradient)
+
+        #print("STANDARDIZED GRADIENT:::",standardized_gradient)
 
     # --------------------------------------------------------------------------
     def getValue(self, response_id):

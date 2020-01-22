@@ -128,6 +128,7 @@ class MechanicalSolver(PythonSolver):
         return this_defaults
 
     def AddVariables(self):
+        
         # this can safely be called also for restarts, it is internally checked if the variables exist already
         # Add displacements.
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.DISPLACEMENT)
@@ -181,6 +182,7 @@ class MechanicalSolver(PythonSolver):
         """This function imports the ModelPart
         """
         self._ImportModelPart(self.main_model_part, self.settings["model_import_settings"])
+        KratosMultiphysics.Logger.PrintInfo("::[MechanicalSolver]JEY::", "ModelPart IMPORTED for Solver.")
 
     def PrepareModelPart(self):
         if not self.is_restarted():
@@ -188,7 +190,7 @@ class MechanicalSolver(PythonSolver):
             self._execute_after_reading()
             self._set_and_fill_buffer()
 
-        KratosMultiphysics.Logger.PrintInfo("::[MechanicalSolver]::", "ModelPart prepared for Solver.")
+        KratosMultiphysics.Logger.PrintInfo("::[MechanicalSolver]JEY::", "ModelPart PREPARED for Solver.")
 
     def Initialize(self):
         """Perform initialization after adding nodal variables and dofs to the main model part. """
@@ -219,6 +221,9 @@ class MechanicalSolver(PythonSolver):
         self.get_mechanical_solution_strategy().Predict()
 
     def SolveSolutionStep(self):
+        # model_part_nodes = self.main_model_part.Nodes
+        # for node in model_part_nodes:
+        #     print(node.Id, node.X, node.Y, node.Z)
         is_converged = self.get_mechanical_solution_strategy().SolveSolutionStep()
         if not is_converged:
             msg  = "Solver did not converge for step " + str(self.main_model_part.ProcessInfo[KratosMultiphysics.STEP]) + "\n"

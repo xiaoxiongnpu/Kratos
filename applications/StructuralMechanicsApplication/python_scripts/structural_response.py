@@ -10,6 +10,7 @@ from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_anal
 import time as timer
 
 def _GetModelPart(model, solver_settings):
+    raise RuntimeError("This is deprecated: _GetModelPart")
     #TODO can be removed once model is fully available
     model_part_name = solver_settings["model_part_name"].GetString()
     if not model.HasModelPart(model_part_name):
@@ -78,13 +79,18 @@ class StrainEnergyResponseFunction(ResponseFunctionBase):
 
     def __init__(self, identifier, response_settings, model):
         self.identifier = identifier
-
+        self.model = model
+        print("+++++++++++++++", self.identifier, self.model)
         with open(response_settings["primal_settings"].GetString()) as parameters_file:
             ProjectParametersPrimal = Parameters(parameters_file.read())
+        
+        self.primal_analysis = StructuralMechanicsAnalysis(self.model, ProjectParametersPrimal)
+        print("PRIMAL ANALYSIS:::", self.primal_analysis)
 
-        self.primal_model_part = _GetModelPart(model, ProjectParametersPrimal["solver_settings"])
-
-        self.primal_analysis = StructuralMechanicsAnalysis(model, ProjectParametersPrimal)
+        self.primal_model_part = self.model.GetModelPart(ProjectParametersPrimal["solver_settings"]["model_part_name"].GetString())
+        print("**************",self.model)
+        print("33333333333333", self.primal_model_part) 
+        
         self.primal_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.SHAPE_SENSITIVITY)
 
         self.response_function_utility = StructuralMechanicsApplication.StrainEnergyResponseFunctionUtility(self.primal_model_part, response_settings)

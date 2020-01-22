@@ -3,8 +3,9 @@ from __future__ import print_function, absolute_import, division #makes KratosMu
 import KratosMultiphysics as KM
 from KratosMultiphysics import kratos_utilities
 from KratosMultiphysics import * # TODO remove
+import shutil
+import glob, os
 
-import os
 
 def Factory(settings, Model):
     if not isinstance(settings, KM.Parameters):

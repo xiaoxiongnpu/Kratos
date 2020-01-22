@@ -145,6 +145,7 @@ class ModelPartController:
         if self.optimization_model_part.HasSubModelPart(nameOfDesignSurface):
             self.design_surface = self.optimization_model_part.GetSubModelPart(nameOfDesignSurface)
             KM.Logger.Print("")
+            #print(self.optimization_model_part)
             KM.Logger.PrintInfo("ShapeOpt", "The following design surface was defined:\n\n",self.design_surface)
         else:
             raise ValueError("The following sub-model part (design surface) specified for shape optimization does not exist: ",nameOfDesignSurface)
