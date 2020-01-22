@@ -73,7 +73,8 @@ namespace Kratos {
         //Normal and Tangent elastic constants
         mKn = 0.5 * Globals::Pi * equiv_young * equiv_radius;
         // mKt = 4.0 * equiv_shear * mKn / equiv_young;
-        mKt = 8.0 * equiv_shear * equiv_radius;
+        // mKt = 0.1 * 8.0 * equiv_shear * equiv_radius;
+        mKt = 0.1 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForces(const ProcessInfo& r_process_info,
@@ -162,7 +163,7 @@ namespace Kratos {
 
         mKn = 0.5 * Globals::Pi * equiv_young * effective_radius;
         // mKt = 4.0 * equiv_shear * mKn / equiv_young;
-        mKt = 8.0 * equiv_shear * effective_radius;
+        mKt = 0.1 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForcesWithFEM(ProcessInfo& r_process_info,
