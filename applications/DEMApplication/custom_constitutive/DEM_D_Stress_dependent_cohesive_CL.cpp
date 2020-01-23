@@ -21,21 +21,15 @@ namespace Kratos {
         DEMDiscontinuumConstitutiveLaw::Check(pProp);
         if(!pProp->Has(PARTICLE_INITIAL_COHESION)) {
             KRATOS_WARNING("DEM")<<std::endl;
-            KRATOS_WARNING("DEM")<<"WARNING: Variable PARTICLE_INITIAL_COHESION should be present in the properties when using DEM_D_Conical_damage. 90.0 value assigned by default."<<std::endl;
+            KRATOS_WARNING("DEM")<<"WARNING: Variable PARTICLE_INITIAL_COHESION should be present in the properties when using DEM_D_Stress_Dependent_Cohesive. 0.0 value assigned by default."<<std::endl;
             KRATOS_WARNING("DEM")<<std::endl;
             pProp->GetValue(PARTICLE_INITIAL_COHESION) = 0.0;
         }
         if(!pProp->Has(AMOUNT_OF_COHESION_FROM_STRESS)) {
             KRATOS_WARNING("DEM")<<std::endl;
-            KRATOS_WARNING("DEM")<<"WARNING: Variable AMOUNT_OF_COHESION_FROM_STRESS should be present in the properties when using DEM_D_Conical_damage. 90.0 value assigned by default."<<std::endl;
+            KRATOS_WARNING("DEM")<<"WARNING: Variable AMOUNT_OF_COHESION_FROM_STRESS should be present in the properties when using DEM_D_Stress_Dependent_Cohesive. 1.0 value assigned by default."<<std::endl;
             KRATOS_WARNING("DEM")<<std::endl;
             pProp->GetValue(AMOUNT_OF_COHESION_FROM_STRESS) = 1.0;
-        }
-        if(!pProp->Has(CONICAL_DAMAGE_MAX_STRESS)) {
-            KRATOS_WARNING("DEM")<<std::endl;
-            KRATOS_WARNING("DEM")<<"WARNING: Variable CONICAL_DAMAGE_MAX_STRESS should be present in the properties when using DEM_D_Conical_damage. 0.0 value assigned by default."<<std::endl;
-            KRATOS_WARNING("DEM")<<std::endl;
-            pProp->GetValue(CONICAL_DAMAGE_MAX_STRESS) = 1.0e20;
         }
     }
 
@@ -346,9 +340,7 @@ namespace Kratos {
             KRATOS_ERROR << "The averaged friction is negative for one contact of element with Id: "<< element->Id()<<std::endl;
         }
 
-        // MaximumAdmisibleShearForce = normal_contact_force * equiv_tg_of_fri_ang;
-
-        MaximumAdmisibleShearForce = std::min(normal_contact_force * equiv_tg_of_fri_ang, element->GetParticleConicalDamageMaxStress() * contact_area * equiv_tg_of_fri_ang);
+        MaximumAdmisibleShearForce = normal_contact_force * equiv_tg_of_fri_ang;
 
         const double tangential_contact_force_0 = LocalElasticContactForce[0] + ViscoDampingLocalContactForce[0];
         const double tangential_contact_force_1 = LocalElasticContactForce[1] + ViscoDampingLocalContactForce[1];
