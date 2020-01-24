@@ -71,7 +71,9 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
 
   this->EvaluatePropertyFromANotRigidNode(Density, DENSITY);
   this->EvaluatePropertyFromANotRigidNode(FluidBulkModulus, BULK_MODULUS);
-  this->EvaluatePropertyFromANotRigidNode(FluidYieldShear, YIELD_SHEAR);
+    bool boundaryElement=false;
+    boundaryElement=this->EvaluatePropertyForSlipCase(FluidYieldShear,YIELD_SHEAR);
+  // this->EvaluatePropertyFromANotRigidNode(FluidYieldShear, YIELD_SHEAR);
   this->EvaluatePropertyFromANotRigidNode(staticFrictionCoefficient, STATIC_FRICTION);
   this->EvaluatePropertyFromANotRigidNode(regularizationCoefficient, REGULARIZATION_COEFFICIENT);
   // this->EvaluatePropertyFromANotRigidNode(inertialNumberThreshold,INERTIAL_NUMBER_ONE);
@@ -85,7 +87,8 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
   if (FluidYieldShear != 0)
   {
     // std::cout<<"For a Newtonian fluid I should not enter here"<<std::endl;
-    DeviatoricCoeff = this->ComputeNonLinearViscosity(rElementalVariables.EquivalentStrainRate);
+    // DeviatoricCoeff = this->ComputeNonLinearViscosity(rElementalVariables.EquivalentStrainRate);
+    DeviatoricCoeff=this->ComputeFrictionViscosityVajont(rElementalVariables,boundaryElement);
   }
   else if (staticFrictionCoefficient != 0)
   {
@@ -126,6 +129,42 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
   // 	this->GetGeometry()[i].FastGetSolutionStepValue(FLOW_INDEX)=rElementalVariables.EquivalentStrainRate;
   //   }
 }
+
+
+  template< unsigned int TDim>
+  double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeFrictionViscosityVajont(ElementalVariables &rElementalVariables,
+                                                                                               bool boundaryElement)
+  {
+    double FluidViscosity=0;
+    double tanFi=0.487; //26 degrees (I have used this for the first cases)
+    //tanFi=0.424; // 23 degrees (crosta)
+    tanFi=0.675; // 34 degrees (pinyol) (I have used this for VajontMesh10H700stiffer case)
+    double cohesion=100000; //crosta (I have used this for VajontMesh10H700stiffer case)
+    cohesion=1000000; // intermedium value for pinyol (between 2.800.000 and 200.000) (I have used this for VajontPinyol case) 
+    if (boundaryElement==true){
+      tanFi=0.087; // 5 degrees (I have used this for all cases) 
+      //tanFi=0.105; // 6 degrees (crosta)
+
+      cohesion=0.000010000;
+    }
+
+    double meanPressure=rElementalVariables.MeanPressure;
+    if(meanPressure>0){
+      meanPressure=0.0000001;
+    }
+
+    double FluidAdaptiveExponent=0;
+    this->EvaluatePropertyFromANotRigidNode(FluidViscosity,DYNAMIC_VISCOSITY);
+    this->EvaluatePropertyFromANotRigidNode(FluidAdaptiveExponent,ADAPTIVE_EXPONENT);
+    double exponent=-FluidAdaptiveExponent*rElementalVariables.EquivalentStrainRate;
+    if(rElementalVariables.EquivalentStrainRate!=0 && fabs(meanPressure)!=0){
+      FluidViscosity+=(cohesion+tanFi*fabs(meanPressure)/rElementalVariables.EquivalentStrainRate)*(1-exp(exponent));
+    }else{
+      FluidViscosity=0.001;
+    }
+    return FluidViscosity;
+  }
+
 
 template <unsigned int TDim>
 double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeNonLinearViscosity(double &equivalentStrainRate)
