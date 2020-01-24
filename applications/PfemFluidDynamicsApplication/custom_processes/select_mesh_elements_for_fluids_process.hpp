@@ -192,6 +192,14 @@ public:
                     {
                         numisolated++;
                     }
+
+                    if ((vertices.back().X() < 780 && vertices.back().Z() > 725) ||
+                        (vertices.back().X() > 1450 && vertices.back().Z() > 725 && vertices.back().Z() < 855) ||
+                        (vertices.back().X() < 1289.992 && vertices.back().Z() > 725))
+                    {
+                        reduceAlpha = true;
+                    }
+
                     if (vertices.back().Is(BOUNDARY))
                     {
                         numboundary++;
@@ -357,7 +365,11 @@ public:
                     Alpha *= 1.15;
                 }
 
-                if (numinlet > 0)
+                if (reduceAlpha == false)
+                {
+                    Alpha *= 1.45;
+                }
+                else
                 {
                     Alpha *= 1.25;
                 }
