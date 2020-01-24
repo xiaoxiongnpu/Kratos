@@ -53,6 +53,8 @@
 #include "custom_processes/assign_vector_field_to_pfem_entities_process.hpp"
 #include "custom_processes/assign_scalar_field_to_pfem_entities_process.hpp"
 
+#include "custom_processes/update_thermal_model_part_process.hpp"
+
 //Processes
 
 namespace Kratos
@@ -182,7 +184,18 @@ void AddCustomProcessesToPython(pybind11::module &m)
         .def(py::init<ModelPart &, Parameters &>())
         .def(py::init<ModelPart &, const Variable<array_1d<double, 3>> &, array_1d<double, 3> &>())
         .def("Execute", &AssignVectorVariableToPfemConditionsProcess::Execute);
-    ;
+
+    //py::class_<AdaptiveTimeIntervalProcess, AdaptiveTimeIntervalProcess::Pointer, ProcessBaseType>(m, "AdaptiveTimeIntervalProcess")
+    //    .def(py::init<ModelPart &, int>());
+
+    py::class_<UpdateThermalModelPartProcess, UpdateThermalModelPartProcess::Pointer, ProcessBaseType> (m, "UpdateThermalModelPartProcess")
+        .def(py::init< ModelPart&, ModelPart&, Parameters>())
+        .def(py::init< ModelPart&, ModelPart&, Parameters &>())
+        .def("Execute", &UpdateThermalModelPartProcess::ExecuteInitializeSolutionStep);
+        //.def(py::init< ModelPart&, ModelPart&, Element&, Element&, Parameters>())
+        //.def(py::init< ModelPart&, ModelPart&, Element&, Element&, Parameters &>())
+
+        ;
 }
 
 } // namespace Python.
