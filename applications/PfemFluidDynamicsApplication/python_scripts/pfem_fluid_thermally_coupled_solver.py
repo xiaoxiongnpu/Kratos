@@ -7,7 +7,8 @@ import KratosMultiphysics as KM
 # Import applications
 import KratosMultiphysics.PfemFluidDynamicsApplication as KratosPfemFluid
 import KratosMultiphysics.ConvectionDiffusionApplication as KratosConvDiff
-
+import KratosMultiphysics.ConvectionDiffusionApplication.check_and_prepare_model_process_convection_diffusion as check_and_prepare_model_process
+import KratosMultiphysics.PfemFluidDynamicsApplication.update_thermal_model_part_process as update_thermal_model_part
 # Importing the base class
 from KratosMultiphysics.python_solver import PythonSolver
 
@@ -133,7 +134,7 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
     def ImportModelPart(self):
         # Call the fluid solver to import the model part from the mdpa
         self.fluid_solver._ImportModelPart(self.fluid_solver.main_model_part,self.settings["fluid_solver_settings"]["model_import_settings"])
-
+    def CloneThermalModelPart(self):
         # Save the convection diffusion settings
         convection_diffusion_settings = self.thermal_solver.main_model_part.ProcessInfo.GetValue(KM.CONVECTION_DIFFUSION_SETTINGS)
 
@@ -196,7 +197,28 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
         return new_time
 
     def InitializeSolutionStep(self):
-        self.AuxiliarCallsAfterRemesh()
+        #self.AuxiliarCallsAfterRemesh()
+        #self.CloneThermalModelPart()
+        params = KM.Parameters("{}")
+        params.AddValue("domain_size", self.settings["domain_size"])
+        params.AddValue("output_model_part", self.settings["thermal_solver_settings"]["model_part_name"])
+        #params.AddValue("two", self.settings["thermal_solver_settings"]["pfem_element_replace_settings"]["element_name"])
+        #params.AddValue("three", self.settings["thermal_solver_settings"]["pfem_element_replace_settings"]["element_name"])
+        params.AddValue("input_model_part", self.settings["fluid_solver_settings"]["model_part_name"])
+        update_thermal_model_part.UpdateThermalModelPartProcess(self.model, params).ExecuteInitializeSolutionStep()
+        if self.echo_level >= 1:
+            print("::[PfemFluidThermallyCoupledSolver]:: {} REGENERATED".format(self.settings["thermal_solver_settings"]["model_part_name"].GetString()))
+        #KM.VariableUtils().SetFlag(KM.TO_ERASE, False, self.fluid_solver.main_model_part.Nodes)
+        # Auxiliary parameters object for the CheckAndPepareModelProcess
+        params = KM.Parameters("{}")
+        params.AddValue("computing_model_part_name",self.settings["thermal_solver_settings"]["computing_model_part_name"])
+        params.AddValue("problem_domain_sub_model_part_list",self.settings["thermal_solver_settings"]["problem_domain_sub_model_part_list"])
+        params.AddValue("processes_sub_model_part_list",self.settings["thermal_solver_settings"]["processes_sub_model_part_list"])
+        # Assign mesh entities from domain and process sub model parts to the computing model part.
+        check_and_prepare_model_process.CheckAndPrepareModelProcess(self.thermal_solver.main_model_part, params).Execute()
+        # here I should add the check for the orientation of the elements and conditions, but since it is done in python, it slows down the run
+        throw_errors = False
+        KM.TetrahedralMeshOrientationCheck(self.thermal_solver.main_model_part, throw_errors).Execute()
         self.fluid_solver.InitializeSolutionStep()
         self.thermal_solver.InitializeSolutionStep()
 
@@ -297,6 +319,7 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
 
     def PrepareModelPart(self):
         self.fluid_solver.PrepareModelPart()
+        self.CloneThermalModelPart()
         self.thermal_solver.PrepareModelPart()
 
     def UpdateThermalNodes(self):
