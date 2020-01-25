@@ -68,7 +68,7 @@ namespace Kratos {
         mKn = 0.5 * Globals::Pi * equiv_young * equiv_radius;
         // mKt = 4.0 * equiv_shear * mKn / equiv_young;
         // mKt = 0.1 * 8.0 * equiv_shear * equiv_radius;
-        mKt = 0.05 * 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = 0.066666667 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForces(const ProcessInfo& r_process_info,
@@ -105,7 +105,7 @@ namespace Kratos {
 
         bool initial_time_step = false;
 
-        if (r_process_info[TIME_STEPS] == 0) initial_time_step = true;
+        if (r_process_info[TIME_STEPS] < 10) initial_time_step = true;
 
         cohesive_force = CalculateCohesiveNormalForce(p_element1, p_element2, normal_contact_force, contact_area, indentation, initial_time_step);
 
@@ -157,7 +157,7 @@ namespace Kratos {
 
         mKn = 0.5 * Globals::Pi * equiv_young * effective_radius;
         // mKt = 4.0 * equiv_shear * mKn / equiv_young;
-        mKt = 0.05 * 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = 0.066666667 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForcesWithFEM(ProcessInfo& r_process_info,
