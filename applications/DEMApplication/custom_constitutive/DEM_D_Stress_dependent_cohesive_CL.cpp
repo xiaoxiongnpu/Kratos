@@ -104,7 +104,7 @@ namespace Kratos {
 
         bool initial_time_step = false;
 
-        if (r_process_info[TIME_STEPS] == 0) initial_time_step = true;
+        if (r_process_info[TIME] < 1.0e-1) initial_time_step = true;
 
         cohesive_force = CalculateCohesiveNormalForce(p_element1, p_element2, normal_contact_force, contact_area, indentation, initial_time_step);
 
@@ -191,7 +191,7 @@ namespace Kratos {
 
         bool initial_time_step = false;
 
-        if (r_process_info[TIME_STEPS] < 100) initial_time_step = true;
+        if (r_process_info[TIME] < 1.0e-1) initial_time_step = true;
 
         cohesive_force = CalculateCohesiveNormalForceWithFEM(p_element, wall, normal_contact_force, contact_area, indentation, initial_time_step);
 
