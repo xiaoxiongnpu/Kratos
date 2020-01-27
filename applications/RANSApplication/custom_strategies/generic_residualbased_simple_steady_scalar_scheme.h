@@ -22,7 +22,6 @@
 #include "includes/variables.h"
 #include "processes/process.h"
 #include "solving_strategies/schemes/scheme.h"
-#include "utilities/coordinate_transformation_utilities.h"
 #include "utilities/openmp_utils.h"
 
 // debugging

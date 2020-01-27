@@ -11,8 +11,8 @@
 //
 
 // System includes
-#include <limits>
 #include <cmath>
+#include <limits>
 
 // External includes
 
@@ -262,6 +262,12 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
     const double eps = std::numeric_limits<double>::epsilon();
+
+    const double discrete_upwind_operator_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
+    const double diagonal_positivity_preserving_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
+
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
         const Vector& gauss_shape_functions = row(shape_functions, g);
@@ -284,6 +290,8 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         {
             const double value =
                 weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
+            // const double value =
+            //     weight * (nu + nu_t / epsilon_sigma) * std::pow(u_tau, 5) / (nu_t * y_plus * nu);
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {
@@ -293,7 +301,54 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
                         gauss_shape_functions[a] * gauss_shape_functions[b] * value;
                 }
                 rRightHandSideVector[a] += value * gauss_shape_functions[a] * epsilon;
+
+                // rRightHandSideVector[a] += value * gauss_shape_functions[a];
             }
+
+            // calculating discrete diffusion matrix
+            BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix =
+                ZeroMatrix(TNumNodes, TNumNodes);
+
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                for (IndexType b = a + 1; b < TNumNodes; ++b)
+                {
+                    discrete_diffusion_matrix(a, b) = -std::max(
+                        std::max(rDampingMatrix(a, b), rDampingMatrix(b, a)), 0.0);
+                    discrete_diffusion_matrix(b, a) = discrete_diffusion_matrix(a, b);
+                }
+            }
+
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                double row_sum = 0.0;
+                for (IndexType b = 0; b < TNumNodes; ++b)
+                {
+                    // all the diagonal terms are initialized with zero
+                    row_sum += discrete_diffusion_matrix(a, b);
+                }
+                discrete_diffusion_matrix(a, a) = -row_sum;
+            }
+
+            // calculating diagonal dominance matrix
+            BoundedMatrix<double, TNumNodes, TNumNodes> diagonal_dominance_matrix =
+                IdentityMatrix(TNumNodes);
+            double diagonal_dominance_coefficient = 0.0;
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                double row_sum = 0.0;
+                for (IndexType b = 0; b < TNumNodes; ++b)
+                {
+                    row_sum += rDampingMatrix(a, b);
+                }
+                diagonal_dominance_coefficient =
+                    std::max(diagonal_dominance_coefficient, -row_sum);
+            }
+
+            noalias(rDampingMatrix) +=
+                (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+                 diagonal_dominance_matrix * (diagonal_dominance_coefficient *
+                                              diagonal_positivity_preserving_coefficient));
         }
     }
 

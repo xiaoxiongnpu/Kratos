@@ -93,7 +93,8 @@ void RansNutYPlusWallFunctionProcess::Execute()
 
         if (y_plus > mLimitYPlus)
         {
-            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = mVonKarman * y_plus * nu;
+            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) =
+                std::max(mVonKarman * y_plus * nu, mMinValue);
             ++number_of_modified_nu_t_nodes;
         }
         else

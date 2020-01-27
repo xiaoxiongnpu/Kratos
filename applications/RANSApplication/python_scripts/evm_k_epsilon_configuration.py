@@ -93,6 +93,10 @@ class TurbulenceKEpsilonConfiguration(
         self.fluid_model_part.ProcessInfo[
             KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA] = constants[
                 "sigma_epsilon"].GetDouble()
+        self.fluid_model_part.ProcessInfo[
+            KratosRANS.RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT] = 1.2
+        self.fluid_model_part.ProcessInfo[
+            KratosRANS.RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT] = 1.2            
 
     def PrepareSolvingStrategy(self):
         scheme_settings = self.model_settings["scheme_settings"]

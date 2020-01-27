@@ -20,10 +20,10 @@
 #include "includes/checks.h"
 #include "includes/define.h"
 #include "includes/model_part.h"
-#include "processes/find_global_nodal_elemental_neighbours_process.h"
 #include "processes/process.h"
 
 #include "custom_utilities/rans_check_utilities.h"
+#include "rans_application_variables.h"
 
 // Include base h
 #include "rans_extract_elements_process.h"
@@ -62,11 +62,16 @@ RansExtractElementsProcess::RansExtractElementsProcess(Model& rModel, Parameters
 
     RansCheckUtilities::CheckIfModelPartExists(mrModel, mModelPartName);
 
-    KRATOS_ERROR_IF(mrModel.GetModelPart(mModelPartName).HasSubModelPart(mOutputModelPartName))
-        << mOutputModelPartName << " already exists as a sub-model part in "
-        << mModelPartName << ". Please choose a different \"output_model_part_name\".";
+    // KRATOS_ERROR_IF(mrModel.GetModelPart(mModelPartName).HasSubModelPart(mOutputModelPartName))
+    //     << mOutputModelPartName << " already exists as a sub-model part in "
+    //     << mModelPartName << ". Please choose a different \"output_model_part_name\".";
 
-    mrModel.GetModelPart(mModelPartName).CreateSubModelPart(mOutputModelPartName);
+    // mrModel.GetModelPart(mModelPartName).CreateSubModelPart(mOutputModelPartName);
+
+    // KRATOS_INFO(this->Info())
+    //     << "Created "
+    //     << mrModel.GetModelPart(mModelPartName).GetSubModelPart(mOutputModelPartName).Name()
+    //     << ".\n";
 
     KRATOS_CATCH("");
 }
@@ -84,42 +89,29 @@ void RansExtractElementsProcess::ExecuteInitialize()
 {
     ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
 
-    FindGlobalNodalElementalNeighboursProcess p_global_nodal_elemental_neighbours_process(
-        r_model_part.GetCommunicator().GetDataCommunicator(), r_model_part);
-
     const int number_of_elements = r_model_part.NumberOfElements();
-    ModelPart& r_output_model_part = r_model_part.GetSubModelPart(mOutputModelPartName);
 
     const Flags& r_flag = KratosComponents<Flags>::Get(mFlagVariableName);
 
-    p_global_nodal_elemental_neighbours_process.Execute();
-    KRATOS_INFO(this->Info())
-        << "Completed nodal elemental neighbours process for " << mModelPartName << ".\n";
-
-    const int number_of_nodes = r_model_part.NumberOfNodes();
-    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+#pragma omp parallel for
+    for (int i_element = 0; i_element < number_of_elements; ++i_element)
     {
-        ModelPart::NodeType& r_node = *(r_model_part.NodesBegin() + i_node);
-        if (r_node.Is(r_flag) == mFlagVariableValue)
+        ModelPart::ElementType& r_element = *(r_model_part.ElementsBegin() + i_element);
+        const ModelPart::ElementType::GeometryType& r_geometry = r_element.GetGeometry();
+        const int number_of_nodes = r_geometry.PointsNumber();
+
+        bool is_extraction_element = false;
+        for (int i_node = 0; i_node < number_of_nodes; ++i_node)
         {
-            GlobalPointersVector<Element>& r_neighbour_elements =
-                r_node.GetValue(NEIGHBOUR_ELEMENTS);
-            for (auto& r_element : r_neighbour_elements)
+            if (r_geometry[i_node].Is(r_flag) == mFlagVariableValue)
             {
-                r_element.Set(r_flag, mFlagVariableValue);
+                is_extraction_element = true;
+                break;
             }
         }
-    }
 
-// #pragma omp parallel for
-//     for (int i_element = 0; i_element < number_of_elements; ++i_element)
-//     {
-//         ModelPart::ElementType& r_element = *(r_model_part.ElementsBegin() + i_element);
-//         if (r_element.Is(r_flag) == mFlagVariableValue)
-//         {
-//             r_output_model_part.AddElement(r_element.shared_from_this());
-//         }
-//     }
+        r_element.SetValue(IS_EXTRACTION_ELEMENT, static_cast<int>(is_extraction_element));
+    }
 
     KRATOS_INFO(this->Info())
         << "Completed extracting elements from " << mModelPartName << " with "

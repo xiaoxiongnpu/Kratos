@@ -11,10 +11,10 @@
 //
 
 // System includes
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <string>
-#include <cmath>
 
 // External includes
 
@@ -134,8 +134,8 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyLogarithmicWallLaw(
     for (size_t itNode = 0; itNode < rGeometry.PointsNumber(); ++itNode)
     {
         const NodeType& rConstNode = rGeometry[itNode];
-        const double y = rConstNode.FastGetSolutionStepValue(DISTANCE); // wall distance to use in stress calculation
-        if (y > 0.0 && rConstNode.Is(SLIP))
+        const double y_plus = rConstNode.FastGetSolutionStepValue(RANS_Y_PLUS);
+        if (y_plus > 0.0 && rConstNode.Is(SLIP))
         {
             array_1d<double, 3> Vel = rGeometry[itNode].FastGetSolutionStepValue(VELOCITY);
             const array_1d<double, 3>& VelMesh =
@@ -146,7 +146,6 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyLogarithmicWallLaw(
             const double limit_yplus = 10.9931899; // limit between linear and log regions
 
             const double rho = rGeometry[itNode].FastGetSolutionStepValue(DENSITY);
-            const double nu = rGeometry[itNode].FastGetSolutionStepValue(VISCOSITY);
 
             double wall_vel = 0.0;
             for (size_t d = 0; d < TDim; ++d)
@@ -158,43 +157,14 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyLogarithmicWallLaw(
             if (wall_vel > 1e-12) // do not bother if velocity is zero
             {
                 // linear region
-                double utau = sqrt(wall_vel * nu / y);
-                double yplus = y * utau / nu;
+                double utau = wall_vel / y_plus;
 
                 // log region
-                if (yplus > limit_yplus)
+                if (y_plus > limit_yplus)
                 {
-                    // wall_vel / utau = 1/kappa * log(yplus) + B
-                    // this requires solving a nonlinear problem:
-                    // f(utau) = utau*(1/kappa * log(y*utau/nu) + B) - wall_vel = 0
-                    // note that f'(utau) = 1/kappa * log(y*utau/nu) + B + 1/kappa
-
-                    IndexType iter = 0;
-                    double dx = 1e10;
-                    const double tol = 1e-6;
-                    double uplus = Ikappa * log(yplus) + B;
-
-                    while (iter < 100 && fabs(dx) > tol * utau)
-                    {
-                        // Newton-Raphson iteration
-                        double f = utau * uplus - wall_vel;
-                        double df = uplus + Ikappa;
-                        dx = f / df;
-
-                        // Update variables
-                        utau -= dx;
-                        yplus = y * utau / nu;
-                        uplus = Ikappa * log(yplus) + B;
-                        ++iter;
-                    }
-                    if (iter == 100)
-                    {
-                        std::cout
-                            << "Warning: wall condition Newton-Raphson did "
-                               "not converge. Residual is "
-                            << dx << std::endl;
-                    }
+                    utau = wall_vel / (Ikappa * std::log(y_plus) + B);
                 }
+
                 const double Tmp = area * utau * utau * rho / wall_vel;
                 for (size_t d = 0; d < TDim; ++d)
                 {

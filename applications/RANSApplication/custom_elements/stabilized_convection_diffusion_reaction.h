@@ -28,6 +28,7 @@
 
 // Application includes
 #include "custom_utilities/rans_calculation_utilities.h"
+#include "rans_application_variables.h"
 #include "stabilized_convection_diffusion_reaction_utilities.h"
 
 namespace Kratos
@@ -324,7 +325,8 @@ public:
                 this->CalculateSourceTerm(r_current_data, gauss_shape_functions,
                                           r_shape_derivatives, rCurrentProcessInfo);
 
-            double tau, element_length;
+            const double element_length = this->GetGeometry().Length();
+            double tau;
             StabilizedConvectionDiffusionReactionUtilities::CalculateStabilizationTau(
                 tau, element_length, velocity, contravariant_metric_tensor,
                 reaction, effective_kinematic_viscosity, bossak_alpha,
@@ -737,6 +739,14 @@ public:
 
         BoundedMatrix<double, TDim, TDim> contravariant_metric_tensor;
 
+        // TODO: remove
+        // const bool debug_flag = (rCurrentProcessInfo[this->GetPrimalVariable()] == -1.0);
+
+        const double discrete_upwind_operator_coefficient =
+            rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
+        const double diagonal_positivity_preserving_coefficient =
+            rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
+
         for (IndexType g = 0; g < num_gauss_points; ++g)
         {
             const Matrix& r_shape_derivatives = shape_derivatives[g];
@@ -765,7 +775,8 @@ public:
             const double reaction = this->CalculateReactionTerm(
                 r_current_data, gauss_shape_functions, r_shape_derivatives, rCurrentProcessInfo);
 
-            double tau, element_length;
+            const double element_length = this->GetGeometry().Length();
+            double tau;
             StabilizedConvectionDiffusionReactionUtilities::CalculateStabilizationTau(
                 tau, element_length, velocity, contravariant_metric_tensor,
                 reaction, effective_kinematic_viscosity, bossak_alpha,
@@ -825,21 +836,66 @@ public:
                              (velocity_convective_terms[a] + s * gauss_shape_functions[a]) *
                              reaction * gauss_shape_functions[b];
 
-                    // Adding cross wind dissipation
-                    value += positivity_preserving_coefficient * k2 * dNa_dNb *
-                             velocity_magnitude_square;
-                    value -= positivity_preserving_coefficient * k2 *
-                             velocity_convective_terms[a] *
-                             velocity_convective_terms[b];
+                    // // Adding cross wind dissipation
+                    // value += positivity_preserving_coefficient * k2 * dNa_dNb *
+                    //          velocity_magnitude_square;
+                    // value -= positivity_preserving_coefficient * k2 *
+                    //          velocity_convective_terms[a] *
+                    //          velocity_convective_terms[b];
 
-                    // Adding stream line dissipation
-                    value += positivity_preserving_coefficient * k1 *
-                             velocity_convective_terms[a] *
-                             velocity_convective_terms[b];
+                    // // Adding stream line dissipation
+                    // value += positivity_preserving_coefficient * k1 *
+                    //          velocity_convective_terms[a] *
+                    //          velocity_convective_terms[b];
 
                     rDampingMatrix(a, b) += gauss_weights[g] * value;
                 }
             }
+
+            // calculating discrete diffusion matrix
+            BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix =
+                ZeroMatrix(TNumNodes, TNumNodes);
+
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                for (IndexType b = a + 1; b < TNumNodes; ++b)
+                {
+                    discrete_diffusion_matrix(a, b) = -std::max(
+                        std::max(rDampingMatrix(a, b), rDampingMatrix(b, a)), 0.0);
+                    discrete_diffusion_matrix(b, a) = discrete_diffusion_matrix(a, b);
+                }
+            }
+
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                double row_sum = 0.0;
+                for (IndexType b = 0; b < TNumNodes; ++b)
+                {
+                    // all the diagonal terms are initialized with zero
+                    row_sum += discrete_diffusion_matrix(a, b);
+                }
+                discrete_diffusion_matrix(a, a) = -row_sum;
+            }
+
+            // calculating diagonal dominance matrix
+            BoundedMatrix<double, TNumNodes, TNumNodes> diagonal_dominance_matrix =
+                IdentityMatrix(TNumNodes);
+            double diagonal_dominance_coefficient = 0.0;
+            for (IndexType a = 0; a < TNumNodes; ++a)
+            {
+                double row_sum = 0.0;
+                for (IndexType b = 0; b < TNumNodes; ++b)
+                {
+                    row_sum += rDampingMatrix(a, b);
+                }
+                diagonal_dominance_coefficient =
+                    std::max(diagonal_dominance_coefficient, -row_sum);
+            }
+
+            noalias(rDampingMatrix) +=
+                (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+                 diagonal_dominance_matrix * (diagonal_dominance_coefficient *
+                                              diagonal_positivity_preserving_coefficient));
         }
 
         KRATOS_CATCH("");
@@ -894,7 +950,8 @@ public:
             const double reaction = this->CalculateReactionTerm(
                 r_current_data, gauss_shape_functions, r_shape_derivatives, rCurrentProcessInfo);
 
-            double tau, element_length;
+            const double element_length = this->GetGeometry().Length();
+            double tau;
             StabilizedConvectionDiffusionReactionUtilities::CalculateStabilizationTau(
                 tau, element_length, velocity, contravariant_metric_tensor,
                 reaction, effective_kinematic_viscosity, bossak_alpha,

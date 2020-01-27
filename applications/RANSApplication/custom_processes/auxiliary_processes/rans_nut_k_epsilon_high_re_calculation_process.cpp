@@ -37,10 +37,11 @@ RansNutKEpsilonHighReCalculationProcess::RansNutKEpsilonHighReCalculationProcess
 
     Parameters default_parameters = Parameters(R"(
         {
-            "model_part_name" : "PLEASE_SPECIFY_MODEL_PART_NAME",
-            "echo_level"      : 0,
-            "c_mu"            : 0.09,
-            "min_value"       : 1e-15
+            "model_part_name"          : "PLEASE_SPECIFY_MODEL_PART_NAME",
+            "echo_level"               : 0,
+            "c_mu"                     : 0.09,
+            "min_value"                : 1e-15,
+            "admissible_mixing_length" : 0.0
         })");
 
     mrParameters.ValidateAndAssignDefaults(default_parameters);
@@ -49,6 +50,12 @@ RansNutKEpsilonHighReCalculationProcess::RansNutKEpsilonHighReCalculationProcess
     mModelPartName = mrParameters["model_part_name"].GetString();
     mCmu = mrParameters["c_mu"].GetDouble();
     mMinValue = mrParameters["min_value"].GetDouble();
+    mMixingLength = mrParameters["admissible_mixing_length"].GetDouble();
+
+    KRATOS_ERROR_IF(mMixingLength <= 0.0)
+        << "Admisible mixing length should be positive. "
+           "[\"admissible_mixing_length\" = "
+        << mMixingLength << " <= 0.0 ]\n";
 
     KRATOS_CATCH("");
 }
@@ -86,16 +93,23 @@ void RansNutKEpsilonHighReCalculationProcess::Execute()
         NodeType& r_node = *(r_nodes.begin() + i_node);
         const double epsilon =
             r_node.FastGetSolutionStepValue(TURBULENT_ENERGY_DISSIPATION_RATE);
+        const double tke = r_node.FastGetSolutionStepValue(TURBULENT_KINETIC_ENERGY);
 
-        if (epsilon > 0.0)
+        double& nu_t = r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY);
+        double limiting_mixing_length = mMixingLength;
+
+        if (tke >= 0.0)
         {
-            const double tke = r_node.FastGetSolutionStepValue(TURBULENT_KINETIC_ENERGY);
-            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) =
-                mCmu * std::pow(tke, 2) / epsilon;
+            const double value = mCmu * std::pow(tke, 1.5);
+            if (value < (epsilon * mMixingLength))
+            {
+                limiting_mixing_length = value / epsilon;
+            }
+            nu_t = std::max(limiting_mixing_length * std::sqrt(tke), mMinValue);
         }
         else
         {
-            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = mMinValue;
+            nu_t = mMinValue;
         }
     }
 

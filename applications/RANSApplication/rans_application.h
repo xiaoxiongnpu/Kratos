@@ -41,6 +41,9 @@
 #include "custom_conditions/evm_k_epsilon/rans_evm_vms_monolithic_adjoint_wall_condition.h"
 #include "custom_conditions/evm_k_epsilon/rans_evm_monolithic_k_epsilon_vms_adjoint_wall_condition.h"
 
+// Wall law elements
+#include "custom_elements/wall_elements/log_law_element.h"
+
 namespace Kratos
 {
 ///@name Kratos Globals
@@ -223,6 +226,10 @@ private:
 
     const RansEvmMonolithicKEpsilonVMSAdjointWallCondition<2> mRansEvmMonolithicKEpsilonVMSAdjointWallCondition2D2N;
     const RansEvmMonolithicKEpsilonVMSAdjointWallCondition<3> mRansEvmMonolithicKEpsilonVMSAdjointWallCondition3D3N;
+
+    // Wall law elements
+    const LogLawElement<2> mLogLawElement2D3N;
+    const LogLawElement<3> mLogLawElement3D4N;
     ///@}
     ///@name Private Operators
     ///@{

@@ -56,7 +56,7 @@ inline double CalculatePsiTwo(const double DynamicReaction, const double Tau, co
 }
 
 inline void CalculateStabilizationTau(double& rTau,
-                                      double& rElementLength,
+                                      const double& rElementLength,
                                       const array_1d<double, 3>& rVelocity,
                                       const Matrix& rContravariantMetricTensor,
                                       const double Reaction,
@@ -66,24 +66,24 @@ inline void CalculateStabilizationTau(double& rTau,
                                       const double DeltaTime,
                                       const double DynamicTau)
 {
-    unsigned int dim = rContravariantMetricTensor.size2();
-    const Vector velocity = RansCalculationUtilities::GetVector(rVelocity, dim);
-    Vector temp(dim);
-    noalias(temp) = prod(rContravariantMetricTensor, velocity);
-    const double velocity_norm = norm_2(rVelocity);
+    // unsigned int dim = rContravariantMetricTensor.size2();
+    // const Vector velocity = RansCalculationUtilities::GetVector(rVelocity, dim);
+    // Vector temp(dim);
+    // noalias(temp) = prod(rContravariantMetricTensor, velocity);
+    // const double velocity_norm = norm_2(rVelocity);
 
-    if (velocity_norm > 0.0)
-    {
-        rElementLength = 2.0 * velocity_norm / std::sqrt(inner_prod(velocity, temp));
-    }
-    else
-    {
-        rElementLength = 0.0;
-        for (unsigned int i = 0; i < dim; ++i)
-            for (unsigned int j = 0; j < dim; ++j)
-                rElementLength += rContravariantMetricTensor(i, j);
-        rElementLength = std::sqrt(1.0 / rElementLength) * 2.0;
-    }
+    // if (velocity_norm > 0.0)
+    // {
+    //     rElementLength = 2.0 * velocity_norm / std::sqrt(inner_prod(velocity, temp));
+    // }
+    // else
+    // {
+    //     rElementLength = 0.0;
+    //     for (unsigned int i = 0; i < dim; ++i)
+    //         for (unsigned int j = 0; j < dim; ++j)
+    //             rElementLength += rContravariantMetricTensor(i, j);
+    //     rElementLength = std::sqrt(1.0 / rElementLength) * 2.0;
+    // }
 
     const double stab_convection = std::pow(2.0 * norm_2(rVelocity) / rElementLength, 2);
     const double stab_diffusion = std::pow(
