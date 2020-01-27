@@ -117,6 +117,7 @@ public:
         double currentTime = rCurrentProcessInfo[TIME];
         double timeInterval = rCurrentProcessInfo[DELTA_TIME];
         bool firstMesh = false;
+        bool reduceAlpha = false;
         if (currentTime < 2 * timeInterval)
         {
             firstMesh = true;
