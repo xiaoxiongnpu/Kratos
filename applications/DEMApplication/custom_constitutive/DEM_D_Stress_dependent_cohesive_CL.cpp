@@ -66,9 +66,8 @@ namespace Kratos {
 
         //Normal and Tangent elastic constants
         mKn = 0.5 * Globals::Pi * equiv_young * equiv_radius;
-        // mKt = 4.0 * equiv_shear * mKn / equiv_young;
-        // mKt = 0.1 * 8.0 * equiv_shear * equiv_radius;
-        mKt = 0.066666667 * 4.0 * equiv_shear * mKn / equiv_young;
+        // mKt = 8.0 * equiv_shear * equiv_radius;
+        mKt = 0.06667 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForces(const ProcessInfo& r_process_info,
@@ -156,8 +155,8 @@ namespace Kratos {
         contact_area = Globals::Pi * effective_radius * effective_radius;
 
         mKn = 0.5 * Globals::Pi * equiv_young * effective_radius;
-        // mKt = 4.0 * equiv_shear * mKn / equiv_young;
-        mKt = 0.066666667 * 4.0 * equiv_shear * mKn / equiv_young;
+        // mKt = 8.0 * equiv_shear * equiv_radius;
+        mKt = 0.06667 * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForcesWithFEM(ProcessInfo& r_process_info,
@@ -296,7 +295,7 @@ namespace Kratos {
 
         for (unsigned int i = 0; element->mNeighbourRigidFaces.size(); i++) {
             if (element->mNeighbourRigidFaces[i]->Id() == wall->Id()) {
-                if (initial_time_step) element->mNeighbourRigidCohesion[i] = 0.5 * (element->GetParticleCohesion() + wall->GetProperties()[WALL_INITIAL_COHESION]);
+                if (initial_time_step) element->mNeighbourRigidCohesion[i] = 0.5 * (element->GetParticleInitialCohesion() + wall->GetProperties()[WALL_INITIAL_COHESION]);
                 equiv_cohesion = std::min(0.5 * (element->GetParticleCohesion() + wall->GetProperties()[WALL_COHESION]), equiv_amount_of_cohesion_from_stress * element->mNeighbourRigidContactStress[i]);
                 if (element->mNeighbourRigidCohesion[i] != 0.0) equiv_cohesion = std::max(element->mNeighbourRigidCohesion[i], equiv_cohesion);
 
