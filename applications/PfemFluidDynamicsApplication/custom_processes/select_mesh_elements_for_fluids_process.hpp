@@ -118,6 +118,7 @@ public:
         double timeInterval = rCurrentProcessInfo[DELTA_TIME];
         bool firstMesh = false;
         bool reduceAlpha = false;
+        bool reduceAlphaMucho = false;
         if (currentTime < 2 * timeInterval)
         {
             firstMesh = true;
@@ -199,6 +200,11 @@ public:
                         (vertices.back().X() < 1289.992 && vertices.back().Z() > 725))
                     {
                         reduceAlpha = true;
+                    }
+                    double newWaterLevel = 650+5;
+                    if (vertices.back().Y() > 4199 && vertices.back().Z() > newWaterLevel)
+                    {
+                        reduceAlphaMucho = true;
                     }
 
                     if (vertices.back().Is(BOUNDARY))
@@ -304,9 +310,11 @@ public:
                     {
                         Alpha *= 1.75;
                     }
-                    else if (numrigid > 0 && numfreesurf == 0 && numisolated == 0){
+                    else if (numrigid > 0 && numfreesurf == 0 && numisolated == 0)
+                    {
                         Alpha *= 1.1;
-                    }else
+                    }
+                    else
                     {
                         Alpha *= 1.04;
                     }
@@ -374,12 +382,14 @@ public:
                 {
                     Alpha *= 1.25;
                 }
-
+                if (reduceAlphaMucho == true)
+                {
+                    Alpha *= 0.95;
+                }
                 bool accepted = false;
                 MesherUtilities MesherUtils;
 
-                    accepted = MesherUtils.AlphaShape(Alpha, vertices, dimension, MeanMeshSize);
-
+                accepted = MesherUtils.AlphaShape(Alpha, vertices, dimension, MeanMeshSize);
 
                 if (numrigid == nds || noremesh == true)
                 {

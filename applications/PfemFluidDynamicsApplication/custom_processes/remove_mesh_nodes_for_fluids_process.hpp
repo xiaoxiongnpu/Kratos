@@ -149,6 +149,13 @@ public:
 				// double  MeanRadius=0;
 				any_node_removed_on_distance = RemoveNodesOnDistance(inside_nodes_removed, boundary_nodes_removed);
 			}
+			const ProcessInfo &rCurrentProcessInfo = mrModelPart.GetProcessInfo();
+			double currentTime = rCurrentProcessInfo[TIME];
+			double timeInterval = rCurrentProcessInfo[DELTA_TIME];
+			if (currentTime < 2.0 * timeInterval)
+			{
+				any_node_removed_on_distance = RemoveNodesForVajontCase(inside_nodes_removed, boundary_nodes_removed);
+			}
 			// REMOVE ON DISTANCE
 			////////////////////////////////////////////////////////////
 
@@ -345,6 +352,39 @@ private:
 			}
 		}
 
+		return any_node_removed;
+
+		KRATOS_CATCH(" ")
+	}
+
+	bool RemoveNodesForVajontCase(int &inside_nodes_removed, int &boundary_nodes_removed)
+	{
+		KRATOS_TRY
+		bool any_node_removed = false;
+		unsigned int erasedNodesForVajontCase = 0;
+		for (ModelPart::NodesContainerType::const_iterator in = mrModelPart.NodesBegin(); in != mrModelPart.NodesEnd(); in++)
+		{
+			double posX = in->X();
+			double posY = in->Y();
+			double posZ = in->Z();
+			double newWaterLevel = 650;
+			double alertLevel = newWaterLevel - 5;
+			double nodeDensity = in->FastGetSolutionStepValue(DENSITY);
+			if (posZ > alertLevel && in->IsNot(TO_ERASE) && in->IsNot(RIGID) && nodeDensity < 1001) 
+			{
+				in->Set(TO_ERASE);
+				any_node_removed = true;
+				// inside_nodes_removed++;
+				erasedNodesForVajontCase++;
+			}
+		}
+		std::cout << "erasedNodesForVajontCase " << erasedNodesForVajontCase << std::endl;
+		//Build boundary after removing boundary nodes due distance criterion
+		if (mEchoLevel > 1)
+		{
+			std::cout << "boundary_nodes_removed " << boundary_nodes_removed << std::endl;
+			std::cout << "inside_nodes_removed " << inside_nodes_removed << std::endl;
+		}
 		return any_node_removed;
 
 		KRATOS_CATCH(" ")
