@@ -35,6 +35,9 @@ using NodeType = ModelPart::NodeType;
 /// Geometry type (using with given NodeType)
 using GeometryType = Geometry<NodeType>;
 
+using ElementType = ModelPart::ElementType;
+using ConditionType = ModelPart::ConditionType;
+
 inline long double SoftMax(const long double value_1, const long double value_2)
 {
     return std::max(value_1, value_2);
@@ -90,6 +93,21 @@ template <unsigned int TDim>
 Vector GetVector(const array_1d<double, 3>& rVector);
 
 Vector GetVector(const array_1d<double, 3>& rVector, const unsigned int Dim);
+
+void CalculateWallParameters(array_1d<double, 3>& rWallVelocity,
+                             double& rWallHeight,
+                             const ConditionType& rCondition,
+                             const ElementType& rParentElement);
+
+void CalculateYPlusAndUtau(double& rYPlus,
+                           double& rUTau,
+                           const double WallVelocity,
+                           const double WallHeight,
+                           const double KinematicViscosity,
+                           const double Kappa,
+                           const double Beta,
+                           const int MaxIterations = 20,
+                           const double Tolerance = 1e-6);
 
 double KRATOS_API(RANS_APPLICATION)
     CalculateLogarithmicYPlusLimit(const double Kappa,

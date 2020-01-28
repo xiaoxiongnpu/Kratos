@@ -58,6 +58,10 @@ public:
     ///@{
 
     using SolvingStrategyType = SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>;
+    using ElementType = ModelPart::ElementType;
+    using ConditionType = ModelPart::ConditionType;
+    using ElementsContainerType = ModelPart::ElementsContainerType;
+    using ConditionsContainerType = ModelPart::ConditionsContainerType;
 
     /// Pointer definition of ScalarCoSolvingProcess
     KRATOS_CLASS_POINTER_DEFINITION(ScalarCoSolvingProcess);
@@ -169,6 +173,41 @@ public:
     {
         for (Process::Pointer auxiliary_process : mAuxiliaryProcessList)
             auxiliary_process->ExecuteInitialize();
+
+        for (auto p_solving_strategy : mSolvingStrategiesList)
+        {
+            ElementsContainerType& r_elements =
+                p_solving_strategy->GetModelPart().Elements();
+            const int number_of_elements = r_elements.size();
+#pragma omp parallel for
+            for (int i_element = 0; i_element < number_of_elements; ++i_element)
+            {
+                ElementType& r_element = *(r_elements.begin() + i_element);
+                ElementType& r_parent_element = mrModelPart.GetElement(r_element.Id());
+                r_element.Data() = r_parent_element.Data();
+                r_element.GetFlags() = r_parent_element.GetFlags();
+            }
+            KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
+                << "Initialized " << p_solving_strategy->GetModelPart().Name()
+                << " element data from " << mrModelPart.Name() << ".\n";
+
+            ConditionsContainerType& r_conditions =
+                p_solving_strategy->GetModelPart().Conditions();
+            const int number_of_conditions = r_conditions.size();
+#pragma omp parallel for
+            for (int i_condition = 0; i_condition < number_of_conditions; ++i_condition)
+            {
+                ConditionType& r_condition = *(r_conditions.begin() + i_condition);
+                ConditionType& r_parent_condition =
+                    mrModelPart.GetCondition(r_condition.Id());
+                r_condition.Data() = r_parent_condition.Data();
+                r_condition.GetFlags() = r_parent_condition.GetFlags();
+            }
+
+            KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
+                << "Initialized " << p_solving_strategy->GetModelPart().Name()
+                << " condition data from " << mrModelPart.Name() << ".\n";
+        }
     }
 
     ///@}
