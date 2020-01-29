@@ -32,30 +32,17 @@ import glob, os
 class KratosInternalAnalyzer( AnalyzerBaseClass ):
     # --------------------------------------------------------------------------
     def __init__( self, specified_responses, model_part_controller ):
-        #self.model_part_controller = model_part_controller
         self.response_functions = {}
+        self.model_part_controller = model_part_controller
         model = model_part_controller.GetModel()
-        print("MODEL:::", model)
+        #print("MODEL:::", model)
         
         for (response_id, response_settings) in specified_responses:
-            print("CALLED:::", response_id, response_settings)
-
-            with open(response_settings["primal_settings"].GetString()) as parameters_file:
-                ProjectParametersPrimal = Parameters(parameters_file.read())    
+            #print("CALLED:::", response_id, response_settings)           
             
-            primal_analysis = StructuralMechanicsAnalysis(model, ProjectParametersPrimal)
-            #print("PRIMAL ANALYSIS:::", primal_analysis)
-
-            self.primal_model_part = model.GetModelPart(ProjectParametersPrimal["solver_settings"]["model_part_name"].GetString())
-            #self.primal_model_part = _GetModelPart(self.model, ProjectParametersPrimal["solver_settings"])
-            #self.primal_model_part  = model_part_controller_factory.CreateController (ProjectParametersPrimal["solver_settings"], self.model)
-            print("+++++++PRIPART+++++++++", self.primal_model_part) 
-            
-            
-            self.response_functions[response_id] = csm_response_factory.CreateResponseFunction(response_id, response_settings, self.primal_model_part)    
+            self.response_functions[response_id] = csm_response_factory.CreateResponseFunction(response_id, response_settings, model)    
         
-        #self.response_functions = self.__CreateResponseFunctions(specified_responses, model_part_controller.GetModel())   
- 
+        #print("MODEL:::", model)
     #---------------------------------------------------------------------------
     def DirForOptimization(self, OptiFile, itr , FolderName):
         shutil.copy(OptiFile, str(itr)+ "_ITR" + ".post.bin")            

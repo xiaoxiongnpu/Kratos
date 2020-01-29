@@ -79,18 +79,14 @@ class StrainEnergyResponseFunction(ResponseFunctionBase):
 
     def __init__(self, identifier, response_settings, model):
         self.identifier = identifier
-        self.model = model
-        print("+++++++++++++++", self.identifier, self.model)
+        
         with open(response_settings["primal_settings"].GetString()) as parameters_file:
             ProjectParametersPrimal = Parameters(parameters_file.read())
         
-        self.primal_analysis = StructuralMechanicsAnalysis(self.model, ProjectParametersPrimal)
-        print("PRIMAL ANALYSIS:::", self.primal_analysis)
+        self.primal_analysis = StructuralMechanicsAnalysis(model, ProjectParametersPrimal)
 
-        self.primal_model_part = self.model.GetModelPart(ProjectParametersPrimal["solver_settings"]["model_part_name"].GetString())
-        print("**************",self.model)
-        print("33333333333333", self.primal_model_part) 
-        
+        self.primal_model_part = model.GetModelPart(ProjectParametersPrimal["solver_settings"]["model_part_name"].GetString())
+
         self.primal_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.SHAPE_SENSITIVITY)
 
         self.response_function_utility = StructuralMechanicsApplication.StrainEnergyResponseFunctionUtility(self.primal_model_part, response_settings)

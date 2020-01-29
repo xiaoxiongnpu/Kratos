@@ -46,7 +46,7 @@
                 "variable_name"   : "POINT_LOAD",
                 "interval"        : [0.0,"End"],
                 "modulus"         : 250.0,
-                "direction"       : [1,1,0.0]
+                "direction"       : [0.0,0.0,1]
             }
         }],
         "list_other_processes"     : []
@@ -58,7 +58,6 @@
             "process_name"  : "GiDOutputProcess",
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
-                "output_directory" : "Design2",
                 "model_part_name"        : "Struct_Load_2",
                 "output_name"            : "plate2",
                 "postprocess_parameters" : {
