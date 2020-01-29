@@ -123,7 +123,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::CalculateLocalVelocityContribu
     rRightHandSideVector.clear();
     rDampingMatrix.clear();
 
-    if (this->Is(SLIP))
+    if (this->GetValue(PARENT_CONDITION_POINTER)->Is(SLIP))
     {
         this->AddLocalVelocityContribution(rDampingMatrix, rRightHandSideVector,
                                            rCurrentProcessInfo);
@@ -260,6 +260,8 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
     const double epsilon_sigma =
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
+    const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
     const double eps = std::numeric_limits<double>::epsilon();
 
@@ -267,6 +269,10 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
     const double diagonal_positivity_preserving_coefficient =
         rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
+
+    const double y_plus_limit =
+        RansCalculationUtilities::CalculateLogarithmicYPlusLimit(kappa, beta);
+    const double wall_height = this->GetValue(PARENT_CONDITION_POINTER)->GetValue(Y_WALL);
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
@@ -285,6 +291,8 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             r_geometry, RANS_Y_PLUS, gauss_shape_functions);
 
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
+        // const double y_plus =
+        //     RansCalculationUtilities::SoftMax(y_plus_limit, u_tau * wall_height / nu);
 
         if (y_plus > eps)
         {

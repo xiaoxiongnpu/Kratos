@@ -53,6 +53,8 @@ public:
     ///@{
 
     using NodeType = ModelPart::NodeType;
+    using ConditionType = ModelPart::ConditionType;
+    using ConditionGeometryType = ModelPart::ConditionType::GeometryType;
 
     /// Pointer definition of RansNutYPlusWallFunctionProcess
     KRATOS_CLASS_POINTER_DEFINITION(RansNutYPlusWallFunctionProcess);
@@ -77,6 +79,8 @@ public:
     ///@{
 
     int Check() override;
+
+    void ExecuteInitialize() override;
 
     void Execute() override;
 
@@ -156,6 +160,8 @@ private:
 
     double mCmu;
     double mVonKarman;
+    double mC1;
+    double mC2;
     double mBeta;
 
     ///@}
@@ -165,6 +171,8 @@ private:
     ///@}
     ///@name Private Operations
     ///@{
+
+    void CalculateConditionNeighbourCount();
 
     ///@}
     ///@name Private  Access

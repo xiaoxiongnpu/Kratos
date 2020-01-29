@@ -100,6 +100,24 @@ int RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::Check(const ProcessInfo& 
 }
 
 template <unsigned int TDim, unsigned int TNumNodes>
+void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::Initialize()
+{
+    KRATOS_TRY;
+
+    if (this->Is(SLIP))
+    {
+        const array_1d<double, 3>& rNormal = this->GetValue(NORMAL);
+        KRATOS_ERROR_IF(norm_2(rNormal) == 0.0)
+            << "NORMAL must be calculated before using this " << this->Info() << "\n";
+    }
+
+    KRATOS_ERROR_IF(this->GetValue(NEIGHBOUR_ELEMENTS).size() == 0)
+        << this->Info() << " cannot find parent element\n";
+
+    KRATOS_CATCH("");
+}
+
+template <unsigned int TDim, unsigned int TNumNodes>
 std::string RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::Info() const
 {
     std::stringstream buffer;
@@ -195,18 +213,61 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
 
     array_1d<double, 3> normal;
     this->CalculateNormal(normal); // this already contains the area
-    double A = norm_2(normal);
+    const double A = norm_2(normal);
 
     // CAUTION: "Jacobian" is 2.0*A for triangles but 0.5*A for lines
     double J = (TDim == 2) ? 0.5 * A : 2.0 * A;
 
     const size_t block_size = TDim + 1;
 
-    const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
-    const double inv_von_karman = 1.0 / rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
     const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
+    const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
+    const double inv_von_karman = 1.0 / kappa;
 
     const double eps = std::numeric_limits<double>::epsilon();
+
+    array_1d<double, 3> r_element_wall_velocity;
+    double wall_height;
+    RansCalculationUtilities::CalculateWallParameters(
+        r_element_wall_velocity, wall_height, *this,
+        this->GetValue(NEIGHBOUR_ELEMENTS)[0]);
+    const double wall_element_velocity_magnitude = norm_2(r_element_wall_velocity);
+
+    const double nu = RansCalculationUtilities::EvaluateInPoint(
+        r_geometry, KINEMATIC_VISCOSITY, row(shape_functions, 0));
+
+    double y_plus, u_tau;
+    RansCalculationUtilities::CalculateYPlusAndUtau(
+        y_plus, u_tau, wall_element_velocity_magnitude, wall_height, nu, kappa, beta);
+
+    const double y_plus_limit =
+        RansCalculationUtilities::CalculateLogarithmicYPlusLimit(kappa, beta);
+    // y_plus = RansCalculationUtilities::SoftMax(y_plus, y_plus_limit);
+
+    GeometryType& r_element_geometry =
+        this->GetValue(NEIGHBOUR_ELEMENTS)[0].GetGeometry();
+    Matrix element_shape_functions =
+        r_element_geometry.ShapeFunctionsValues(GeometryData::GI_GAUSS_1);
+    // const double tke = RansCalculationUtilities::EvaluateInPoint(
+    //     r_element_geometry, TURBULENT_KINETIC_ENERGY, row(element_shape_functions, 0));
+
+    // u_tau = RansCalculationUtilities::SoftMax(
+    //     c_mu_25 * std::sqrt(std::max(tke, 0.0)),
+    //     wall_element_velocity_magnitude / (inv_von_karman * std::log(y_plus) + beta));
+
+    this->SetValue(RANS_Y_PLUS, y_plus);
+    this->SetValue(FRICTION_VELOCITY, u_tau);
+    this->SetValue(KINEMATIC_VISCOSITY, nu);
+    this->SetValue(Y_WALL, wall_height);
+    this->SetValue(VELOCITY, r_element_wall_velocity);
+
+    // remove after debugging
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(RANS_Y_PLUS, y_plus);
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(FRICTION_VELOCITY, u_tau);
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(KINEMATIC_VISCOSITY, nu);
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(Y_WALL, wall_height);
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(VELOCITY, r_element_wall_velocity);
 
     for (size_t g = 0; g < number_of_gauss_points; ++g)
     {
@@ -217,18 +278,11 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
             r_geometry, VELOCITY, gauss_shape_functions);
         const double wall_velocity_magnitude = norm_2(r_wall_velocity);
 
-        const double tke = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
-        const double y_plus = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, RANS_Y_PLUS, gauss_shape_functions);
         const double rho = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, DENSITY, gauss_shape_functions);
 
         if (wall_velocity_magnitude > eps)
         {
-            const double u_tau = RansCalculationUtilities::SoftMax(
-                c_mu_25 * std::sqrt(std::max(tke, 0.0)),
-                wall_velocity_magnitude / (inv_von_karman * std::log(y_plus) + beta));
             const double value = rho * std::pow(u_tau, 2) * weight / wall_velocity_magnitude;
 
             for (size_t a = 0; a < r_geometry.PointsNumber(); ++a)

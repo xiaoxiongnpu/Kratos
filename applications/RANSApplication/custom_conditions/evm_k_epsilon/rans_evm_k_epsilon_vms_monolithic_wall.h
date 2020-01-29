@@ -163,6 +163,8 @@ public:
 
     int Check(const ProcessInfo& rCurrentProcessInfo) override;
 
+    void Initialize() override;
+
     ///@}
     ///@name Access
     ///@{
@@ -289,6 +291,22 @@ private:
     ///@}
     ///@name Private Operations
     ///@{
+
+    bool IsCorner(double AngleCosine)
+    {
+        GeometryType& rGeometry = this->GetGeometry();
+        const array_1d<double, 3>& rNormal = this->GetValue(NORMAL);
+        const double Area = norm_2(rNormal);
+
+        for (unsigned int iNode = 0; iNode < rGeometry.PointsNumber(); ++iNode)
+        {
+            const array_1d<double, 3>& rNodeNormal =
+                rGeometry[iNode].FastGetSolutionStepValue(NORMAL);
+            if (inner_prod(rNormal, rNodeNormal) < AngleCosine * Area * norm_2(rNodeNormal))
+                return true;
+        }
+        return false;
+    }
 
     ///@}
     ///@name Private  Access
