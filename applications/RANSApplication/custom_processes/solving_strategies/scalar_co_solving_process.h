@@ -184,8 +184,7 @@ public:
             {
                 ElementType& r_element = *(r_elements.begin() + i_element);
                 ElementType& r_parent_element = mrModelPart.GetElement(r_element.Id());
-                r_element.Data() = r_parent_element.Data();
-                r_element.GetFlags() = r_parent_element.GetFlags();
+                r_element.SetValue(PARENT_ELEMENT_POINTER, &r_parent_element);
             }
             KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
                 << "Initialized " << p_solving_strategy->GetModelPart().Name()
@@ -200,8 +199,7 @@ public:
                 ConditionType& r_condition = *(r_conditions.begin() + i_condition);
                 ConditionType& r_parent_condition =
                     mrModelPart.GetCondition(r_condition.Id());
-                r_condition.Data() = r_parent_condition.Data();
-                r_condition.GetFlags() = r_parent_condition.GetFlags();
+                r_condition.SetValue(PARENT_CONDITION_POINTER, &r_parent_condition);
             }
 
             KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
