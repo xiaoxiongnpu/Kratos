@@ -364,8 +364,8 @@ private:
 		unsigned int erasedNodesForVajontCase = 0;
 		for (ModelPart::NodesContainerType::const_iterator in = mrModelPart.NodesBegin(); in != mrModelPart.NodesEnd(); in++)
 		{
-			double posX = in->X();
-			double posY = in->Y();
+			// double posX = in->X();
+			// double posY = in->Y();
 			double posZ = in->Z();
 			double newWaterLevel = 650;
 			double alertLevel = newWaterLevel - 5;
