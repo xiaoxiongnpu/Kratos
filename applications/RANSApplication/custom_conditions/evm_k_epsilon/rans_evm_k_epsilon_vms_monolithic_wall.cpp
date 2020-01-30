@@ -261,6 +261,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
     this->SetValue(KINEMATIC_VISCOSITY, nu);
     this->SetValue(Y_WALL, wall_height);
     this->SetValue(VELOCITY, r_element_wall_velocity);
+    this->Set(MARKER, y_plus >= y_plus_limit);
 
     // remove after debugging
     this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(RANS_Y_PLUS, y_plus);
@@ -268,6 +269,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyRansBasedWallLaw(
     this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(KINEMATIC_VISCOSITY, nu);
     this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(Y_WALL, wall_height);
     this->GetValue(NEIGHBOUR_ELEMENTS)[0].SetValue(VELOCITY, r_element_wall_velocity);
+    this->GetValue(NEIGHBOUR_ELEMENTS)[0].Set(MARKER, y_plus >= y_plus_limit);
 
     for (size_t g = 0; g < number_of_gauss_points; ++g)
     {

@@ -296,8 +296,9 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
         if (y_plus > eps)
         {
-            const double value =
-                weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
+            const double value = weight * (nu + nu_t / epsilon_sigma) / wall_height;
+            // const double value =
+            //     weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
             // const double value =
             //     weight * (nu + nu_t / epsilon_sigma) * std::pow(u_tau, 5) / (nu_t * y_plus * nu);
 
