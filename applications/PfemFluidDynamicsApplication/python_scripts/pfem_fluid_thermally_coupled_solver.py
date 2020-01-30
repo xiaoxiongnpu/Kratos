@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import, division  # makes KratosMultiphysics backward compatible with python 2.6 and 2.7
+from __future__ import print_function, absolute_import, division
 import sys
 
 # Importing the Kratos Library
@@ -7,8 +7,7 @@ import KratosMultiphysics as KM
 # Import applications
 import KratosMultiphysics.PfemFluidDynamicsApplication as KratosPfemFluid
 import KratosMultiphysics.ConvectionDiffusionApplication as KratosConvDiff
-import KratosMultiphysics.ConvectionDiffusionApplication.check_and_prepare_model_process_convection_diffusion as check_and_prepare_model_process
-import KratosMultiphysics.PfemFluidDynamicsApplication.update_thermal_model_part_process as update_thermal_model_part
+
 # Importing the base class
 from KratosMultiphysics.python_solver import PythonSolver
 
@@ -125,7 +124,7 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
         return this_defaults
 
     def AddVariables(self):
-        # Import the fluid and thermal solver variables. Then merge them to have them in both fluid and thermal solvers.
+        # Import the fluid and thermal solver variables. Then merge them to have them in both pfem and thermal solvers.
         self.fluid_solver.AddVariables()
         self.thermal_solver.AddVariables()
         KM.MergeVariableListsUtility().Merge(self.fluid_solver.main_model_part, self.thermal_solver.main_model_part)
@@ -134,6 +133,7 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
     def ImportModelPart(self):
         # Call the fluid solver to import the model part from the mdpa
         self.fluid_solver._ImportModelPart(self.fluid_solver.main_model_part,self.settings["fluid_solver_settings"]["model_import_settings"])
+
     def CloneThermalModelPart(self):
         # Save the convection diffusion settings
         convection_diffusion_settings = self.thermal_solver.main_model_part.ProcessInfo.GetValue(KM.CONVECTION_DIFFUSION_SETTINGS)
@@ -160,16 +160,13 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
 
     def GetComputingModelPart(self):
         return self.fluid_solver.GetComputingModelPart()
-        print("used method GetComputingModelPart")#TODO: remove if not necessary
 
     def ComputeDeltaTime(self):
         return self.fluid_solver._ComputeDeltaTime()
-        print("used method ComputeDeltaTime")#TODO: remove if not necessary
 
     def GetMinimumBufferSize(self):
         buffer_size_fluid = self.fluid_solver.GetMinimumBufferSize()
         buffer_size_thermal = self.thermal_solver.GetMinimumBufferSize()
-        #self.thermal_solver.main_model_part.SetBufferSize(max(buffer_size_fluid, buffer_size_thermal))
         return max(buffer_size_fluid, buffer_size_thermal)
 
     def Initialize(self):
@@ -197,28 +194,11 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
         return new_time
 
     def InitializeSolutionStep(self):
-        #self.AuxiliarCallsAfterRemesh()
-        #self.CloneThermalModelPart()
-        params = KM.Parameters("{}")
-        params.AddValue("domain_size", self.settings["domain_size"])
-        params.AddValue("output_model_part", self.settings["thermal_solver_settings"]["model_part_name"])
-        #params.AddValue("two", self.settings["thermal_solver_settings"]["pfem_element_replace_settings"]["element_name"])
-        #params.AddValue("three", self.settings["thermal_solver_settings"]["pfem_element_replace_settings"]["element_name"])
-        params.AddValue("input_model_part", self.settings["fluid_solver_settings"]["model_part_name"])
-        update_thermal_model_part.UpdateThermalModelPartProcess(self.model, params).ExecuteInitializeSolutionStep()
-        if self.echo_level >= 1:
-            print("::[PfemFluidThermallyCoupledSolver]:: {} REGENERATED".format(self.settings["thermal_solver_settings"]["model_part_name"].GetString()))
-        #KM.VariableUtils().SetFlag(KM.TO_ERASE, False, self.fluid_solver.main_model_part.Nodes)
-        # Auxiliary parameters object for the CheckAndPepareModelProcess
-        params = KM.Parameters("{}")
-        params.AddValue("computing_model_part_name",self.settings["thermal_solver_settings"]["computing_model_part_name"])
-        params.AddValue("problem_domain_sub_model_part_list",self.settings["thermal_solver_settings"]["problem_domain_sub_model_part_list"])
-        params.AddValue("processes_sub_model_part_list",self.settings["thermal_solver_settings"]["processes_sub_model_part_list"])
-        # Assign mesh entities from domain and process sub model parts to the computing model part.
-        check_and_prepare_model_process.CheckAndPrepareModelProcess(self.thermal_solver.main_model_part, params).Execute()
-        # here I should add the check for the orientation of the elements and conditions, but since it is done in python, it slows down the run
-        throw_errors = False
-        KM.TetrahedralMeshOrientationCheck(self.thermal_solver.main_model_part, throw_errors).Execute()
+        KratosPfemFluid.UpdateThermalModelPartProcess(
+            self.fluid_solver.main_model_part, \
+            self.thermal_solver.main_model_part, \
+            self.thermal_solver.GetComputingModelPart(), \
+            self.domain_size).Execute()
         self.fluid_solver.InitializeSolutionStep()
         self.thermal_solver.InitializeSolutionStep()
 
@@ -227,131 +207,16 @@ class CoupledPfemFluidThermalSolver(PythonSolver):
         self.thermal_solver.Predict()
 
     def SolveSolutionStep(self):
-        #TODO: add two-way coupling
-        #self.AuxiliarCallsAfterRemesh()
-        fluid_is_converged = self.fluid_solver.SolveSolutionStep()
-        #self.AuxiliarCallsAfterRemesh()
-        self.UpdateMeshVelocity()
+        pfem_is_converged = self.fluid_solver.SolveSolutionStep()
+        KratosPfemFluid.SetMeshVelocityForThermalCouplingProcess(self.fluid_solver.main_model_part).Execute()
         thermal_is_converged = self.thermal_solver.SolveSolutionStep()
-        return (fluid_is_converged and thermal_is_converged)
+        return (pfem_is_converged and thermal_is_converged)
 
     def FinalizeSolutionStep(self):
         self.fluid_solver.FinalizeSolutionStep()
         self.thermal_solver.FinalizeSolutionStep()
 
-    def UpdateMeshVelocity(self):
-        """ This method is executed right after solving the pfem problem
-        Keyword arguments:
-        self -- It signifies an instance of a class.
-        """
-
-        # We set the mesh velocity equal to the node one
-        for node in self.fluid_solver.main_model_part.Nodes:
-            if self.domain_size == 2:
-                node.SetSolutionStepValue(KM.MESH_VELOCITY_X, 0, node.GetSolutionStepValue(KM.VELOCITY_X, 0))
-                node.SetSolutionStepValue(KM.MESH_VELOCITY_Y, 0, node.GetSolutionStepValue(KM.VELOCITY_Y, 0))
-            else:
-                node.SetSolutionStepValue(KM.MESH_VELOCITY_X ,0, node.GetSolutionStepValue(KM.VELOCITY_X, 0))
-                node.SetSolutionStepValue(KM.MESH_VELOCITY_Y ,0, node.GetSolutionStepValue(KM.VELOCITY_Y, 0))
-                node.SetSolutionStepValue(KM.MESH_VELOCITY_Z ,0, node.GetSolutionStepValue(KM.VELOCITY_Z, 0))
-
-    def AuxiliarCallsBeforeRemesh(self):
-        """ This method is executed right before execute the remesh
-        Keyword arguments:
-        self -- It signifies an instance of a class.
-        """
-        pass
-        #KM.VariableUtils().SetFlag(KM.TO_ERASE, True, self.thermal_solver.main_model_part.Elements)
-        #self.thermal_solver.main_model_part.RemoveElementsFromAllLevels(KM.TO_ERASE)
-
-    def AuxiliarCallsAfterRemesh(self):
-        """ This method is executed right after execute the remesh
-
-        Keyword arguments:
-        self -- It signifies an instance of a class.
-        """
-
-        # updating nodes after the remeshing process
-        #removing fluid nodes
-        self.fluid_solver.main_model_part.RemoveNodesFromAllLevels(KM.TO_ERASE)
-        #removing thermal noded
-        KM.VariableUtils().SetFlag(KM.TO_ERASE, True, self.thermal_solver.main_model_part.Nodes)
-        self.thermal_solver.main_model_part.RemoveNodesFromAllLevels(KM.TO_ERASE)
-        #set the flag to fluid nodes to avoiding their deletion in the next remeshing
-        KM.VariableUtils().SetFlag(KM.TO_ERASE, False, self.fluid_solver.main_model_part.Nodes)
-        #self.UpdateThermalNodes()
-        for node in self.fluid_solver.main_model_part.Nodes:
-            self.thermal_solver.main_model_part.AddNode(node, 0)
-        KM.FastTransferBetweenModelPartsProcess(self.thermal_solver.GetComputingModelPart(), self.thermal_solver.main_model_part, KM.FastTransferBetweenModelPartsProcess.EntityTransfered.NODES).Execute()
-
-        # deletign all the elements after the remeshing process
-        #KM.VariableUtils().SetFlag(KM.TO_ERASE, True, self.thermal_solver.GetComputingModelPart().Elements)
-        #self.thermal_solver.GetComputingModelPart().RemoveElementsFromAllLevels(KM.TO_ERASE)
-        KM.VariableUtils().SetFlag(KM.TO_ERASE, True, self.thermal_solver.main_model_part.Elements)
-        self.thermal_solver.main_model_part.RemoveElementsFromAllLevels(KM.TO_ERASE)
-
-        # updating elements after the remeshing process
-        # find maximum elements ID NOTE: this is completely unuseful if I delete all the elements before
-        max_id = 0
-        #for elem in self.thermal_solver.main_model_part.Elements:
-        #    if elem.Id > max_id:
-        #        max_id = elem.Id
-        #print("max thermal Id = {}".format(max_id))
-        # adding new elements:
-        node_ids = []
-        count = 0
-        for elem in self.fluid_solver.GetComputingModelPart().Elements:
-            #print(elem.Properties)
-            count += 1 #TODO: this can be eliminated if I eliminate all the elements before
-            new_id = max_id + count
-            if self.domain_size == 2:
-                node_ids = [elem.GetNode(0).Id, elem.GetNode(1).Id, elem.GetNode(2).Id]
-                #self.thermal_solver.GetComputingModelPart().CreateNewElement("EulerianConvDiff2D", new_id, node_ids, self.thermal_solver.main_model_part.Properties[0])
-                self.thermal_solver.GetComputingModelPart().CreateNewElement("EulerianConvDiff2D", new_id, node_ids, elem.Properties)
-            else:
-                node_ids = [elem.GetNode(0).Id, elem.GetNode(1).Id, elem.GetNode(2).Id, elem.GetNode(3).Id]
-                self.thermal_solver.GetComputingModelPart().CreateNewElement("EulerianConvDiff3D", new_id, node_ids, elem.Properties)
-        #TODO: elements from the boundaries should be also added here if relevant
-        # self.UpdateThermalElements()
-        #for node in self.fluid_solver.main_model_part.Nodes:
-        #    print("density = {}, node Id = {}".format(node.GetSolutionStepValue(KM.DENSITY, 0), node.Id))
-        print(1)
-
     def PrepareModelPart(self):
         self.fluid_solver.PrepareModelPart()
         self.CloneThermalModelPart()
         self.thermal_solver.PrepareModelPart()
-
-    def UpdateThermalNodes(self):
-        for FluidNode in self.fluid_solver.GetComputingModelPart().Nodes:#main_model_part
-            ThereIsNode = False
-            for ThermalNode in self.thermal_solver.GetComputingModelPart().Nodes:
-                if ThermalNode.Id == FluidNode.Id:
-                    ThereIsNode = True
-                    break
-            if not ThereIsNode:
-                self.thermal_solver.GetComputingModelPart().AddNode(FluidNode,0)
-        #KM.FastTransferBetweenModelPartsProcess(self.thermal_solver.GetComputingModelPart(), self.thermal_solver.main_model_part, KM.FastTransferBetweenModelPartsProcess.EntityTransfered.NODES).Execute()
-
-    def UpdateThermalElements(self):
-        pass
-        # find max element id
-        #max_id = 0
-        #for elem in self.thermal_solver.main_model_part.Elements:
-        #    if elem.Id > max_id
-        #        max_id = elem.Id
-
-        #node_ids = []
-        #for elem in self.fluid_solver.GetComputingModelPart().Elements:
-        #    node_ids = [elem]
-        #modeler = KM.ConnectivityPreserveModeler()
-        #for FluidElement in self.fluid_solver.GetComputingModelPart().Elements:
-        #    if len(FluidElement.GetNodes())==3:
-        #        modeler.CloneElement(FluidElement,
-        #            self.fluid_solver.GetComputingModelPart(),
-        #            self.thermal_solver.GetComputingModelPart(),
-        #            "EulerianConvDiff2D")
-        #    else:
-        #        print(1)
-        #        #TODO: manage 3D case
-        #KM.FastTransferBetweenModelPartsProcess(self.thermal_solver.GetComputingModelPart(), self.thermal_solver.main_model_part, KM.FastTransferBetweenModelPartsProcess.EntityTransfered.ELEMENTS).Execute()
