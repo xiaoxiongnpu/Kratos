@@ -187,7 +187,6 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             auto& r_parent_element = this->GetValue(NEIGHBOUR_ELEMENTS)[0];
             r_parent_element.SetValue(FRICTION_VELOCITY, u_tau);
             r_parent_element.SetValue(RANS_Y_PLUS, y_plus);
-            r_parent_element.SetValue(KINEMATIC_VISCOSITY, nu);
             r_parent_element.Set(MARKER, this->Is(MARKER));
 
             GeometryType& r_geometry = this->GetGeometry();
