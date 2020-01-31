@@ -19,7 +19,9 @@
 
 // Project includes
 #include "containers/variable.h"
+#include "includes/condition.h"
 #include "includes/define.h"
+#include "includes/element.h"
 
 namespace Kratos
 {
