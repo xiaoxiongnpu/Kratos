@@ -58,6 +58,10 @@ public:
     ///@{
 
     using SolvingStrategyType = SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>;
+    using ElementType = ModelPart::ElementType;
+    using ConditionType = ModelPart::ConditionType;
+    using ElementsContainerType = ModelPart::ElementsContainerType;
+    using ConditionsContainerType = ModelPart::ConditionsContainerType;
 
     /// Pointer definition of ScalarCoSolvingProcess
     KRATOS_CLASS_POINTER_DEFINITION(ScalarCoSolvingProcess);
@@ -82,7 +86,11 @@ public:
             "number_of_parent_solve_iterations" : 0,
             "vtk_output_settings"               : {},
             "vtk_output_frequency"              : 1,
-            "vtk_output_prefix"                 : ""
+            "vtk_output_prefix"                 : "",
+            "convergence_variable_bounds"       : {
+                "min_value": 1e-12,
+                "max_value": 1e+30
+            }
         })");
 
         rParameters.ValidateAndAssignDefaults(default_parameters);
@@ -95,13 +103,16 @@ public:
         mSkipIterations = rParameters["number_of_parent_solve_iterations"].GetInt();
         mVtkOutputFrequency = rParameters["vtk_output_frequency"].GetInt();
         mVtkOutputPrefix = rParameters["vtk_output_prefix"].GetString();
+        mMinValue = rParameters["convergence_variable_bounds"]["min_value"].GetDouble();
+        mMaxValue = rParameters["convergence_variable_bounds"]["max_value"].GetDouble();
 
         Parameters empty_parameters(R"({})");
         if (!rParameters["vtk_output_settings"].IsEquivalentTo(empty_parameters))
         {
             KRATOS_INFO_IF(this->Info(), mEchoLevel > 0)
                 << "Adding VtkOutput.\n";
-            mpVtkOutput = Kratos::make_unique<VtkOutput>(rModelPart, rParameters["vtk_output_settings"]);
+            mpVtkOutput = Kratos::make_unique<VtkOutput>(
+                rModelPart, rParameters["vtk_output_settings"]);
         }
 
         mCurrentParentIteration = 0;
@@ -162,6 +173,39 @@ public:
     {
         for (Process::Pointer auxiliary_process : mAuxiliaryProcessList)
             auxiliary_process->ExecuteInitialize();
+
+        for (auto p_solving_strategy : mSolvingStrategiesList)
+        {
+            ElementsContainerType& r_elements =
+                p_solving_strategy->GetModelPart().Elements();
+            const int number_of_elements = r_elements.size();
+#pragma omp parallel for
+            for (int i_element = 0; i_element < number_of_elements; ++i_element)
+            {
+                ElementType& r_element = *(r_elements.begin() + i_element);
+                ElementType& r_parent_element = mrModelPart.GetElement(r_element.Id());
+                r_element.SetValue(PARENT_ELEMENT_POINTER, &r_parent_element);
+            }
+            KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
+                << "Initialized " << p_solving_strategy->GetModelPart().Name()
+                << " element data from " << mrModelPart.Name() << ".\n";
+
+            ConditionsContainerType& r_conditions =
+                p_solving_strategy->GetModelPart().Conditions();
+            const int number_of_conditions = r_conditions.size();
+#pragma omp parallel for
+            for (int i_condition = 0; i_condition < number_of_conditions; ++i_condition)
+            {
+                ConditionType& r_condition = *(r_conditions.begin() + i_condition);
+                ConditionType& r_parent_condition =
+                    mrModelPart.GetCondition(r_condition.Id());
+                r_condition.SetValue(PARENT_CONDITION_POINTER, &r_parent_condition);
+            }
+
+            KRATOS_INFO_IF(this->Info(), this->mEchoLevel > 0)
+                << "Initialized " << p_solving_strategy->GetModelPart().Name()
+                << " condition data from " << mrModelPart.Name() << ".\n";
+        }
     }
 
     ///@}
@@ -304,10 +348,11 @@ protected:
                             << mrModelPart.GetCommunicator().MyPID() << std::fixed
                             << "_Step_" << r_current_process_info[STEP]
                             << "_ParentItr_" << parent_solve_iteration
-                            << std::setw(iteration_format_length) << "_CoupleItr_"
-                            << std::setfill('0') << iteration;
+                            << std::setw(iteration_format_length)
+                            << "_CoupleItr_" << std::setfill('0') << iteration;
                     mpVtkOutput->PrintOutput(s_label.str());
-                    KRATOS_INFO_IF(this->Info(), mEchoLevel > 1) << "Writing Vtk output to " << s_label.str() << "\n";
+                    KRATOS_INFO_IF(this->Info(), mEchoLevel > 1)
+                        << "Writing Vtk output to " << s_label.str() << "\n";
                 }
 
                 this->UpdateConvergenceVariable();
@@ -328,6 +373,15 @@ protected:
                     r_communicator.GetDataCommunicator().SumAll(residual_norms);
 
                 noalias(new_values) = old_values + delta_values * mRelaxationFactor;
+
+#pragma omp parallel for
+                for (int i = 0; i < static_cast<int>(new_values.size()); ++i)
+                {
+                    double& current_value = new_values[i];
+                    current_value = std::max(current_value, mMinValue);
+                    current_value = std::min(current_value, mMaxValue);
+                }
+
                 RansVariableUtilities::SetNodalVariables(
                     r_nodes, new_values, this->mrConvergenceVariable);
                 r_communicator.SynchronizeVariable(this->mrConvergenceVariable);
@@ -425,7 +479,9 @@ private:
     double mConvergenceAbsoluteTolerance;
     double mConvergenceRelativeTolerance;
     double mRelaxationFactor;
-
+    double mMinValue;
+    double mMaxValue;
+    
     ///@}
     ///@name Operations
     ///@{
