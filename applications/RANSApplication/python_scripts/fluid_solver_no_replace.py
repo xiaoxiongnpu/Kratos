@@ -13,6 +13,7 @@ class FluidSolverNoReplace(NavierStokesSolverMonolithic):
             ## Set buffer size
             self.main_model_part.SetBufferSize(self.min_buffer_size)
             self._SetPhysicalProperties()
+            self._ExecuteCheckAndPrepare()
 
         if not self.model.HasModelPart(
                 self.settings["model_part_name"].GetString()):
