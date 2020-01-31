@@ -104,7 +104,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::Initialize()
 {
     KRATOS_TRY;
 
-    if (this->Is(SLIP))
+    if (RansCalculationUtilities::IsWall(*this))
     {
         const array_1d<double, 3>& rNormal = this->GetValue(NORMAL);
         KRATOS_ERROR_IF(norm_2(rNormal) == 0.0)

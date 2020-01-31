@@ -125,7 +125,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::CalculateLocalVelocityContribu
     rRightHandSideVector.clear();
     rDampingMatrix.clear();
 
-    if (this->GetValue(PARENT_CONDITION_POINTER)->Is(SLIP))
+    if (RansCalculationUtilities::IsWall(*this))
     {
         this->AddLocalVelocityContribution(rDampingMatrix, rRightHandSideVector,
                                            rCurrentProcessInfo);

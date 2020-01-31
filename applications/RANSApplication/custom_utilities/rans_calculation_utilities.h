@@ -118,6 +118,8 @@ void CalculateYPlusAndUtau(double& rYPlus,
                            const int MaxIterations = 20,
                            const double Tolerance = 1e-6);
 
+bool IsWall(const ConditionType& rCondition);
+
 } // namespace RansCalculationUtilities
 
 ///@}
