@@ -17,6 +17,7 @@
 // Project includes
 #include "includes/cfd_variables.h"
 #include "includes/define.h"
+#include "utilities/variable_utils.h"
 
 // Application includes
 #include "custom_utilities/rans_calculation_utilities.h"
@@ -74,38 +75,77 @@ int RansNutYPlusWallFunctionProcess::Check()
     KRATOS_CATCH("");
 }
 
+void RansNutYPlusWallFunctionProcess::ExecuteInitialize()
+{
+    CalculateConditionNeighbourCount();
+}
+
+void RansNutYPlusWallFunctionProcess::CalculateConditionNeighbourCount()
+{
+    ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
+    VariableUtils().SetNonHistoricalVariableToZero(
+        NUMBER_OF_NEIGHBOUR_CONDITIONS, r_model_part.Nodes());
+
+    const int number_of_conditions = r_model_part.NumberOfConditions();
+#pragma omp parallel for
+    for (int i_cond = 0; i_cond < number_of_conditions; ++i_cond)
+    {
+        ConditionType& r_cond = *(r_model_part.ConditionsBegin() + i_cond);
+        ConditionGeometryType& r_geometry = r_cond.GetGeometry();
+        for (IndexType i_node = 0; i_node < r_geometry.PointsNumber(); ++i_node)
+        {
+            NodeType& r_node = r_geometry[i_node];
+            r_node.SetLock();
+            r_node.GetValue(NUMBER_OF_NEIGHBOUR_CONDITIONS) += 1;
+            r_node.UnSetLock();
+        }
+    }
+
+    r_model_part.GetCommunicator().AssembleNonHistoricalData(NUMBER_OF_NEIGHBOUR_CONDITIONS);
+}
+
 void RansNutYPlusWallFunctionProcess::Execute()
 {
     KRATOS_TRY
 
     ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
+    VariableUtils().SetHistoricalVariableToZero(TURBULENT_VISCOSITY,
+                                                r_model_part.Nodes());
+
+    const int number_of_conditions = r_model_part.NumberOfConditions();
+#pragma omp parallel for
+    for (int i_cond = 0; i_cond < number_of_conditions; ++i_cond)
+    {
+        ConditionType& r_cond = *(r_model_part.ConditionsBegin() + i_cond);
+        if (r_cond.Is(SLIP))
+        {
+            ConditionType::GeometryType& r_geometry = r_cond.GetGeometry();
+            const double nu = r_cond.GetValue(KINEMATIC_VISCOSITY);
+            const double y_plus = r_cond.GetValue(RANS_Y_PLUS);
+
+            for (IndexType i_node = 0; i_node < r_geometry.PointsNumber(); ++i_node)
+            {
+                NodeType& r_node = r_geometry[i_node];
+                r_node.SetLock();
+                r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) +=
+                    mVonKarman * y_plus * nu;
+                r_node.UnSetLock();
+            }
+        }
+    }
+    r_model_part.GetCommunicator().AssembleCurrentData(TURBULENT_VISCOSITY);
 
     const int number_of_nodes = r_model_part.NumberOfNodes();
-
-    unsigned int number_of_modified_nu_t_nodes = 0;
-
-#pragma omp parallel for reduction(+ : number_of_modified_nu_t_nodes)
+#pragma omp parallel for
     for (int i_node = 0; i_node < number_of_nodes; ++i_node)
     {
         NodeType& r_node = *(r_model_part.NodesBegin() + i_node);
-        const double y_plus = r_node.FastGetSolutionStepValue(RANS_Y_PLUS);
-        const double nu = r_node.FastGetSolutionStepValue(KINEMATIC_VISCOSITY);
-
-        if (y_plus > mLimitYPlus)
-        {
-            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = mVonKarman * y_plus * nu;
-            ++number_of_modified_nu_t_nodes;
-        }
-        else
-        {
-            r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) = mMinValue;
-        }
+        double& r_nut = r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY);
+        const double number_of_neighbour_conditions =
+            static_cast<double>(r_node.GetValue(NUMBER_OF_NEIGHBOUR_CONDITIONS));
+        r_nut = RansCalculationUtilities::SoftMax(
+            r_nut / number_of_neighbour_conditions, mMinValue);
     }
-
-    KRATOS_INFO_IF(this->Info(), mEchoLevel > 0)
-        << "Applied nu_t y_plus wall function to "
-        << number_of_modified_nu_t_nodes << " of total "
-        << r_model_part.NumberOfNodes() << " nodes in " << mModelPartName << "\n";
 
     KRATOS_CATCH("");
 }
