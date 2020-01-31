@@ -173,16 +173,22 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
                 y_plus = y_plus_limit;
                 u_tau = wall_cell_center_velocity_magnitude /
                         (std::log(y_plus) / kappa + beta);
-                this->Set(MARKER, true); // TO identify the elements which are in the linear region
+                this->Set(MARKER, true); // To identify the elements which are in the linear region
             }
             else
             {
-                this->Set(MARKER, false); // TO identify the elements which are in the linear region
+                this->Set(MARKER, false); // To identify the elements which are in the linear region
             }
 
             this->SetValue(FRICTION_VELOCITY, u_tau);
             this->SetValue(RANS_Y_PLUS, y_plus);
             this->SetValue(KINEMATIC_VISCOSITY, nu);
+
+            auto& r_parent_element = this->GetValue(NEIGHBOUR_ELEMENTS)[0];
+            r_parent_element.SetValue(FRICTION_VELOCITY, u_tau);
+            r_parent_element.SetValue(RANS_Y_PLUS, y_plus);
+            r_parent_element.SetValue(KINEMATIC_VISCOSITY, nu);
+            r_parent_element.Set(MARKER, this->Is(MARKER));
 
             GeometryType& r_geometry = this->GetGeometry();
 
