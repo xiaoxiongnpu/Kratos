@@ -31,6 +31,8 @@ namespace RansCalculationUtilities
 {
 /// Node type
 using NodeType = ModelPart::NodeType;
+using ElementType = ModelPart::ElementType;
+using ConditionType = ModelPart::ConditionType;
 
 /// Geometry type (using with given NodeType)
 using GeometryType = Geometry<NodeType>;
@@ -96,6 +98,25 @@ double KRATOS_API(RANS_APPLICATION)
                                    const double Beta,
                                    const int MaxIterations = 20,
                                    const double Tolerance = 1e-6);
+
+double CalculateWallHeight(const ConditionType& rCondition);
+
+template <typename TDataType>
+TDataType EvaluateInParentCenter(const Variable<TDataType>& rVariable,
+                                 const ConditionType& rCondition,
+                                 const int Step = 0);
+
+array_1d<double, 3> CalculateWallVelocity(const ConditionType& rCondition);
+
+void CalculateYPlusAndUtau(double& rYPlus,
+                           double& rUTau,
+                           const double WallVelocity,
+                           const double WallHeight,
+                           const double KinematicViscosity,
+                           const double Kappa,
+                           const double Beta,
+                           const int MaxIterations = 20,
+                           const double Tolerance = 1e-6);
 
 } // namespace RansCalculationUtilities
 
