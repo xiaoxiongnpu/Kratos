@@ -165,6 +165,7 @@ private:
 
     double mCmu;
     double mMinValue;
+    double mMixingLength;
 
     int mEchoLevel;
 
