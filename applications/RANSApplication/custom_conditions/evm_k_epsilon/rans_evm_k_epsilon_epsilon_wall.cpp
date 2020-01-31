@@ -22,10 +22,12 @@
 #include "includes/define.h"
 
 // Application includes
-#include "rans_evm_k_epsilon_epsilon_wall.h"
-
+#include "custom_elements/stabilized_convection_diffusion_reaction_utilities.h"
 #include "custom_utilities/rans_calculation_utilities.h"
 #include "rans_application_variables.h"
+
+// Include base h
+#include "rans_evm_k_epsilon_epsilon_wall.h"
 
 namespace Kratos
 {
@@ -247,7 +249,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
     const ConditionType& r_parent_condition = *(this->GetValue(PARENT_CONDITION_POINTER));
 
-    const double y_plus = r_parent_condition.GetValue(Y_WALL);
+    const double y_plus = r_parent_condition.GetValue(RANS_Y_PLUS);
     const double u_tau = r_parent_condition.GetValue(FRICTION_VELOCITY);
     const double nu = r_parent_condition.GetValue(KINEMATIC_VISCOSITY);
     const double wall_height = u_tau / (y_plus * nu);
@@ -265,6 +267,10 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
     const double epsilon_sigma =
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
+    const double discrete_upwind_operator_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
+    const double diagonal_positivity_preserving_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
@@ -278,7 +284,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         const double epsilon = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, TURBULENT_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
 
-        const double value = weight * (nu + nu_t / epsilon_sigma) * wall_height;
+        const double value = weight * (nu + nu_t / epsilon_sigma) / wall_height;
 
         for (IndexType a = 0; a < TNumNodes; ++a)
         {
@@ -289,6 +295,21 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             }
             rRightHandSideVector[a] += value * gauss_shape_functions[a] * epsilon;
         }
+
+        BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
+        double matrix_norm;
+        StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
+            matrix_norm, discrete_diffusion_matrix, rDampingMatrix);
+
+        double diagonal_coefficient =
+            StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
+                rDampingMatrix);
+
+        diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
+
+        noalias(rDampingMatrix) +=
+            (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+             IdentityMatrix(TNumNodes) * diagonal_coefficient);
     }
 
     KRATOS_CATCH("");
