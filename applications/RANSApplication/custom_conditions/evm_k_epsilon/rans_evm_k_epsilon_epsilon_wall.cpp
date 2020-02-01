@@ -11,8 +11,8 @@
 //
 
 // System includes
-#include <limits>
 #include <cmath>
+#include <limits>
 
 // External includes
 
@@ -22,10 +22,12 @@
 #include "includes/define.h"
 
 // Application includes
-#include "rans_evm_k_epsilon_epsilon_wall.h"
-
+#include "custom_elements/stabilized_convection_diffusion_reaction_utilities.h"
 #include "custom_utilities/rans_calculation_utilities.h"
 #include "rans_application_variables.h"
+
+// Include base h
+#include "rans_evm_k_epsilon_epsilon_wall.h"
 
 namespace Kratos
 {
@@ -123,7 +125,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::CalculateLocalVelocityContribu
     rRightHandSideVector.clear();
     rDampingMatrix.clear();
 
-    if (this->Is(SLIP))
+    if (RansCalculationUtilities::IsWall(*this))
     {
         this->AddLocalVelocityContribution(rDampingMatrix, rRightHandSideVector,
                                            rCurrentProcessInfo);
@@ -246,7 +248,6 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     KRATOS_TRY
 
     const GeometryType& r_geometry = this->GetGeometry();
-
     // Get Shape function data
     const GeometryType::IntegrationPointsArrayType& integration_points =
         r_geometry.IntegrationPoints(GeometryData::GI_GAUSS_2);
@@ -254,14 +255,40 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     MatrixType shape_functions = r_geometry.ShapeFunctionsValues(GeometryData::GI_GAUSS_2);
 
     const double area = r_geometry.DomainSize();
-
     // CAUTION: "Jacobian" is 2.0*A for triangles but 0.5*A for lines
     double J = (TNumNodes == 2) ? 0.5 * area : 2.0 * area;
 
     const double epsilon_sigma =
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
+    const double discrete_upwind_operator_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
+    const double diagonal_positivity_preserving_coefficient =
+        rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
+    const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
+    const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
+    const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
     const double eps = std::numeric_limits<double>::epsilon();
+
+    // log region, apply the u_tau which is calculated based on turbulent
+    // kinetic energy. gauss point y_plus is estimated assuming the same u_tau
+    // derrived from turbulent kinetic energy in the log region equation.
+    const std::function<double(double, double)> log_region_functional =
+        [kappa, beta](const double velocity_magnitude, const double u_tau) -> double {
+        return std::exp((velocity_magnitude / u_tau - beta) * kappa);
+    };
+
+    // In the linear region, force the velocity to be in the log region lowest
+    // y_plus since k - epsilon is only valid in the log region.
+    const std::function<double(double, double)> linear_region_functional =
+        [y_plus_limit](const double, const double) -> double {
+        return y_plus_limit;
+    };
+
+    const std::function<double(double, double)> wall_gauss_y_plus =
+        (this->GetValue(PARENT_CONDITION_POINTER)->Is(MARKER) ? log_region_functional
+                                                              : linear_region_functional);
+
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
         const Vector& gauss_shape_functions = row(shape_functions, g);
@@ -271,19 +298,21 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             r_geometry, KINEMATIC_VISCOSITY, gauss_shape_functions);
         const double nu_t = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, TURBULENT_VISCOSITY, gauss_shape_functions);
-        const double tke = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
         const double epsilon = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, TURBULENT_ENERGY_DISSIPATION_RATE, gauss_shape_functions);
-        const double y_plus = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, RANS_Y_PLUS, gauss_shape_functions);
-
+        const double tke = RansCalculationUtilities::EvaluateInPoint(
+            r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
+        const array_1d<double, 3>& r_velocity = RansCalculationUtilities::EvaluateInPoint(
+            r_geometry, VELOCITY, gauss_shape_functions);
+        const double velocity_magnitude = norm_2(r_velocity);
 
-        if (y_plus > eps)
+        if (u_tau > eps)
         {
+            double gauss_y_plus = wall_gauss_y_plus(velocity_magnitude, u_tau);
+
             const double value =
-                weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
+                weight * (nu + nu_t / epsilon_sigma) * u_tau / (gauss_y_plus * nu);
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {
@@ -294,6 +323,21 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
                 }
                 rRightHandSideVector[a] += value * gauss_shape_functions[a] * epsilon;
             }
+
+            BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
+            double matrix_norm;
+            StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
+                matrix_norm, discrete_diffusion_matrix, rDampingMatrix);
+
+            double diagonal_coefficient =
+                StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
+                    rDampingMatrix);
+
+            diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
+
+            noalias(rDampingMatrix) +=
+                (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+                 IdentityMatrix(TNumNodes) * diagonal_coefficient);
         }
     }
 
