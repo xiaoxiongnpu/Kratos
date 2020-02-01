@@ -265,29 +265,12 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     const double diagonal_positivity_preserving_coefficient =
         rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
-    const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
-    const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
     const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
     const double eps = std::numeric_limits<double>::epsilon();
 
-    // log region, apply the u_tau which is calculated based on turbulent
-    // kinetic energy. gauss point y_plus is estimated assuming the same u_tau
-    // derrived from turbulent kinetic energy in the log region equation.
-    const std::function<double(double, double)> log_region_functional =
-        [kappa, beta](const double velocity_magnitude, const double u_tau) -> double {
-        return std::exp((velocity_magnitude / u_tau - beta) * kappa);
-    };
-
-    // In the linear region, force the velocity to be in the log region lowest
-    // y_plus since k - epsilon is only valid in the log region.
-    const std::function<double(double, double)> linear_region_functional =
-        [y_plus_limit](const double, const double) -> double {
-        return y_plus_limit;
-    };
-
-    const std::function<double(double, double)> wall_gauss_y_plus =
-        (this->GetValue(PARENT_CONDITION_POINTER)->Is(MARKER) ? log_region_functional
-                                                              : linear_region_functional);
+    const ConditionType& r_parent_condition = *this->GetValue(PARENT_CONDITION_POINTER);
+    const double y_plus =
+        (r_parent_condition.Is(MARKER) ? r_parent_condition.GetValue(RANS_Y_PLUS) : y_plus_limit);
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
@@ -303,16 +286,11 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
         const double tke = RansCalculationUtilities::EvaluateInPoint(
             r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
-        const array_1d<double, 3>& r_velocity = RansCalculationUtilities::EvaluateInPoint(
-            r_geometry, VELOCITY, gauss_shape_functions);
-        const double velocity_magnitude = norm_2(r_velocity);
 
         if (u_tau > eps)
         {
-            double gauss_y_plus = wall_gauss_y_plus(velocity_magnitude, u_tau);
-
             const double value =
-                weight * (nu + nu_t / epsilon_sigma) * u_tau / (gauss_y_plus * nu);
+                weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {

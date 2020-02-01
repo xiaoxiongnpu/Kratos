@@ -111,8 +111,6 @@ void RansNutYPlusWallFunctionProcess::Execute()
     ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
 
     const double y_plus_limit = r_model_part.GetProcessInfo()[RANS_Y_PLUS_LIMIT];
-    const double kappa = mVonKarman;
-    const double beta = mBeta;
 
     VariableUtils().SetHistoricalVariableToZero(TURBULENT_VISCOSITY,
                                                 r_model_part.Nodes());
@@ -125,35 +123,16 @@ void RansNutYPlusWallFunctionProcess::Execute()
         if (r_cond.Is(SLIP))
         {
             ConditionType::GeometryType& r_geometry = r_cond.GetGeometry();
-            const double u_tau = r_cond.GetValue(FRICTION_VELOCITY);
-
-            // log region, apply the u_tau which is calculated based on turbulent
-            // kinetic energy. gauss point y_plus is estimated assuming the same u_tau
-            // derrived from turbulent kinetic energy in the log region equation.
-            const std::function<double(double)> log_region_functional =
-                [u_tau, kappa, beta](const double velocity_magnitude) -> double {
-                return std::exp((velocity_magnitude / u_tau - beta) * kappa);
-            };
-
-            // In the linear region, force the velocity to be in the log region
-            // lowest y_plus since k - epsilon is only valid in the log region.
-            const std::function<double(double)> linear_region_functional =
-                [y_plus_limit](const double) -> double { return y_plus_limit; };
-
-            const std::function<double(double)> wall_y_plus_functional =
-                (r_cond.Is(MARKER) ? log_region_functional : linear_region_functional);
+            const double y_plus =
+                (r_cond.Is(MARKER) ? r_cond.GetValue(RANS_Y_PLUS) : y_plus_limit);
 
             for (IndexType i_node = 0; i_node < r_geometry.PointsNumber(); ++i_node)
             {
                 NodeType& r_node = r_geometry[i_node];
-                const array_1d<double, 3>& r_velocity =
-                    r_node.FastGetSolutionStepValue(VELOCITY);
-                const double r_velocity_magnitude = norm_2(r_velocity);
-                const double wall_y_plus = wall_y_plus_functional(r_velocity_magnitude);
                 const double nu = r_node.FastGetSolutionStepValue(KINEMATIC_VISCOSITY);
                 r_node.SetLock();
                 r_node.FastGetSolutionStepValue(TURBULENT_VISCOSITY) +=
-                    mVonKarman * wall_y_plus * nu;
+                    mVonKarman * y_plus * nu;
                 r_node.UnSetLock();
             }
         }
