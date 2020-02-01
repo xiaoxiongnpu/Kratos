@@ -13,6 +13,9 @@
 // System includes
 #include <cmath>
 
+// Application includes
+#include "rans_application_variables.h"
+
 // Include base h
 #include "rans_calculation_utilities.h"
 
@@ -376,6 +379,28 @@ void CalculateYPlusAndUtau(double& rYPlus,
                       << dx << std::endl;
         }
     }
+}
+
+bool IsWall(const ConditionType& rCondition)
+{
+    if (rCondition.Is(SLIP))
+    {
+        return true;
+    }
+    else
+    {
+        if (rCondition.GetValue(PARENT_CONDITION_POINTER))
+        {
+            const ConditionType& r_parent_condition =
+                *(rCondition.GetValue(PARENT_CONDITION_POINTER));
+            if (r_parent_condition.Is(SLIP))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 // template instantiations
