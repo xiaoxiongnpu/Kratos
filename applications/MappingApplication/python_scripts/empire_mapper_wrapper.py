@@ -118,7 +118,7 @@ class EmpireMapperWrapper(PythonMapper):
         super(EmpireMapperWrapper, self).UpdateInterface()
 
 
-    def __BuildCouplingMatrices(self):
+    def _BuildCouplingMatrices(self):
         if EmpireMapperWrapper.mapper_lib.hasMapper(ctp.c_char_p(self.name)):
             EmpireMapperWrapper.mapper_lib.buildCouplingMatrices(ctp.c_char_p(self.name))
         else:
@@ -188,7 +188,7 @@ class EmpireNearestNeighborMapper(EmpireMapperWrapper):
 
         # create Mapper
 
-        self.__BuildCouplingMatrices()
+        self._BuildCouplingMatrices()
 
 
 class EmpireNearestElementMapper(EmpireMapperWrapper):
@@ -199,7 +199,7 @@ class EmpireNearestElementMapper(EmpireMapperWrapper):
 
         # create Mapper
 
-        self.__BuildCouplingMatrices()
+        self._BuildCouplingMatrices()
 
 
 class EmpireBarycentricMapper(EmpireMapperWrapper):
@@ -210,7 +210,7 @@ class EmpireBarycentricMapper(EmpireMapperWrapper):
 
         # create Mapper
 
-        self.__BuildCouplingMatrices()
+        self._BuildCouplingMatrices()
 
 
 class EmpireMortarMapper(EmpireMapperWrapper):
@@ -221,7 +221,7 @@ class EmpireMortarMapper(EmpireMapperWrapper):
 
         # create Mapper
 
-        self.__BuildCouplingMatrices()
+        self._BuildCouplingMatrices()
 
     @classmethod
     def _GetDefaultSettings(cls):
