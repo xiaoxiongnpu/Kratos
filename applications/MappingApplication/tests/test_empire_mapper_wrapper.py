@@ -3,6 +3,7 @@ import KratosMultiphysics as KM
 import KratosMultiphysics.KratosUnittest as KratosUnittest
 
 from KratosMultiphysics.MappingApplication import empire_mapper_wrapper
+import ctypes as ctp
 
 '''
 This test is a fast test for testing the mappers, WORKS ONLY IN SERIAL
@@ -340,43 +341,123 @@ class TestEmpireMapperWrapperHelpers(KratosUnittest.TestCase):
 
 
     def test_KratosFieldToCArray_scalar_hist(self):
-        self.__Check_KratosFieldToCArray_scalar(KM.PRESSURE, True, NodeScalarHistValue)
+        self.__Check_KratosFieldToCArray(is_scalar=True, historical=True)
 
     def test_KratosFieldToCArray_scalar_non_hist(self):
-        self.__Check_KratosFieldToCArray_scalar(KM.TEMPERATURE, False, NodeScalarNonHistValue)
+        self.__Check_KratosFieldToCArray(is_scalar=True, historical=False)
 
     def test_KratosFieldToCArray_vector_hist(self):
-        self.__Check_KratosFieldToCArray_vector(KM.FORCE, True, NodeVectorHistValue)
+        self.__Check_KratosFieldToCArray(is_scalar=False)
 
     def test_KratosFieldToCArray_vector_non_hist(self):
-        self.__Check_KratosFieldToCArray_vector(KM.VELOCITY, False, NodeVectorNonHistValue)
+        self.__Check_KratosFieldToCArray(is_scalar=False, historical=False)
 
 
-    def test_CArrayToKratosField_hist(self):
-        pass
-    def test_CArrayToKratosField_non_hist(self):
-        pass
-    def test_CArrayToKratosField_swap_sign_hist(self):
-        pass
-    def test_CArrayToKratosField_add_values_hist(self):
-        pass
-    def test_CArrayToKratosField_swap_sign_add_values_hist(self):
-        pass
+    def test_CArrayToKratosField_scalar_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=True)
+
+    def test_CArrayToKratosField_scalar_non_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=True, historical=False)
+
+    def test_CArrayToKratosField_scalar_swap_sign_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=True, swap_sign=True)
+
+    def test_CArrayToKratosField_scalar_add_values_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=True, add_values=True)
+
+    def test_CArrayToKratosField_scalar_swap_sign_add_values_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=True, add_values=True, swap_sign=True)
+
+    def test_CArrayToKratosField_vector_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=False)
+
+    def test_CArrayToKratosField_vector_non_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=False, historical=False)
+
+    def test_CArrayToKratosField_vector_swap_sign_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=False, swap_sign=True)
+
+    def test_CArrayToKratosField_vector_add_values_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=False, add_values=True)
+
+    def test_CArrayToKratosField_vector_swap_sign_add_values_hist(self):
+        self.__Check_CArrayToKratosField(is_scalar=False, add_values=True, swap_sign=True)
 
 
-    def __Check_KratosFieldToCArray_scalar(self, variable, historical, fct_ptr):
+    def __Check_KratosFieldToCArray(self, is_scalar, historical=True):
+        if is_scalar:
+            if historical:
+                variable = KM.PRESSURE
+                fct_ptr = NodeScalarHistValue
+            else:
+                variable = KM.TEMPERATURE
+                fct_ptr = NodeScalarNonHistValue
+        else:
+            if historical:
+                variable = KM.FORCE
+                fct_ptr = NodeVectorHistValue
+            else:
+                variable = KM.VELOCITY
+                fct_ptr = NodeVectorNonHistValue
+
         c_array = empire_mapper_wrapper.KratosFieldToCArray(self.model_part.Nodes, variable, historical)
 
-        for i, node in enumerate(self.model_part.Nodes):
-            self.assertAlmostEqual(c_array[i], fct_ptr(node.Id))
+        # checking the values
+        if is_scalar:
+            for i, node in enumerate(self.model_part.Nodes):
+                self.assertAlmostEqual(c_array[i], fct_ptr(node.Id))
+        else:
+            for i_node, node in enumerate(self.model_part.Nodes):
+                node_val = fct_ptr(node.Id)
+                for i in range(3):
+                    self.assertAlmostEqual(c_array[i_node*3+i], node_val[i])
 
-    def __Check_KratosFieldToCArray_vector(self, variable, historical, fct_ptr):
-        c_array = empire_mapper_wrapper.KratosFieldToCArray(self.model_part.Nodes, variable, historical)
 
-        for i_node, node in enumerate(self.model_part.Nodes):
-            node_val = fct_ptr(node.Id)
-            for i in range(3):
-                self.assertAlmostEqual(c_array[i_node*3+i], node_val[i])
+    def __Check_CArrayToKratosField(self, is_scalar, historical=True, add_values=False, swap_sign=False):
+        if is_scalar:
+            if historical:
+                variable = KM.PRESSURE
+                dim = 1
+                fct_ptr = GetSolutionStepValue
+            else:
+                variable = KM.TEMPERATURE
+                dim = 1
+                fct_ptr = GetValue
+        else:
+            if historical:
+                variable = KM.FORCE
+                dim = 3
+                fct_ptr = GetSolutionStepValue
+            else:
+                variable = KM.VELOCITY
+                dim = 3
+                fct_ptr = GetValue
+
+        size = self.model_part.NumberOfNodes() * dim
+        c_array = (ctp.c_double * size)(0.0)
+
+        for i in range(size):
+            c_array[i] = i+0.5
+
+        empire_mapper_wrapper.CArrayToKratosField(c_array, size, self.model_part.Nodes, variable, historical, add_values, swap_sign)
+
+        # checking the values
+        if swap_sign:
+            for i in range(size):
+                c_array[i] *= (-1)
+        if add_values:
+            current_values = empire_mapper_wrapper.KratosFieldToCArray(self.model_part.Nodes, variable, historical)
+            for i in range(size):
+                c_array[i] += current_values[i]
+
+        if is_scalar:
+            for i, node in enumerate(self.model_part.Nodes):
+                self.assertAlmostEqual(c_array[i], fct_ptr(node, variable))
+        else:
+            for i_node, node in enumerate(self.model_part.Nodes):
+                node_val = fct_ptr(node, variable)
+                for i in range(3):
+                    self.assertAlmostEqual(c_array[i_node*3+i], node_val[i])
 
 
 def NodeScalarHistValue(the_id):
@@ -391,8 +472,11 @@ def NodeScalarNonHistValue(the_id):
 def NodeVectorNonHistValue(the_id):
     return [the_id*14.7, the_id*19.2-10.5, the_id*303.9]
 
+def GetValue(node, variable):
+    return node.GetValue(variable)
 
-
+def GetSolutionStepValue(node, variable):
+    return node.GetSolutionStepValue(variable)
 
 
 if __name__ == '__main__':
