@@ -292,7 +292,6 @@ def CArrayToKratosField(c_array, c_array_size, nodes, variable, historical, add_
     if swap_sign:
         for i in range(c_array_size):
             c_array[i] *= (-1)
-            print(c_array[i])
 
     if add_values:
         current_values = KratosFieldToCArray(nodes, variable, historical)

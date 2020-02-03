@@ -439,25 +439,27 @@ class TestEmpireMapperWrapperHelpers(KratosUnittest.TestCase):
         for i in range(size):
             c_array[i] = i+0.5
 
+        vals_to_check_against = ArrayDeepCopy(c_array, size) # copy bcs the array might be modified inside "CArrayToKratosField"
+        current_values = empire_mapper_wrapper.KratosFieldToCArray(self.model_part.Nodes, variable, historical)
+
         empire_mapper_wrapper.CArrayToKratosField(c_array, size, self.model_part.Nodes, variable, historical, add_values, swap_sign)
 
         # checking the values
         if swap_sign:
             for i in range(size):
-                c_array[i] *= (-1)
+                vals_to_check_against[i] *= (-1)
         if add_values:
-            current_values = empire_mapper_wrapper.KratosFieldToCArray(self.model_part.Nodes, variable, historical)
             for i in range(size):
-                c_array[i] += current_values[i]
+                vals_to_check_against[i] += current_values[i]
 
         if is_scalar:
             for i, node in enumerate(self.model_part.Nodes):
-                self.assertAlmostEqual(c_array[i], fct_ptr(node, variable))
+                self.assertAlmostEqual(vals_to_check_against[i], fct_ptr(node, variable))
         else:
             for i_node, node in enumerate(self.model_part.Nodes):
                 node_val = fct_ptr(node, variable)
                 for i in range(3):
-                    self.assertAlmostEqual(c_array[i_node*3+i], node_val[i])
+                    self.assertAlmostEqual(vals_to_check_against[i_node*3+i], node_val[i])
 
 
 def NodeScalarHistValue(the_id):
@@ -477,6 +479,12 @@ def GetValue(node, variable):
 
 def GetSolutionStepValue(node, variable):
     return node.GetSolutionStepValue(variable)
+
+def ArrayDeepCopy(c_array, size):
+    c_array_copy = (ctp.c_double * size)(0.0)
+    for i in range(size):
+        c_array_copy[i] = c_array[i]
+    return c_array_copy
 
 
 if __name__ == '__main__':
