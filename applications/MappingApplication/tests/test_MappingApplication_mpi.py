@@ -9,6 +9,7 @@ import KratosMultiphysics.KratosUnittest as KratosUnittest
 # Import the tests or test_classes to create the suits
 import test_nearest_neighbor_mapper
 import test_nearest_element_mapper
+import test_empire_mapper_wrapper
 
 def AssembleTestSuites():
     ''' Populates the test suites to run.
@@ -45,6 +46,8 @@ def AssembleTestSuites():
     nightlyMPISuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_nearest_element_mapper.NearestElementBasicTestsVolume]))
     nightlyMPISuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_nearest_element_mapper.NearestElementBasicTestsVolumeSwitchedSides]))
     nightlyMPISuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_nearest_element_mapper.NearestElementBladeMapping]))
+
+    nightlyMPISuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_empire_mapper_wrapper.EmpireMortarMapper]))
 
     ### Full MPI set ###########################################################
     allMPISuite = suites['mpi_all']
