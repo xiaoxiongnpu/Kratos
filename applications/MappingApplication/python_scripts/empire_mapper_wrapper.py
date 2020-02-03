@@ -1,4 +1,5 @@
 import KratosMultiphysics as KM
+# from KratosMultiphysics.mpi import GatherModelPartUtility
 from KratosMultiphysics.MappingApplication.python_mapper import PythonMapper
 
 import os
@@ -78,7 +79,7 @@ class EmpireMapperWrapper(PythonMapper):
 
 
     def Map(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
-        if not type() # check variables are matching
+        # if not type() # check variables are matching
 
         var_dim = GetVariableDimension(variable_origin)
 
@@ -233,33 +234,9 @@ class EmpireMortarMapper(EmpireMapperWrapper):
         return this_defaults
 
 
-
-def KratosFieldToCArray(self, dim, model_part, variable, historical):
-    size = dim * model_part.NumberOfNodes()
-
-    CheckDimension()
-
-    c_array = (ctp.c_double * size)(0.0)
-    for i_node, node in enumerate(model_part.Nodes):
-        node_value = node.GetSolutionStepValue(variable)
-        if node_value.Size() != dim:
-            raise RuntimeError("Wrong dimensions!")
-        for i_dim in range(dim):
-            c_array[i_node*dim + i_dim] = node_value[i_dim]
-
-    return c_array
-
-def CArrayToKratosField(self, dim, c_array, size, model_part, variable, historical, swap_sign, add_values):
-    if size != dim * model_part.NumberOfNodes()
-        raise RuntimeError("Wrong size!")
-
-    for i_node, node in enumerate(model_part.Nodes):
-        values = [ c_array[i_node*dim], c_array[i_node*dim+1], c_array[i_node*dim+2]]
-        node.SetSolutionStepValue(variable, values)
-
-
+# Helper functions
 def GetVariableDimension(variable):
-    var_type = KM.KratosGlobals.GetVariableType(variable.Name)
+    var_type = KM.KratosGlobals.GetVariableType(variable.Name())
     if var_type == "Array":
         return 3
     elif var_type in ["Double", "Component"]:
@@ -267,3 +244,79 @@ def GetVariableDimension(variable):
     else:
         raise Exception('Wrong variable type: "{}". Only "Array", "Double" and "Component" are allowed'.format(var_type))
 
+def GetValue(node, variable):
+    return node.GetValue(variable)
+
+def GetSolutionStepValue(node, variable):
+    return node.GetSolutionStepValue(variable)
+
+def SetValue(node, variable, value):
+    return node.SetValue(variable, value)
+
+def SetSolutionStepValue(node, variable, value):
+    return node.SetSolutionStepValue(variable, 0, value)
+
+
+def KratosFieldToCArray(nodes, variable, historical):
+    dim = GetVariableDimension(variable)
+    size = dim * len(nodes)
+    c_array = (ctp.c_double * size)(0.0)
+
+    if historical:
+        fct_ptr = GetSolutionStepValue
+    else:
+        fct_ptr = GetValue
+
+    if dim == 1:
+        for i_node, node in enumerate(nodes):
+            c_array[i_node] = fct_ptr(node, variable)
+    else:
+        for i_node, node in enumerate(nodes):
+            node_value = fct_ptr(node, variable)
+            for i_dim in range(dim):
+                c_array[i_node*dim + i_dim] = node_value[i_dim]
+
+    return c_array
+
+
+def CArrayToKratosField(c_array, c_array_size, nodes, variable, historical, swap_sign, add_values):
+    if size != dim * len(nodes):
+        raise RuntimeError("Wrong size!")
+
+    if historical:
+        fct_ptr = SetSolutionStepValue
+    else:
+        fct_ptr = SetValue
+
+    for i_node, node in enumerate(nodes):
+        values = [ c_array[i_node*dim], c_array[i_node*dim+1], c_array[i_node*dim+2]]
+        fct_ptr(node, variable, values)
+
+
+def __GetDataFromContainer(self, container, fct_ptr, *args):
+    if self.is_scalar_variable:
+        return [fct_ptr(entity, self.variable, *args) for entity in container]
+    else:
+        data = []
+        for entity in container:
+            vals = fct_ptr(entity, self.variable, *args)
+            for i in range(self.dimension):
+                data.append(vals[i])
+        return data
+
+def __SetDataOnContainer(self, container, fct_ptr, data, *args):
+    if self.is_scalar_variable:
+        [fct_ptr(entity, self.variable, *args, value) for entity, value in zip(container, data)]
+    else:
+        if self.variable_type == "Array":
+            vec_value = [0.0, 0.0, 0.0] # Array values require three entries
+            for i_entity, entity in enumerate(container):
+                slice_start = i_entity*self.dimension
+                slice_end = slice_start + self.dimension
+                vec_value[:self.dimension] = data[slice_start:slice_end] # apply "padding"
+                fct_ptr(entity, self.variable, *args, vec_value)
+        else:
+            for i_entity, entity in enumerate(container):
+                slice_start = i_entity*self.dimension
+                slice_end = slice_start + self.dimension
+                fct_ptr(entity, self.variable, *args, data[slice_start:slice_end])
