@@ -69,51 +69,74 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
   // double inertialNumberThreshold=0;
   double timeStep = currentProcessInfo[DELTA_TIME];
 
-  double numNotRigidNodes = 0;
+  // double numNotRigidNodes = 0;
   Density = 0;
   FluidBulkModulus = 0;
   FluidYieldShear = 0;
   staticFrictionCoefficient = 0;
-  regularizationCoefficient = 0;
+  regularizationCoefficient = 1000;
   // bool subareal = true;
   GeometryType &rGeom = this->GetGeometry();
   const SizeType NumNodes = rGeom.PointsNumber();
   double landslideDensity = 0;
+  double waterDensity = 1000;
+  unsigned int landslideNodes = 0;
+  unsigned int waterNodes = 0;
   for (SizeType i = 0; i < NumNodes; i++)
   {
     if (rGeom[i].IsNot(RIGID))
     {
-      numNotRigidNodes += 1.0;
-      landslideDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
-      Density += rGeom[i].FastGetSolutionStepValue(DENSITY);
-      FluidYieldShear += rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
-      FluidBulkModulus += rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
-      staticFrictionCoefficient += rGeom[i].FastGetSolutionStepValue(STATIC_FRICTION);
-      regularizationCoefficient += rGeom[i].FastGetSolutionStepValue(REGULARIZATION_COEFFICIENT);
+      FluidBulkModulus = rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
+      // numNotRigidNodes += 1.0;
+      double nodalDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
+      if (nodalDensity > waterDensity)
+      {
+        landslideDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
+        FluidYieldShear = rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
+        landslideNodes++;
+      }
+      else
+      {
+        waterNodes++;
+      }
+      // Density += rGeom[i].FastGetSolutionStepValue(DENSITY);
+      // FluidYieldShear += rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
+      // FluidBulkModulus += rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
+      // staticFrictionCoefficient += rGeom[i].FastGetSolutionStepValue(STATIC_FRICTION);
+      // regularizationCoefficient += rGeom[i].FastGetSolutionStepValue(REGULARIZATION_COEFFICIENT);
       // if (rGeom[i].Y() < 0.3)
       // {
       //   subareal = false;
       // }
     }
-    else
-    {
-      if (Density > 0)
-      {
-        rGeom[i].FastGetSolutionStepValue(DENSITY) = landslideDensity;
-      }
-    }
+    // else
+    // {
+    //   if (Density > 0)
+    //   {
+    //     rGeom[i].FastGetSolutionStepValue(DENSITY) = landslideDensity;
+    //   }
+    // }
   }
 
-  if (numNotRigidNodes != 0)
+  // if (numNotRigidNodes != 0)
+  // {
+  //   Density *= 1.0 / numNotRigidNodes;
+  //   FluidYieldShear *= 1.0 / numNotRigidNodes;
+  //   FluidBulkModulus *= 1.0 / numNotRigidNodes;
+  //   staticFrictionCoefficient *= 1.0 / numNotRigidNodes;
+  //   regularizationCoefficient *= 1.0 / numNotRigidNodes;
+  // }
+
+  if (waterNodes > landslideNodes)
   {
-    Density *= 1.0 / numNotRigidNodes;
-    FluidYieldShear *= 1.0 / numNotRigidNodes;
-    FluidBulkModulus *= 1.0 / numNotRigidNodes;
-    staticFrictionCoefficient *= 1.0 / numNotRigidNodes;
-    regularizationCoefficient *= 1.0 / numNotRigidNodes;
+    Density = waterDensity;
+  }
+  else
+  {
+    Density = landslideDensity;
   }
 
-  this->SetValue(YIELDED, landslideDensity);
+  this->SetValue(YIELDED, Density);
 
   bool boundaryElement = false;
   boundaryElement = this->TellMeIfItIsBoundaryElement();
