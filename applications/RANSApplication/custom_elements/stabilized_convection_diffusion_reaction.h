@@ -399,8 +399,38 @@ public:
         BoundedMatrix<double, TNumNodes, TNumNodes> local_matrix;
         this->CalculatePrimalDampingMatrix(local_matrix, rCurrentProcessInfo);
 
+        double local_matrix_norm = norm_frobenius(local_matrix);
+        local_matrix_norm = (local_matrix_norm > 0.0 ? local_matrix_norm : 1.0);
+
         if (rDampingMatrix.size1() != TNumNodes || rDampingMatrix.size2() != TNumNodes)
             rDampingMatrix.resize(TNumNodes, TNumNodes, false);
+
+        const double discrete_upwind_operator_coefficient =
+            rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
+        const double diagonal_positivity_preserving_coefficient =
+            rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
+
+        BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
+        double matrix_norm;
+        StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
+            matrix_norm, discrete_diffusion_matrix, local_matrix);
+
+        double diagonal_coefficient =
+            StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
+                local_matrix);
+
+        diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
+
+        noalias(local_matrix) +=
+            (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+             IdentityMatrix(TNumNodes) * diagonal_coefficient);
+
+        Element* p_parent_element = this->GetValue(PARENT_ELEMENT_POINTER);
+        p_parent_element->SetValue(
+            RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT,
+            discrete_upwind_operator_coefficient * matrix_norm / local_matrix_norm);
+        p_parent_element->SetValue(RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT,
+                                   diagonal_coefficient / local_matrix_norm);
 
         noalias(rDampingMatrix) = local_matrix;
     }
@@ -721,10 +751,6 @@ public:
             TimeDiscretization::Bossak(bossak_alpha, 0.25, 0.5).GetGamma();
         const double dynamic_tau = rCurrentProcessInfo[DYNAMIC_TAU];
         const double element_length = this->GetGeometry().Length();
-        const double discrete_upwind_operator_coefficient =
-            rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
-        const double diagonal_positivity_preserving_coefficient =
-            rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
 
         for (IndexType g = 0; g < num_gauss_points; ++g)
         {
@@ -778,21 +804,6 @@ public:
                     rDampingMatrix(a, b) += gauss_weights[g] * value;
                 }
             }
-
-            BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
-            double matrix_norm;
-            StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
-                matrix_norm, discrete_diffusion_matrix, rDampingMatrix);
-
-            double diagonal_coefficient =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
-                    rDampingMatrix);
-
-            diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
-
-            noalias(rDampingMatrix) +=
-                (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
-                 IdentityMatrix(TNumNodes) * diagonal_coefficient);
         }
 
         KRATOS_CATCH("");

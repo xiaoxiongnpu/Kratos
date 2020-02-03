@@ -301,23 +301,22 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
                 }
                 rRightHandSideVector[a] += value * gauss_shape_functions[a] * epsilon;
             }
-
-            BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
-            double matrix_norm;
-            StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
-                matrix_norm, discrete_diffusion_matrix, rDampingMatrix);
-
-            double diagonal_coefficient =
-                StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
-                    rDampingMatrix);
-
-            diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
-
-            noalias(rDampingMatrix) +=
-                (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
-                 IdentityMatrix(TNumNodes) * diagonal_coefficient);
         }
     }
+
+    BoundedMatrix<double, TNumNodes, TNumNodes> discrete_diffusion_matrix;
+    double matrix_norm;
+    StabilizedConvectionDiffusionReactionUtilities::CalculateDiscreteUpwindOperator<TNumNodes>(
+        matrix_norm, discrete_diffusion_matrix, rDampingMatrix);
+
+    double diagonal_coefficient =
+        StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
+            rDampingMatrix);
+
+    diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
+
+    noalias(rDampingMatrix) += (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
+                                IdentityMatrix(TNumNodes) * diagonal_coefficient);
 
     KRATOS_CATCH("");
 }
