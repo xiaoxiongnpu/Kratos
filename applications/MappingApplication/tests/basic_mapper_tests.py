@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import, division  # makes Kratos
 
 import KratosMultiphysics as KM
 import KratosMultiphysics.MappingApplication as KratosMapping
+from KratosMultiphysics.MappingApplication.python_mapper_factory import CreateMapper
 data_comm = KM.DataCommunicator.GetDefault()
 import mapper_test_case
 from math import sin, cos
@@ -38,13 +39,7 @@ class BasicMapperTests(mapper_test_case.MapperTestCase):
         else:
             cls.interface_model_part_destination = cls.model_part_destination
 
-        if data_comm.IsDistributed():
-            cls.mapper = KratosMapping.MapperFactory.CreateMPIMapper(
-                cls.model_part_origin, cls.model_part_destination, mapper_parameters)
-        else:
-            cls.mapper = KratosMapping.MapperFactory.CreateMapper(
-                cls.model_part_origin, cls.model_part_destination, mapper_parameters)
-
+        cls.mapper = CreateMapper(cls.model_part_origin, cls.model_part_destination, mapper_parameters)
 
     def test_Map_constant_scalar(self):
         val = 1.234
