@@ -29,7 +29,9 @@ class PythonMapper(object):
     def _GetDefaultSettings(cls):
         return KM.Parameters("""{
             "mapper_type" : "",
-            "echo_level"  : 0
+            "echo_level"  : 0,
+            "interface_submodel_part_destination": "",
+            "interface_submodel_part_origin": ""
         }""")
 
     @classmethod

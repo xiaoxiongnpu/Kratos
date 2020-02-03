@@ -228,7 +228,7 @@ class EmpireMortarMapper(EmpireMapperWrapper):
         this_defaults = KM.Parameters("""{
             "dual"                 : false,
             "enforce_consistency"  : false,
-            "opposite_normals"     : false,
+            "opposite_normals"     : false
         }""")
         this_defaults.AddMissingParameters(super(EmpireMapperWrapper, cls)._GetDefaultSettings())
         return this_defaults
