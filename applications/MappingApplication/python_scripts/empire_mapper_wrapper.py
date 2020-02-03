@@ -279,8 +279,9 @@ def KratosFieldToCArray(nodes, variable, historical):
     return c_array
 
 
-def CArrayToKratosField(c_array, c_array_size, nodes, variable, historical, swap_sign, add_values):
-    if size != dim * len(nodes):
+def CArrayToKratosField(c_array, c_array_size, nodes, variable, historical, add_values, swap_sign):
+    dim = GetVariableDimension(variable)
+    if c_array_size != dim * len(nodes):
         raise RuntimeError("Wrong size!")
 
     if historical:
@@ -288,35 +289,20 @@ def CArrayToKratosField(c_array, c_array_size, nodes, variable, historical, swap
     else:
         fct_ptr = SetValue
 
-    for i_node, node in enumerate(nodes):
-        values = [ c_array[i_node*dim], c_array[i_node*dim+1], c_array[i_node*dim+2]]
-        fct_ptr(node, variable, values)
+    if swap_sign:
+        for i in range(c_array_size):
+            c_array[i] *= (-1)
+            print(c_array[i])
 
+    if add_values:
+        current_values = KratosFieldToCArray(nodes, variable, historical)
+        for i in range(c_array_size):
+            c_array[i] += current_values[i]
 
-def __GetDataFromContainer(self, container, fct_ptr, *args):
-    if self.is_scalar_variable:
-        return [fct_ptr(entity, self.variable, *args) for entity in container]
+    if dim == 1:
+        for i_node, node in enumerate(nodes):
+            fct_ptr(node, variable, c_array[i_node])
     else:
-        data = []
-        for entity in container:
-            vals = fct_ptr(entity, self.variable, *args)
-            for i in range(self.dimension):
-                data.append(vals[i])
-        return data
-
-def __SetDataOnContainer(self, container, fct_ptr, data, *args):
-    if self.is_scalar_variable:
-        [fct_ptr(entity, self.variable, *args, value) for entity, value in zip(container, data)]
-    else:
-        if self.variable_type == "Array":
-            vec_value = [0.0, 0.0, 0.0] # Array values require three entries
-            for i_entity, entity in enumerate(container):
-                slice_start = i_entity*self.dimension
-                slice_end = slice_start + self.dimension
-                vec_value[:self.dimension] = data[slice_start:slice_end] # apply "padding"
-                fct_ptr(entity, self.variable, *args, vec_value)
-        else:
-            for i_entity, entity in enumerate(container):
-                slice_start = i_entity*self.dimension
-                slice_end = slice_start + self.dimension
-                fct_ptr(entity, self.variable, *args, data[slice_start:slice_end])
+        for i_node, node in enumerate(nodes):
+            values = [c_array[i_node*dim], c_array[i_node*dim+1], c_array[i_node*dim+2]]
+            fct_ptr(node, variable, values)
