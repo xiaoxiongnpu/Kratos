@@ -319,6 +319,8 @@ protected:
                                        double &bulkCoefficient,
                                        double timeStep) override;
 
+  double ComputeFrictionViscosityFritz(ElementalVariables &rElementalVariables,bool boundaryElement);
+
   double ComputeNonLinearViscosity(double &equivalentStrainRate);
 
   void ComputeMaterialParametersGranularGas(double &Density,

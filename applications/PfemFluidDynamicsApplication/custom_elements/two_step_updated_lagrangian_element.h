@@ -620,6 +620,48 @@ protected:
       std::cout << "ATTENTION! NO PROPERTIES HAVE BEEN FOUNDED FOR THIS ELEMENT! X,Y " << rGeom[1].X() << "," << rGeom[1].Y() << std::endl;
   }
 
+  bool TellMeIfItIsBoundaryElement()
+  {
+    GeometryType &rGeom = this->GetGeometry();
+    const SizeType NumNodes = rGeom.PointsNumber();
+    bool boundaryElement = false;
+    for (SizeType i = 0; i < NumNodes; i++)
+    {
+      if (rGeom[i].Is(RIGID))
+      {
+        boundaryElement = true;
+      }
+    }
+    return boundaryElement;
+  }
+
+  template <class TVariableType>
+  bool EvaluatePropertyForSlipCase(TVariableType &rResult,
+                                   const Kratos::Variable<TVariableType> &Var)
+  {
+    GeometryType &rGeom = this->GetGeometry();
+    const SizeType NumNodes = rGeom.PointsNumber();
+    bool found = false;
+    bool boundaryElement = false;
+    for (SizeType i = 0; i < NumNodes; i++)
+    {
+      if (rGeom[i].IsNot(RIGID))
+      {
+        rResult = rGeom[i].FastGetSolutionStepValue(Var);
+        found = true;
+      }
+      else
+      {
+        boundaryElement = true;
+      }
+    }
+
+    if (found == false)
+      std::cout << "ATTENTION! NO PROPERTIES HAVE BEEN FOUNDED FOR THIS ELEMENT! X,Y " << rGeom[1].X() << "," << rGeom[1].Y() << std::endl;
+
+    return boundaryElement;
+  }
+
   /// Write the value of a variable at a point inside the element to a double
   /**
        * Evaluate a nodal variable in the point where the form functions take the
