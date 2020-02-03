@@ -60,7 +60,9 @@ class TurbulenceKOmegaConfiguration(
         if is_blended:
             self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWallBlended"]
         else:
-            self.model_conditions_list = ["Condition", "RansEvmKOmegaOmegaWall"]
+            self.model_conditions_list = ["Condition", "Condition"]
+        
+        print("HERE ARE THE CONDITIONS: ", self.model_conditions_list)
         
 
         self.ramp_up_time = self.model_settings["flow_parameters"][
