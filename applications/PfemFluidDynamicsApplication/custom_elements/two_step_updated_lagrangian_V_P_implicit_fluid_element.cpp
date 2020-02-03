@@ -136,10 +136,12 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
                                                                                                bool boundaryElement)
   {
     double FluidViscosity=0;
-    double tanFi=0.487;
+    double tanFi=0.487; //26 degrees like run test
+    tanFi=0.424; //23 degrees like Crosta 2006
 
     if (boundaryElement==true){
-      tanFi=0.087;
+      //tanFi=0.087; //5 degrees like run test
+      tanFi=0.105; //6 degrees like Crosta 2006
     }
 
     double meanPressure=rElementalVariables.MeanPressure;

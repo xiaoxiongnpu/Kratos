@@ -153,10 +153,10 @@ public:
 				sliversDetected++;
 				// std::cout << "RESET ACTIVE FOR THIS SLIVER! \t";
 				// std::cout << "its volume is " << ElementalVolume << " vs CriticalVolume " << CriticalVolume <<"number of elements= "<<mrModelPart.Elements().size()<<std::endl;
-				// for (unsigned int i = 0; i < numNodes; i++)
-				// {
-				// 	itElem->GetGeometry()[i].Set(ACTIVE,true);
-				// }
+				for (unsigned int i = 0; i < numNodes; i++)
+				{
+					itElem->GetGeometry()[i].Set(ACTIVE,true);
+				}
 			}
 		}
 
