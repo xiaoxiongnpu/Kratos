@@ -1,5 +1,4 @@
 import KratosMultiphysics as KM
-# from KratosMultiphysics.mpi import GatherModelPartUtility
 from KratosMultiphysics.MappingApplication.python_mapper import PythonMapper
 
 import os
@@ -35,9 +34,10 @@ class EmpireMapperWrapper(PythonMapper):
     def __init__(self, model_part_origin, model_part_destination, mapper_settings):
         super(EmpireMapperWrapper, self).__init__(model_part_origin, model_part_destination, mapper_settings)
 
-        # TODO use gather-mp utility for mapping in MPI
         if model_part_origin.IsDistributed() or model_part_destination.IsDistributed():
-            raise Exception('{} does not yet support mapping with distributed ModelParts!'.format(self._ClassName()))
+            raise Exception('{} does not support mapping with distributed ModelParts!'.format(self._ClassName()))
+
+        self.name = (self._ClassName()+str(EmpireMapperWrapper.mapper_count)).encode(encoding='UTF-8')
 
         EmpireMapperWrapper.mapper_count += 1 # required for identification purposes
         self.__inverse_mapper = None
@@ -52,7 +52,7 @@ class EmpireMapperWrapper(PythonMapper):
         # first try automatic detection using the environment that is set by Empire => startEMPIRE
         if ('EMPIRE_MAPPER_LIBSO_ON_MACHINE' in os.environ):
             KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE found in environment")
-            mapper_lib_path = os.environ['EMPIRE_API_LIBSO_ON_MACHINE']
+            mapper_lib_path = os.environ['EMPIRE_MAPPER_LIBSO_ON_MACHINE']
 
         else:
             KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE NOT found in environment, using manually specified path to load the mapper lib")
@@ -83,13 +83,13 @@ class EmpireMapperWrapper(PythonMapper):
 
         var_dim = GetVariableDimension(variable_origin)
 
-        origin_data_size = len(self.origin_model_part.Nodes)*var_dim
-        destination_data_size = len(self.destination_model_part.Nodes)*var_dim
+        origin_data_size = len(self.model_part_origin.Nodes)*var_dim
+        destination_data_size = len(self.model_part_destination.Nodes)*var_dim
 
-        c_origin_array = self.__KratosFieldToCArray(var_dim, self.origin_model_part, origin_variable)
+        c_origin_array = KratosFieldToCArray(self.model_part_origin.Nodes, variable_origin, True)
         c_destination_array = (ctp.c_double * destination_data_size)(0.0)
 
-        self.mapper_library.doConsistentMapping(
+        EmpireMapperWrapper.mapper_lib.doConsistentMapping(
             ctp.c_char_p(self.name),
             ctp.c_int(var_dim),
             ctp.c_int(origin_data_size),
@@ -98,12 +98,12 @@ class EmpireMapperWrapper(PythonMapper):
             c_destination_array
             )
 
-        self.__CArrayToKratosField(
-            var_dim,
+        CArrayToKratosField(
             c_destination_array,
             destination_data_size,
-            self.destination_model_part,
-            destination_variable)
+            self.model_part_destination.Nodes,
+            variable_destination,
+            True, False, False)
 
     def InverseMap(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
         # TODO check if using transpose => conservative
@@ -141,7 +141,6 @@ class EmpireMapperWrapper(PythonMapper):
 
 
     def __MakeEmpireFEMesh(self, mesh_name, model_part):
-
         c_mesh_name       = ctp.c_char_p(mesh_name)
         c_num_nodes       = ctp.c_int(len(model_part.Nodes))
         c_num_elems       = ctp.c_int(len(model_part.Conditions))
