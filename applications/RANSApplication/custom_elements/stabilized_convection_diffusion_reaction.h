@@ -397,7 +397,8 @@ public:
     void CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo) override
     {
         BoundedMatrix<double, TNumNodes, TNumNodes> local_matrix;
-        this->CalculatePrimalDampingMatrix(local_matrix, rCurrentProcessInfo);
+        const double scalar_multiplier =
+            this->CalculatePrimalDampingMatrix(local_matrix, rCurrentProcessInfo);
 
         double local_matrix_norm = norm_frobenius(local_matrix);
         local_matrix_norm = (local_matrix_norm > 0.0 ? local_matrix_norm : 1.0);
@@ -419,16 +420,16 @@ public:
             StabilizedConvectionDiffusionReactionUtilities::CalculatePositivityPreservingMatrix(
                 local_matrix);
 
-        diagonal_coefficient *= diagonal_positivity_preserving_coefficient;
+        diagonal_coefficient *= diagonal_positivity_preserving_coefficient * scalar_multiplier;
 
-        noalias(local_matrix) +=
-            (discrete_diffusion_matrix * discrete_upwind_operator_coefficient +
-             IdentityMatrix(TNumNodes) * diagonal_coefficient);
+        noalias(local_matrix) += discrete_diffusion_matrix *
+                                 (discrete_upwind_operator_coefficient * scalar_multiplier);
+        noalias(local_matrix) += IdentityMatrix(TNumNodes) * (diagonal_coefficient);
 
         Element* p_parent_element = this->GetValue(PARENT_ELEMENT_POINTER);
-        p_parent_element->SetValue(
-            RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT,
-            discrete_upwind_operator_coefficient * matrix_norm / local_matrix_norm);
+        p_parent_element->SetValue(RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT,
+                                   discrete_upwind_operator_coefficient * matrix_norm *
+                                       scalar_multiplier / local_matrix_norm);
         p_parent_element->SetValue(RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT,
                                    diagonal_coefficient / local_matrix_norm);
 
@@ -731,8 +732,8 @@ public:
         KRATOS_CATCH("");
     }
 
-    void CalculatePrimalDampingMatrix(BoundedMatrix<double, TNumNodes, TNumNodes>& rDampingMatrix,
-                                      const ProcessInfo& rCurrentProcessInfo) const
+    double CalculatePrimalDampingMatrix(BoundedMatrix<double, TNumNodes, TNumNodes>& rDampingMatrix,
+                                        const ProcessInfo& rCurrentProcessInfo) const
     {
         KRATOS_TRY
 
@@ -752,6 +753,10 @@ public:
         const double dynamic_tau = rCurrentProcessInfo[DYNAMIC_TAU];
         const double element_length = this->GetGeometry().Length();
 
+        array_1d<double, 3> variable_gradient;
+        const Variable<double>& primal_variable = this->GetPrimalVariable();
+
+        double scalar_multiplier = 0.0;
         for (IndexType g = 0; g < num_gauss_points; ++g)
         {
             const Matrix& r_shape_derivatives = shape_derivatives[g];
@@ -775,6 +780,26 @@ public:
             const double tau = StabilizedConvectionDiffusionReactionUtilities::CalculateStabilizationTau(
                 element_length, velocity_magnitude, reaction, effective_kinematic_viscosity,
                 bossak_alpha, bossak_gamma, delta_time, dynamic_tau);
+
+            const double source =
+                this->CalculateSourceTerm(r_current_data, gauss_shape_functions,
+                                          r_shape_derivatives, rCurrentProcessInfo);
+            this->CalculateGradient(variable_gradient, primal_variable, r_shape_derivatives);
+            const double velocity_dot_variable_gradient =
+                inner_prod(velocity, variable_gradient);
+            const double variable_value =
+                this->EvaluateInPoint(primal_variable, gauss_shape_functions);
+            const double relaxed_variable_acceleration =
+                this->GetScalarVariableRelaxedAcceleration(gauss_shape_functions);
+
+            double residual = relaxed_variable_acceleration;
+            residual += velocity_dot_variable_gradient;
+            residual += reaction * variable_value;
+            residual -= source;
+
+            scalar_multiplier += RansCalculationUtilities::CalculateScalarStabilizationCoeff(
+                residual, variable_gradient, velocity, reaction,
+                effective_kinematic_viscosity, tau, element_length, variable_value);
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {
@@ -805,6 +830,8 @@ public:
                 }
             }
         }
+
+        return scalar_multiplier / static_cast<double>(num_gauss_points);
 
         KRATOS_CATCH("");
     }
