@@ -260,10 +260,6 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
 
     const double epsilon_sigma =
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
-    const double discrete_upwind_operator_coefficient =
-        rCurrentProcessInfo[RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT];
-    const double diagonal_positivity_preserving_coefficient =
-        rCurrentProcessInfo[RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
     const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
     const double eps = std::numeric_limits<double>::epsilon();
