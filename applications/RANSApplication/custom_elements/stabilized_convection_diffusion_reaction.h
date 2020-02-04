@@ -797,9 +797,8 @@ public:
             residual += reaction * variable_value;
             residual -= source;
 
-            scalar_multiplier += RansCalculationUtilities::CalculateScalarStabilizationCoeff(
-                residual, variable_gradient, velocity, reaction,
-                effective_kinematic_viscosity, tau, element_length, variable_value);
+            if (variable_value > 0.0)
+                scalar_multiplier += std::abs(residual) * tau / variable_value;
 
             for (IndexType a = 0; a < TNumNodes; ++a)
             {

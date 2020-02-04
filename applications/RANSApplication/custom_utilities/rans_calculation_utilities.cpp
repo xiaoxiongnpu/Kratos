@@ -381,22 +381,6 @@ void CalculateYPlusAndUtau(double& rYPlus,
     }
 }
 
-double CalculateScalarStabilizationCoeff(const double Residual,
-                                         const array_1d<double, 3>& rVariableGradient,
-                                         const array_1d<double, 3>& rVelocity,
-                                         const double Reaction,
-                                         const double Diffusion,
-                                         const double Tau,
-                                         const double ElementLength,
-                                         const double VariableValue)
-{
-    // const double coeff = norm_2(rVariableGradient) * ElementLength;
-    if (VariableValue > 0.0)
-        return std::abs(Residual) * Tau / VariableValue;
-    else
-        return 0.0;
-}
-
 bool IsWall(const ConditionType& rCondition)
 {
     if (rCondition.Is(SLIP))

@@ -120,7 +120,7 @@ void RansNutYPlusWallFunctionProcess::Execute()
     for (int i_cond = 0; i_cond < number_of_conditions; ++i_cond)
     {
         ConditionType& r_cond = *(r_model_part.ConditionsBegin() + i_cond);
-        if (r_cond.Is(SLIP))
+        if (RansCalculationUtilities::IsWall(r_cond))
         {
             ConditionType::GeometryType& r_geometry = r_cond.GetGeometry();
             const double y_plus =

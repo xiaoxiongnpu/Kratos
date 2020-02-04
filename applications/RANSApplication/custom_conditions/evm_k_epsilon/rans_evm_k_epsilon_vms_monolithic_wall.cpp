@@ -143,7 +143,7 @@ template <unsigned int TDim, unsigned int TNumNodes>
 void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
     MatrixType& rLocalMatrix, VectorType& rLocalVector, ProcessInfo& rCurrentProcessInfo)
 {
-    if (this->Is(SLIP))
+    if (RansCalculationUtilities::IsWall(*this))
     {
         const double eps = std::numeric_limits<double>::epsilon();
 

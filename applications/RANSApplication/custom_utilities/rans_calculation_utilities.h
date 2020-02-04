@@ -118,15 +118,6 @@ void CalculateYPlusAndUtau(double& rYPlus,
                            const int MaxIterations = 20,
                            const double Tolerance = 1e-6);
 
-double CalculateScalarStabilizationCoeff(const double Residual,
-                                       const array_1d<double, 3>& rVariableGradient,
-                                       const array_1d<double, 3>& rVelocity,
-                                       const double Reaction,
-                                       const double Diffusion,
-                                       const double Tau,
-                                       const double ElementLength,
-                                       const double VariableValue);
-
 bool IsWall(const ConditionType& rCondition);
 
 } // namespace RansCalculationUtilities
