@@ -40,8 +40,7 @@ RansNutKEpsilonHighReCalculationProcess::RansNutKEpsilonHighReCalculationProcess
             "model_part_name" : "PLEASE_SPECIFY_MODEL_PART_NAME",
             "echo_level"      : 0,
             "c_mu"            : 0.09,
-            "min_value"       : 1e-15,
-            "admissible_mixing_length" : 0.0
+            "min_value"       : 1e-15
         })");
 
     mrParameters.ValidateAndAssignDefaults(default_parameters);
