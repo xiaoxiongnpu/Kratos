@@ -38,7 +38,7 @@ class EmpireMapperWrapper(PythonMapper):
             raise Exception('{} does not support mapping with distributed ModelParts!'.format(self._ClassName()))
 
             # name that is used inside Empire, has to be unique, hence the counter
-        self.name = (self._ClassName()+str(EmpireMapperWrapper.mapper_count)).encode(encoding='UTF-8')
+        self.mapper_name = (self._ClassName()+str(EmpireMapperWrapper.mapper_count)).encode(encoding='UTF-8')
 
         EmpireMapperWrapper.mapper_count += 1 # required for identification purposes
         self.__inverse_mapper = None
@@ -54,7 +54,7 @@ class EmpireMapperWrapper(PythonMapper):
     def __del__(self):
         EmpireMapperWrapper.mapper_count -= 1
 
-        EmpireMapperWrapper.mapper_lib.deleteMapper()
+        EmpireMapperWrapper.mapper_lib.deleteMapper(self.mapper_name)
 
         if EmpireMapperWrapper.mapper_count == 0: # last mapper was destoyed
             if self.echo_level > 1:
@@ -77,7 +77,7 @@ class EmpireMapperWrapper(PythonMapper):
         c_destination_array = (ctp.c_double * destination_data_size)(0.0)
 
         EmpireMapperWrapper.mapper_lib.doConsistentMapping(
-            ctp.c_char_p(self.name),
+            ctp.c_char_p(self.mapper_name),
             ctp.c_int(var_dim),
             ctp.c_int(origin_data_size),
             c_origin_array,
@@ -140,7 +140,7 @@ class EmpireMapperWrapper(PythonMapper):
 
     def __BuildCouplingMatrices(self):
         self.__CheckMapperExists()
-        EmpireMapperWrapper.mapper_lib.buildCouplingMatrices(ctp.c_char_p(self.name))
+        EmpireMapperWrapper.mapper_lib.buildCouplingMatrices(ctp.c_char_p(self.mapper_name))
 
     def __CreateInverseMapper(self):
         return self.__class__(self.model_part_destination, self.model_part_origin, self.mapper_settings) # TODO check this!
@@ -186,8 +186,8 @@ class EmpireMapperWrapper(PythonMapper):
         EmpireMapperWrapper.mapper_lib.setElementsToFEMesh(c_mesh_name, c_num_nodes_per_elem, c_elems)
 
     def __CheckMapperExists(self):
-        if not EmpireMapperWrapper.mapper_lib.hasMapper(ctp.c_char_p(self.name)):
-            raise Exception('Mapper "{}" does not exist!'.format(self.name))
+        if not EmpireMapperWrapper.mapper_lib.hasMapper(ctp.c_char_p(self.mapper_name)):
+            raise Exception('Mapper "{}" does not exist!'.format(self.mapper_name))
 
     @classmethod
     def _GetDefaultSettings(cls):
@@ -203,7 +203,7 @@ class EmpireNearestNeighborMapper(EmpireMapperWrapper):
 
     def _CreateMapper(self):
         EmpireMapperWrapper.mapper_lib.initFEMNearestNeighborMapper(
-            ctp.c_char_p(self.name),
+            ctp.c_char_p(self.mapper_name),
             self.mesh_name_origin,
             self.mesh_name_destination
             )
@@ -214,7 +214,7 @@ class EmpireNearestElementMapper(EmpireMapperWrapper):
 
     def _CreateMapper(self):
         EmpireMapperWrapper.mapper_lib.initFEMNearestElementMapper(
-            ctp.c_char_p(self.name),
+            ctp.c_char_p(self.mapper_name),
             self.mesh_name_origin,
             self.mesh_name_destination
             )
@@ -225,7 +225,7 @@ class EmpireBarycentricMapper(EmpireMapperWrapper):
 
     def _CreateMapper(self):
         EmpireMapperWrapper.mapper_lib.initFEMBarycentricInterpolationMapper(
-            ctp.c_char_p(self.name),
+            ctp.c_char_p(self.mapper_name),
             self.mesh_name_origin,
             self.mesh_name_destination
             )
@@ -240,7 +240,7 @@ class EmpireMortarMapper(EmpireMapperWrapper):
         opposite_normals   = int(self.mapper_settings["opposite_normals"].GetBool())
 
         EmpireMapperWrapper.mapper_lib.initFEMMortarMapper(
-            ctp.c_char_p(self.name),
+            ctp.c_char_p(self.mapper_name),
             self.mesh_name_origin,
             self.mesh_name_destination,
             ctp.c_int(opposite_normals),

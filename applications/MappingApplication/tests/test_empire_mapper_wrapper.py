@@ -17,6 +17,10 @@ class EmpireNearestNeighborMapper(basic_mapper_tests.BasicMapperTests):
         }""")
         super(EmpireNearestNeighborMapper, cls).setUpMapper(mapper_params)
 
+    @classmethod
+    def tearDownClass(cls):
+        del(cls.mapper)
+
 
 @KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
 class EmpireNearestElementMapper(basic_mapper_tests.BasicMapperTests):
@@ -29,6 +33,10 @@ class EmpireNearestElementMapper(basic_mapper_tests.BasicMapperTests):
             "echo_level" : 0
         }""")
         super(EmpireNearestElementMapper, cls).setUpMapper(mapper_params)
+
+    @classmethod
+    def tearDownClass(cls):
+        del(cls.mapper)
 
 
 @KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
@@ -43,6 +51,10 @@ class EmpireBarycentricMapper(basic_mapper_tests.BasicMapperTests):
         }""")
         super(EmpireBarycentricMapper, cls).setUpMapper(mapper_params)
 
+    @classmethod
+    def tearDownClass(cls):
+        del(cls.mapper)
+
 
 @KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
 class EmpireMortarMapper(basic_mapper_tests.BasicMapperTests):
@@ -56,8 +68,12 @@ class EmpireMortarMapper(basic_mapper_tests.BasicMapperTests):
         }""")
         super(EmpireMortarMapper, cls).setUpMapper(mapper_params)
 
+    @classmethod
+    def tearDownClass(cls):
+        del(cls.mapper)
+
 
 if __name__ == '__main__':
-    KM.Logger.GetDefaultOutput().SetSeverity(KM.Logger.Severity.WARNING)
+    # KM.Logger.GetDefaultOutput().SetSeverity(KM.Logger.Severity.WARNING)
     import KratosMultiphysics.KratosUnittest as KratosUnittest
     KratosUnittest.main()
