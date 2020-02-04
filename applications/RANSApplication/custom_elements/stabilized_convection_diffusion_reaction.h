@@ -426,12 +426,11 @@ public:
                                  (discrete_upwind_operator_coefficient * scalar_multiplier);
         noalias(local_matrix) += IdentityMatrix(TNumNodes) * (diagonal_coefficient);
 
-        Element* p_parent_element = this->GetValue(PARENT_ELEMENT_POINTER);
-        p_parent_element->SetValue(RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT,
-                                   discrete_upwind_operator_coefficient * matrix_norm *
-                                       scalar_multiplier / local_matrix_norm);
-        p_parent_element->SetValue(RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT,
-                                   diagonal_coefficient / local_matrix_norm);
+        this->SetValue(RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT,
+                       discrete_upwind_operator_coefficient * matrix_norm *
+                           scalar_multiplier / local_matrix_norm);
+        this->SetValue(RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT,
+                       diagonal_coefficient / local_matrix_norm);
 
         noalias(rDampingMatrix) = local_matrix;
     }
