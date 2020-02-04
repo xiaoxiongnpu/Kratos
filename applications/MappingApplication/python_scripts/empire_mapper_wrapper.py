@@ -14,7 +14,7 @@ def CreateMapper(model_part_origin, model_part_destination, mapper_settings):
         return EmpireNearestElementMapper(model_part_origin, model_part_destination, mapper_settings)
 
     elif empire_mapper_type == "barycentric":
-        return EmpireBaryCentricMapper(model_part_origin, model_part_destination, mapper_settings)
+        return EmpireBarycentricMapper(model_part_origin, model_part_destination, mapper_settings)
 
     elif empire_mapper_type == "mortar":
         return EmpireMortarMapper(model_part_origin, model_part_destination, mapper_settings)
