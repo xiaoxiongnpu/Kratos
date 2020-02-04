@@ -80,8 +80,6 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
         self.fluid_model_part.AddNodalSolutionStepVariable(
             Kratos.TURBULENT_VISCOSITY)
         self.fluid_model_part.AddNodalSolutionStepVariable(
-            KratosRANS.RANS_Y_PLUS)
-        self.fluid_model_part.AddNodalSolutionStepVariable(
             Kratos.RELAXED_ACCELERATION)
 
         Kratos.Logger.PrintInfo(self.__class__.__name__,
