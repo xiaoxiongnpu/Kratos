@@ -12,14 +12,6 @@ class PythonMapper(object):
         self.model_part_origin = model_part_origin
         self.model_part_destination = model_part_destination
 
-        if mapper_settings.Has("interface_submodel_part_origin"):
-            self.model_part_origin = self.model_part_origin.GetSubModelPart(
-                mapper_settings["interface_submodel_part_origin"].GetString())
-
-        if mapper_settings.Has("interface_submodel_part_destination"):
-            self.model_part_destination = self.model_part_destination.GetSubModelPart(
-                mapper_settings["interface_submodel_part_destination"].GetString())
-
         self.mapper_settings = mapper_settings
         self.mapper_settings.ValidateAndAssignDefaults(self._GetDefaultSettings())
 
@@ -38,9 +30,7 @@ class PythonMapper(object):
     def _GetDefaultSettings(cls):
         return KM.Parameters("""{
             "mapper_type" : "",
-            "echo_level"  : 0,
-            "interface_submodel_part_destination": "",
-            "interface_submodel_part_origin": ""
+            "echo_level"  : 0
         }""")
 
     @classmethod
