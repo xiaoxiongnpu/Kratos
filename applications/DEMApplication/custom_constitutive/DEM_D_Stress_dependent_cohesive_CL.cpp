@@ -191,7 +191,7 @@ namespace Kratos {
 
         bool initial_time_step = false;
 
-        if (r_process_info[TIME_STEP] == 0) initial_time_step = true;
+        if (r_process_info[TIME_STEPS] == 0) initial_time_step = true;
 
         cohesive_force = CalculateCohesiveNormalForceWithFEM(p_element, wall, normal_contact_force, contact_area, indentation, initial_time_step);
 
