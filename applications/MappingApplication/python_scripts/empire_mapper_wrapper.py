@@ -37,6 +37,7 @@ class EmpireMapperWrapper(PythonMapper):
         if model_part_origin.IsDistributed() or model_part_destination.IsDistributed():
             raise Exception('{} does not support mapping with distributed ModelParts!'.format(self._ClassName()))
 
+            # name that is used inside Empire, has to be unique, hence the counter
         self.name = (self._ClassName()+str(EmpireMapperWrapper.mapper_count)).encode(encoding='UTF-8')
 
         EmpireMapperWrapper.mapper_count += 1 # required for identification purposes
@@ -46,39 +47,25 @@ class EmpireMapperWrapper(PythonMapper):
             KM.Logger.PrintInfo("EmpireMapperWrapper", "Loading mapper lib ...")
             EmpireMapperWrapper.mapper_lib = self.__LoadMapperLib()
 
+        self.__CreateMeshes()
+        self._CreateMapper()
+        self.__BuildCouplingMatrices()
 
-    def __LoadMapperLib(self):
-        KM.Logger.PrintInfo("EmpireMapperWrapper", "Determining path to mapper lib")
-        # first try automatic detection using the environment that is set by Empire => startEMPIRE
-        if ('EMPIRE_MAPPER_LIBSO_ON_MACHINE' in os.environ):
-            KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE found in environment")
-            mapper_lib_path = os.environ['EMPIRE_MAPPER_LIBSO_ON_MACHINE']
+    def __del__(self):
+        EmpireMapperWrapper.mapper_count -= 1
 
-        else:
-            KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE NOT found in environment, using manually specified path to load the mapper lib")
-            mapper_lib_path = self.mapper_settings["mapper_lib"].GetString()
-            if mapper_lib_path == "":
-                raise Exception('The automatic detection of the mapper lib failed, the path to the mapper lib has to be specified with "mapper_lib"')
+        EmpireMapperWrapper.mapper_lib.deleteMapper()
 
-        KM.Logger.PrintInfo("EmpireMapperWrapper", "Attempting to load the mapper lib")
-        # TODO check if still both are needed! (does the mapperlib link to MPI?)
-        try:
-            try: # OpenMPI
-                loaded_mapper_lib = ctp.CDLL(mapper_lib_path, ctp.RTLD_GLOBAL)
-                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Using standard OpenMPI')
-            except: # Intel MPI or OpenMPI compiled with "–disable-dlopen" option
-                loaded_mapper_lib = ctp.cdll.LoadLibrary(mapper_lib_path)
-                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Using Intel MPI or OpenMPI compiled with "–disable-dlopen" option')
-        except OSError:
-            raise Exception("Mapper lib could not be loaded!")
+        if EmpireMapperWrapper.mapper_count == 0: # last mapper was destoyed
+            if self.echo_level > 1:
+                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Destroying last instance, deleting all meshes & mappers')
+            #  delete everything to make sure nothing is left
+            EmpireMapperWrapper.mapper_lib.deleteAllMeshes()
+            EmpireMapperWrapper.mapper_lib.deleteAllMappers()
 
-        KM.Logger.PrintInfo("EmpireMapperWrapper", "Successfully loaded the mapper lib")
-
-        return loaded_mapper_lib
-
-
-
+    # public methods, same as in "custom_mappers/mapper.h"
     def Map(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
+        self.__CheckMapperExists()
         # if not type() # check variables are matching
 
         var_dim = GetVariableDimension(variable_origin)
@@ -117,35 +104,63 @@ class EmpireMapperWrapper(PythonMapper):
         # this requires recreating the mapper completely!
         super(EmpireMapperWrapper, self).UpdateInterface()
 
+    # protected methods
+    def _CreateMapper(self):
+        raise NotImplementedError('"_CreateMapper" was not implemented for "{}"'.format(self._ClassName()))
 
-    def _BuildCouplingMatrices(self):
-        if EmpireMapperWrapper.mapper_lib.hasMapper(ctp.c_char_p(self.name)):
-            EmpireMapperWrapper.mapper_lib.buildCouplingMatrices(ctp.c_char_p(self.name))
+    # private methods
+    def __LoadMapperLib(self):
+        KM.Logger.PrintInfo("EmpireMapperWrapper", "Determining path to mapper lib")
+        # first try automatic detection using the environment that is set by Empire => startEMPIRE
+        if ('EMPIRE_MAPPER_LIBSO_ON_MACHINE' in os.environ):
+            KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE found in environment")
+            mapper_lib_path = os.environ['EMPIRE_MAPPER_LIBSO_ON_MACHINE']
+
         else:
-            pass # TODO print warning
+            KM.Logger.PrintInfo("EmpireMapperWrapper", "EMPIRE_MAPPER_LIBSO_ON_MACHINE NOT found in environment, using manually specified path to load the mapper lib")
+            mapper_lib_path = self.mapper_settings["mapper_lib"].GetString()
+            if mapper_lib_path == "":
+                raise Exception('The automatic detection of the mapper lib failed, the path to the mapper lib has to be specified with "mapper_lib"')
 
+        KM.Logger.PrintInfo("EmpireMapperWrapper", "Attempting to load the mapper lib")
+        # TODO check if still both are needed! (does the mapperlib link to MPI?)
+        try:
+            try: # OpenMPI
+                loaded_mapper_lib = ctp.CDLL(mapper_lib_path, ctp.RTLD_GLOBAL)
+                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Using standard OpenMPI')
+            except: # Intel MPI or OpenMPI compiled with "–disable-dlopen" option
+                loaded_mapper_lib = ctp.cdll.LoadLibrary(mapper_lib_path)
+                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Using Intel MPI or OpenMPI compiled with "–disable-dlopen" option')
+        except OSError:
+            raise Exception("Mapper lib could not be loaded!")
+
+        KM.Logger.PrintInfo("EmpireMapperWrapper", "Successfully loaded the mapper lib")
+
+        return loaded_mapper_lib
+
+    def __BuildCouplingMatrices(self):
+        self.__CheckMapperExists()
+        EmpireMapperWrapper.mapper_lib.buildCouplingMatrices(ctp.c_char_p(self.name))
 
     def __CreateInverseMapper(self):
         return self.__class__(self.model_part_destination, self.model_part_origin, self.mapper_settings) # TODO check this!
 
+    def __CreateMeshes(self):
+        self.mesh_name_origin      = ctp.c_char_p((self.model_part_origin.FullName()).encode(encoding='UTF-8'))
+        self.mesh_name_destination = ctp.c_char_p((self.model_part_destination.FullName()).encode(encoding='UTF-8'))
 
-    def __del__(self):
-        EmpireMapperWrapper.mapper_count -= 1
+        if not EmpireMapperWrapper.mapper_lib.hasMesh(self.mesh_name_origin):
+            self.__MakeEmpireFEMesh(self.mesh_name_origin, self.model_part_origin)
 
-        if EmpireMapperWrapper.mapper_count == 0: # last mapper was destoyed
-            if self.echo_level > 1:
-                KM.Logger.PrintInfo('EmpireMapperWrapper', 'Destroying last instance, deleting all meshes & mappers')
-            #  delete everything to make sure nothing is left
-            EmpireMapperWrapper.mapper_lib.deleteAllMeshes()
-            EmpireMapperWrapper.mapper_lib.deleteAllMappers()
+        if not EmpireMapperWrapper.mapper_lib.hasMesh(self.mesh_name_destination):
+            self.__MakeEmpireFEMesh(self.mesh_name_destination, self.model_part_destination)
 
-
-    def __MakeEmpireFEMesh(self, mesh_name, model_part):
-        c_mesh_name       = ctp.c_char_p(mesh_name)
-        c_num_nodes       = ctp.c_int(len(model_part.Nodes))
-        c_num_elems       = ctp.c_int(len(model_part.Conditions))
-        c_node_ids        = (ctp.c_int * c_num_nodes.value) (0)
-        c_node_coords     = (ctp.c_double * (3 * c_num_nodes.value))(0.0)
+    def __MakeEmpireFEMesh(self, c_mesh_name, model_part):
+        # c_mesh_name          = ctp.c_char_p(mesh_name)
+        c_num_nodes          = ctp.c_int(len(model_part.Nodes))
+        c_num_elems          = ctp.c_int(len(model_part.Conditions))
+        c_node_ids           = (ctp.c_int * c_num_nodes.value) (0)
+        c_node_coords        = (ctp.c_double * (3 * c_num_nodes.value))(0.0)
         c_num_nodes_per_elem = (ctp.c_int * c_num_elems.value) (0)
 
         for i_node, node in enumerate(model_part.Nodes):
@@ -166,9 +181,13 @@ class EmpireMapperWrapper(PythonMapper):
                 c_elems[elem_index + elem_node_ctr] = elem_node.Id
             elem_index += len(elem.GetNodes())
 
-        self.mapper_library.initFEMesh(c_mesh_name, c_num_nodes, c_num_elems, False)
-        self.mapper_library.setNodesToFEMesh(c_mesh_name, c_node_ids, c_node_coords)
-        self.mapper_library.setElementsToFEMesh(c_mesh_name, c_num_nodes_per_elem, c_elems)
+        EmpireMapperWrapper.mapper_lib.initFEMesh(c_mesh_name, c_num_nodes, c_num_elems, False)
+        EmpireMapperWrapper.mapper_lib.setNodesToFEMesh(c_mesh_name, c_node_ids, c_node_coords)
+        EmpireMapperWrapper.mapper_lib.setElementsToFEMesh(c_mesh_name, c_num_nodes_per_elem, c_elems)
+
+    def __CheckMapperExists(self):
+        if not EmpireMapperWrapper.mapper_lib.hasMapper(ctp.c_char_p(self.name)):
+            raise Exception('Mapper "{}" does not exist!'.format(self.name))
 
     @classmethod
     def _GetDefaultSettings(cls):
@@ -182,45 +201,52 @@ class EmpireMapperWrapper(PythonMapper):
 class EmpireNearestNeighborMapper(EmpireMapperWrapper):
     """Wrapper for the nearest neighbor mapper of Empire"""
 
-    def __init__(self, model_part_origin, model_part_destination, mapper_settings):
-        super(EmpireNearestNeighborMapper, self).__init__(model_part_origin, model_part_destination, mapper_settings)
-
-        # create Mapper
-
-        self._BuildCouplingMatrices()
+    def _CreateMapper(self):
+        EmpireMapperWrapper.mapper_lib.initFEMNearestNeighborMapper(
+            ctp.c_char_p(self.name),
+            self.mesh_name_origin,
+            self.mesh_name_destination
+            )
 
 
 class EmpireNearestElementMapper(EmpireMapperWrapper):
     """Wrapper for the nearest element mapper of Empire"""
 
-    def __init__(self, model_part_origin, model_part_destination, mapper_settings):
-        super(EmpireNearestElementMapper, self).__init__(model_part_origin, model_part_destination, mapper_settings)
-
-        # create Mapper
-
-        self._BuildCouplingMatrices()
+    def _CreateMapper(self):
+        EmpireMapperWrapper.mapper_lib.initFEMNearestElementMapper(
+            ctp.c_char_p(self.name),
+            self.mesh_name_origin,
+            self.mesh_name_destination
+            )
 
 
 class EmpireBarycentricMapper(EmpireMapperWrapper):
     """Wrapper for the barycentric mapper of Empire"""
 
-    def __init__(self, model_part_origin, model_part_destination, mapper_settings):
-        super(EmpireBarycentricMapper, self).__init__(model_part_origin, model_part_destination, mapper_settings)
-
-        # create Mapper
-
-        self._BuildCouplingMatrices()
+    def _CreateMapper(self):
+        EmpireMapperWrapper.mapper_lib.initFEMBarycentricInterpolationMapper(
+            ctp.c_char_p(self.name),
+            self.mesh_name_origin,
+            self.mesh_name_destination
+            )
 
 
 class EmpireMortarMapper(EmpireMapperWrapper):
     """Wrapper for the mortar mapper of Empire"""
 
-    def __init__(self, model_part_origin, model_part_destination, mapper_settings):
-        super(EmpireMortarMapper, self).__init__(model_part_origin, model_part_destination, mapper_settings)
+    def _CreateMapper(self):
+        dual               = int(self.mapper_settings["dual"].GetBool())
+        enforceConsistency = int(self.mapper_settings["enforce_consistency"].GetBool())
+        opposite_normals   = int(self.mapper_settings["opposite_normals"].GetBool())
 
-        # create Mapper
-
-        self._BuildCouplingMatrices()
+        EmpireMapperWrapper.mapper_lib.initFEMMortarMapper(
+            ctp.c_char_p(self.name),
+            self.mesh_name_origin,
+            self.mesh_name_destination,
+            ctp.c_int(opposite_normals),
+            ctp.c_int(dual),
+            ctp.c_int(enforceConsistency)
+            )
 
     @classmethod
     def _GetDefaultSettings(cls):
