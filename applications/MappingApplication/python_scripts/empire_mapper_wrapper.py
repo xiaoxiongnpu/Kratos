@@ -1,4 +1,5 @@
 import KratosMultiphysics as KM
+from KratosMultiphysics.MappingApplication import Mapper
 from KratosMultiphysics.MappingApplication.python_mapper import PythonMapper
 
 import os
@@ -85,14 +86,19 @@ class EmpireMapperWrapper(PythonMapper):
             c_destination_array
             )
 
+        # internal_flags = KM.Flags(mapper_flags)
+        # print(internal_flags)
+
         CArrayToKratosField(
             c_destination_array,
             destination_data_size,
             self.model_part_destination.Nodes,
             variable_destination,
-            True, False, False)
+            True, mapper_flags.Is(Mapper.ADD_VALUES), mapper_flags.Is(Mapper.SWAP_SIGN))
 
     def InverseMap(self, variable_origin, variable_destination, mapper_flags=KM.Flags()):
+        if mapper_flags.Is(Mapper.USE_TRANSPOSE):
+            raise Exception
         # TODO check if using transpose => conservative
 
         if self.__inverse_mapper == None:
@@ -102,7 +108,7 @@ class EmpireMapperWrapper(PythonMapper):
 
     def UpdateInterface(self):
         # this requires recreating the mapper completely!
-        super(EmpireMapperWrapper, self).UpdateInterface()
+        super(EmpireMapperWrapper, self).UpdateInterface() # calling baseclass will raise error as not implemented
 
     # protected methods
     def _CreateMapper(self):
