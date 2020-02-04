@@ -54,6 +54,9 @@ def AssembleTestSuites():
     nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_nearest_element_mapper.NearestElementBasicTestsVolumeSwitchedSides]))
     nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_nearest_element_mapper.NearestElementBladeMapping]))
 
+    nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_empire_mapper_wrapper.EmpireNearestNeighborMapper]))
+    nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_empire_mapper_wrapper.EmpireNearestElementMapper]))
+    nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_empire_mapper_wrapper.EmpireBarycentricMapper]))
     nightSuite.addTests(KratosUnittest.TestLoader().loadTestsFromTestCases([test_empire_mapper_wrapper.EmpireMortarMapper]))
 
     # Create a test suit that contains all the tests from every testCase

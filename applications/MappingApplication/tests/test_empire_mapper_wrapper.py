@@ -6,6 +6,45 @@ import basic_mapper_tests
 import os
 
 @KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
+class EmpireNearestNeighborMapper(basic_mapper_tests.BasicMapperTests):
+    @classmethod
+    def setUpClass(cls):
+        mapper_params = KM.Parameters("""{
+            "mapper_type": "empire_nearest_neighbor",
+            "interface_submodel_part_origin": "surface_tri",
+            "interface_submodel_part_destination": "surface_quad",
+            "echo_level" : 0
+        }""")
+        super(EmpireNearestNeighborMapper, cls).setUpMapper(mapper_params)
+
+
+@KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
+class EmpireNearestElementMapper(basic_mapper_tests.BasicMapperTests):
+    @classmethod
+    def setUpClass(cls):
+        mapper_params = KM.Parameters("""{
+            "mapper_type": "empire_nearest_element",
+            "interface_submodel_part_origin": "surface_tri",
+            "interface_submodel_part_destination": "surface_quad",
+            "echo_level" : 0
+        }""")
+        super(EmpireNearestElementMapper, cls).setUpMapper(mapper_params)
+
+
+@KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
+class EmpireBarycentricMapper(basic_mapper_tests.BasicMapperTests):
+    @classmethod
+    def setUpClass(cls):
+        mapper_params = KM.Parameters("""{
+            "mapper_type": "empire_barycentric",
+            "interface_submodel_part_origin": "surface_tri",
+            "interface_submodel_part_destination": "surface_quad",
+            "echo_level" : 0
+        }""")
+        super(EmpireBarycentricMapper, cls).setUpMapper(mapper_params)
+
+
+@KratosUnittest.skipUnless("EMPIRE_API_LIBSO_ON_MACHINE" in os.environ, "Empire libs not found")
 class EmpireMortarMapper(basic_mapper_tests.BasicMapperTests):
     @classmethod
     def setUpClass(cls):
