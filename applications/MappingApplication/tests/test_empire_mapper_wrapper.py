@@ -11,11 +11,9 @@ class EmpireNearestNeighborMapper(basic_mapper_tests.BasicMapperTests):
     def setUpClass(cls):
         mapper_params = KM.Parameters("""{
             "mapper_type": "empire_nearest_neighbor",
-            "interface_submodel_part_origin": "surface_tri",
-            "interface_submodel_part_destination": "surface_quad",
             "echo_level" : 0
         }""")
-        super(EmpireNearestNeighborMapper, cls).setUpMapper(mapper_params)
+        super(EmpireNearestNeighborMapper, cls).setUpMapper(mapper_params, False, "origin.surface_tri", "destination.surface_quad")
 
     @classmethod
     def tearDownClass(cls):
@@ -28,11 +26,9 @@ class EmpireNearestElementMapper(basic_mapper_tests.BasicMapperTests):
     def setUpClass(cls):
         mapper_params = KM.Parameters("""{
             "mapper_type": "empire_nearest_element",
-            "interface_submodel_part_origin": "surface_tri",
-            "interface_submodel_part_destination": "surface_quad",
             "echo_level" : 0
         }""")
-        super(EmpireNearestElementMapper, cls).setUpMapper(mapper_params)
+        super(EmpireNearestElementMapper, cls).setUpMapper(mapper_params, False, "origin.surface_tri", "destination.surface_quad")
 
     @classmethod
     def tearDownClass(cls):
@@ -45,11 +41,9 @@ class EmpireBarycentricMapper(basic_mapper_tests.BasicMapperTests):
     def setUpClass(cls):
         mapper_params = KM.Parameters("""{
             "mapper_type": "empire_barycentric",
-            "interface_submodel_part_origin": "surface_tri",
-            "interface_submodel_part_destination": "surface_quad",
             "echo_level" : 0
         }""")
-        super(EmpireBarycentricMapper, cls).setUpMapper(mapper_params)
+        super(EmpireBarycentricMapper, cls).setUpMapper(mapper_params, False, "origin.surface_tri", "destination.surface_quad")
 
     @classmethod
     def tearDownClass(cls):
@@ -62,11 +56,9 @@ class EmpireMortarMapper(basic_mapper_tests.BasicMapperTests):
     def setUpClass(cls):
         mapper_params = KM.Parameters("""{
             "mapper_type": "empire_mortar",
-            "interface_submodel_part_origin": "surface_tri",
-            "interface_submodel_part_destination": "surface_quad",
             "echo_level" : 0
         }""")
-        super(EmpireMortarMapper, cls).setUpMapper(mapper_params)
+        super(EmpireMortarMapper, cls).setUpMapper(mapper_params, False, "origin.surface_tri", "destination.surface_quad")
 
     @classmethod
     def tearDownClass(cls):
