@@ -296,10 +296,11 @@ public:
                     }
                     else if (numrigid > 0 && numfreesurf == 0 && numisolated == 0){
                         Alpha *= 1.1;
-                    }else
-                    {
-                        Alpha *= 1.04;
                     }
+                    // else
+                    // {
+                    //     Alpha *= 1.04;
+                    // }
                 }
                 else if (dimension == 3)
                 {

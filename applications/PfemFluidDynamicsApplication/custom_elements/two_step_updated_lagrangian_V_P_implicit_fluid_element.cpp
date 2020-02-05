@@ -65,82 +65,80 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
   double FluidBulkModulus = 0;
   double FluidYieldShear = 0;
   double staticFrictionCoefficient = 0;
-  double regularizationCoefficient = 0;
+  double fluidViscosity=0;
+  // double regularizationCoefficient = 0;
   // double inertialNumberThreshold=0;
   double timeStep = currentProcessInfo[DELTA_TIME];
 
-  // double numNotRigidNodes = 0;
+  double numNotRigidNodes = 0;
   Density = 0;
   FluidBulkModulus = 0;
   FluidYieldShear = 0;
   staticFrictionCoefficient = 0;
-  regularizationCoefficient = 1000;
-  // bool subareal = true;
   GeometryType &rGeom = this->GetGeometry();
   const SizeType NumNodes = rGeom.PointsNumber();
-  double landslideDensity = 0;
-  double waterDensity = 1000;
-  unsigned int landslideNodes = 0;
-  unsigned int waterNodes = 0;
+  // double landslideDensity = 0;
+  // double landslideViscosity = 0;
+  // double waterDensity = 1000;
+  // double waterViscosity = 0.001;
+  // double fluidViscosity = 0.001;
+  // unsigned int landslideNodes = 0;
+  // unsigned int waterNodes = 0;
   for (SizeType i = 0; i < NumNodes; i++)
   {
     if (rGeom[i].IsNot(RIGID))
     {
-      FluidBulkModulus = rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
-      // numNotRigidNodes += 1.0;
-      double nodalDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
-      if (nodalDensity > waterDensity)
-      {
-        landslideDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
-        FluidYieldShear = rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
-        landslideNodes++;
-      }
-      else
-      {
-        waterNodes++;
-      }
-      // Density += rGeom[i].FastGetSolutionStepValue(DENSITY);
-      // FluidYieldShear += rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
-      // FluidBulkModulus += rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
-      // staticFrictionCoefficient += rGeom[i].FastGetSolutionStepValue(STATIC_FRICTION);
-      // regularizationCoefficient += rGeom[i].FastGetSolutionStepValue(REGULARIZATION_COEFFICIENT);
-      // if (rGeom[i].Y() < 0.3)
+      // FluidBulkModulus = rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
+      // double nodalDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
+      // if (nodalDensity > waterDensity)
       // {
-      //   subareal = false;
+        // landslideDensity = rGeom[i].FastGetSolutionStepValue(DENSITY);
+        // FluidYieldShear = rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
+        // landslideViscosity = rGeom[i].FastGetSolutionStepValue(DYNAMIC_VISCOSITY);
+      //   landslideNodes++;
       // }
+      // else
+      // {
+      //   waterNodes++;
+      // }
+      numNotRigidNodes += 1.0;
+      Density += rGeom[i].FastGetSolutionStepValue(DENSITY);
+      FluidYieldShear += rGeom[i].FastGetSolutionStepValue(YIELD_SHEAR);
+      FluidBulkModulus += rGeom[i].FastGetSolutionStepValue(BULK_MODULUS);
+      staticFrictionCoefficient += rGeom[i].FastGetSolutionStepValue(STATIC_FRICTION);
+      fluidViscosity += rGeom[i].FastGetSolutionStepValue(DYNAMIC_VISCOSITY);
     }
-    // else
-    // {
-    //   if (Density > 0)
-    //   {
-    //     rGeom[i].FastGetSolutionStepValue(DENSITY) = landslideDensity;
-    //   }
-    // }
   }
 
-  // if (numNotRigidNodes != 0)
+  if (numNotRigidNodes != 0)
+  {
+    Density *= 1.0 / numNotRigidNodes;
+    FluidYieldShear *= 1.0 / numNotRigidNodes;
+    FluidBulkModulus *= 1.0 / numNotRigidNodes;
+    staticFrictionCoefficient *= 1.0 / numNotRigidNodes;
+    fluidViscosity *= 1.0 / numNotRigidNodes;
+  }
+
+  // if (waterNodes > landslideNodes)
   // {
-  //   Density *= 1.0 / numNotRigidNodes;
-  //   FluidYieldShear *= 1.0 / numNotRigidNodes;
-  //   FluidBulkModulus *= 1.0 / numNotRigidNodes;
-  //   staticFrictionCoefficient *= 1.0 / numNotRigidNodes;
-  //   regularizationCoefficient *= 1.0 / numNotRigidNodes;
+  //   Density = waterDensity;
+  //   fluidViscosity = waterViscosity;
   // }
-
-  if (waterNodes > landslideNodes)
-  {
-    Density = waterDensity;
-  }
-  else
-  {
-    Density = landslideDensity;
-  }
+  // else
+  // {
+  //   Density = landslideDensity;
+  //   fluidViscosity = landslideViscosity;
+  // }
 
   this->SetValue(YIELDED, Density);
 
   bool boundaryElement = false;
   boundaryElement = this->TellMeIfItIsBoundaryElement();
 
+  // if (boundaryElement == true)
+  // {
+  //   fluidViscosity = waterViscosity;
+  // }
   if (FluidBulkModulus == 0)
   {
     FluidBulkModulus = 1000000000.0;
@@ -152,21 +150,11 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
     // std::cout<<"For a Newtonian fluid I should not enter here"<<std::endl;
     // DeviatoricCoeff = this->ComputeNonLinearViscosity(rElementalVariables.EquivalentStrainRate);
     DeviatoricCoeff = this->ComputeFrictionViscosityFritz(rElementalVariables, boundaryElement);
+    DeviatoricCoeff += fluidViscosity;
   }
   else if (staticFrictionCoefficient != 0)
   {
     DeviatoricCoeff = this->ComputePapanastasiouMuIrheologyViscosity(rElementalVariables);
-    // if(regularizationCoefficient!=0 && inertialNumberThreshold==0){
-    // 	// DeviatoricCoeff=this->ComputeBercovierMuIrheologyViscosity(rElementalVariables);
-    // 	DeviatoricCoeff=this->ComputePapanastasiouMuIrheologyViscosity(rElementalVariables);
-    // }
-    // else if(regularizationCoefficient==0 && inertialNumberThreshold!=0){
-    // 	DeviatoricCoeff=this->ComputeBarkerMuIrheologyViscosity(rElementalVariables);
-    // }else if(regularizationCoefficient!=0 && inertialNumberThreshold!=0){
-    // 	DeviatoricCoeff=this->ComputeBarkerBercovierMuIrheologyViscosity(rElementalVariables);
-    // }else{
-    // 	DeviatoricCoeff=this->ComputeJopMuIrheologyViscosity(rElementalVariables);
-    // }
   }
   else
   {
@@ -174,11 +162,6 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
     this->EvaluatePropertyFromANotRigidNode(DeviatoricCoeff, DYNAMIC_VISCOSITY);
   }
 
-  // this->ComputeMaterialParametersGranularGas(rElementalVariables,VolumetricCoeff,DeviatoricCoeff);
-  // std::cout<<"Density "<<Density<<std::endl;
-  // std::cout<<"FluidBulkModulus "<<FluidBulkModulus<<std::endl;
-  // std::cout<<"staticFrictionCoefficient "<<staticFrictionCoefficient<<std::endl;
-  // std::cout<<"DeviatoricCoeff "<<DeviatoricCoeff<<std::endl;
   // if (boundaryElement == true && subareal == false)
   // {
   //   DeviatoricCoeff=0.001;
@@ -186,21 +169,13 @@ void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParame
   this->mMaterialDeviatoricCoefficient = DeviatoricCoeff;
   this->mMaterialVolumetricCoefficient = VolumetricCoeff;
   this->mMaterialDensity = Density;
-
-  // const SizeType NumNodes = this->GetGeometry().PointsNumber();
-  // for (SizeType i = 0; i < NumNodes; ++i)
-  //   {
-  // 	this->GetGeometry()[i].FastGetSolutionStepValue(ADAPTIVE_EXPONENT)=VolumetricCoeff;
-  // 	this->GetGeometry()[i].FastGetSolutionStepValue(ALPHA_PARAMETER)=DeviatoricCoeff;
-  // 	this->GetGeometry()[i].FastGetSolutionStepValue(FLOW_INDEX)=rElementalVariables.EquivalentStrainRate;
-  //   }
 }
 
 template <unsigned int TDim>
 double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeFrictionViscosityFritz(ElementalVariables &rElementalVariables,
                                                                                            bool boundaryElement)
 {
-  double FluidViscosity = 0;
+  double FluidNonLinearViscosity = 0;
   double tanFi = 0.487; //26 degrees (I have used this for the first cases)
   //tanFi=0.424; // 23 degrees (crosta)
   tanFi = 0.9325;           // 34 degrees (pinyol) (I have used this for VajontMesh10H700stiffer case)
@@ -216,19 +191,19 @@ double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeFrictionVisc
     meanPressure = 0.0000001;
   }
 
-  double FluidAdaptiveExponent = 0;
-  this->EvaluatePropertyFromANotRigidNode(FluidViscosity, DYNAMIC_VISCOSITY);
-  this->EvaluatePropertyFromANotRigidNode(FluidAdaptiveExponent, ADAPTIVE_EXPONENT);
+  double FluidAdaptiveExponent = 1000;
+  // this->EvaluatePropertyFromANotRigidNode(FluidViscosity, DYNAMIC_VISCOSITY);
+  // this->EvaluatePropertyFromANotRigidNode(FluidAdaptiveExponent, ADAPTIVE_EXPONENT);
   double exponent = -FluidAdaptiveExponent * rElementalVariables.EquivalentStrainRate;
   if (rElementalVariables.EquivalentStrainRate != 0 && fabs(meanPressure) != 0)
   {
-    FluidViscosity += (cohesion + tanFi * fabs(meanPressure) / rElementalVariables.EquivalentStrainRate) * (1 - exp(exponent));
+    FluidNonLinearViscosity += (cohesion + tanFi * fabs(meanPressure) / rElementalVariables.EquivalentStrainRate) * (1 - exp(exponent));
   }
   else
   {
-    FluidViscosity = 0.001;
+    FluidNonLinearViscosity = 0;
   }
-  return FluidViscosity;
+  return FluidNonLinearViscosity;
 }
 
 template <unsigned int TDim>
