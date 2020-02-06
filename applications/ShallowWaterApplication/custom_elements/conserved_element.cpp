@@ -167,7 +167,58 @@ void ConservedElement<TNumNodes>::CalculateRightHandSide(
     VectorType& rRightHandSideVector,
     ProcessInfo& rCurrentProcessInfo)
 {
-    KRATOS_THROW_ERROR(std::logic_error,  "method not implemented" , "");
+    // Resize of the Right Hand side
+    constexpr size_t element_size = TNumNodes*3;
+    if(rRightHandSideVector.size() != element_size)
+        rRightHandSideVector.resize(element_size, false); // False says not to preserve existing storage!!
+
+    const GeometryType& geom = this->GetGeometry();
+
+    ElementVariables variables;
+    this->InitializeElementVariables(variables, rCurrentProcessInfo);
+
+    const BoundedMatrix<double, TNumNodes, TNumNodes> N_container = geom.ShapeFunctionsValues(GeometryData::GI_GAUSS_2 );
+    GeometryType::ShapeFunctionsGradientsType DN_DX_container(TNumNodes);
+    geom.ShapeFunctionsIntegrationPointsGradients(DN_DX_container, GeometryData::GI_GAUSS_2);
+
+    BoundedMatrix<double, TNumNodes, 2> DN_DX;
+    array_1d<double, TNumNodes> N;
+    double area = geom.Area();
+
+    this->GetNodalValues(variables);
+    this->CalculateElementValues(DN_DX_container, variables);
+
+    MatrixType local_matrix = ZeroMatrix(element_size, element_size);
+    rRightHandSideVector = ZeroVector(element_size);
+
+    for (size_t g = 0; g < TNumNodes; ++g)
+    {
+        N = row(N_container, g);
+        DN_DX = DN_DX_container[g];
+
+        this->BuildAuxiliaryMatrices(N, DN_DX, variables);
+
+        // this->AddConvectiveTerms(local_matrix, rRightHandSideVector, variables);
+        this->AddWaveTerms(local_matrix, rRightHandSideVector, variables);
+        this->AddFrictionTerms(local_matrix, rRightHandSideVector, variables);
+        this->AddStabilizationTerms(local_matrix, rRightHandSideVector, variables);
+        this->AddSourceTerms(rRightHandSideVector, variables);
+    }
+
+    // Substracting the Dirichlet term (since we use a residualbased approach)
+    rRightHandSideVector -= prod(local_matrix, variables.unknown);
+
+    const double delta_time = rCurrentProcessInfo[DELTA_TIME];
+    rRightHandSideVector *= delta_time * area * variables.lumping_factor;
+
+    const int block_size = 3;
+    for (size_t i = 0; i < TNumNodes; ++i)
+    {
+        for (size_t j = 0; j < block_size; ++j)
+        {
+            rRightHandSideVector[block_size*i+j] /= geom[i].FastGetSolutionStepValue(NODAL_MASS);
+        }
+    }
 }
 
 
@@ -473,6 +524,76 @@ void ConservedElement<TNumNodes>::CalculateLumpedMassMatrix(LocalMatrixType& rMa
     rMassMatrix = IdentityMatrix(local_size, local_size);
     rMassMatrix /= static_cast<double>(TNumNodes);
 }
+
+
+//************************************************************************************
+//************************************************************************************
+// EXPLICIT METHODS
+//************************************************************************************
+//************************************************************************************
+
+template<size_t TNumNodes>
+void ConservedElement<TNumNodes>::Calculate(
+    const Variable<double>& rVariable,
+    double& rOutput, const ProcessInfo&
+    rCurrentProcessInfo)
+{
+    //if the variable is NODAL_MASS, we calculate the lumped mass
+    if(rVariable == NODAL_MASS)
+    {
+        CalculateAndAddLumpedMass();
+    }
+    else
+        KRATOS_THROW_ERROR(std::logic_error,  "You are doing something wrong  FCT calculate... of nodal_mass with wrong parameters.. " , "");
+}
+
+
+template<size_t TNumNodes>
+void ConservedElement<TNumNodes>::AddExplicitContribution(const ProcessInfo& rCurrentProcessInfo)
+{
+    this->AddExplicitContribution(const_cast<ProcessInfo&>(rCurrentProcessInfo));
+}
+
+
+template<size_t TNumNodes>
+void ConservedElement<TNumNodes>::AddExplicitContribution(ProcessInfo& rCurrentProcessInfo)
+{    
+    VectorType local_vector;
+    this->CalculateRightHandSide(local_vector, rCurrentProcessInfo);
+
+    auto& r_geom = this->GetGeometry();
+    size_t count = 0;
+
+    // Adding the explicit contribution to the RHS variable
+    for (size_t i = 0; i < TNumNodes; ++i)
+    {
+        r_geom[i].SetLock();
+        r_geom[i].FastGetSolutionStepValue(RHS_MOMENTUM_X) += local_vector[count++];
+        r_geom[i].FastGetSolutionStepValue(RHS_MOMENTUM_Y) += local_vector[count++];
+        r_geom[i].FastGetSolutionStepValue(RHS_HEIGHT)     += local_vector[count++];
+        r_geom[i].UnSetLock();
+    }
+}
+
+
+template<size_t TNumNodes>
+void ConservedElement<TNumNodes>::CalculateAndAddLumpedMass()
+{
+    auto& r_geom = this->GetGeometry();
+    const double area = r_geom.Area();
+    const double lumping_factor = area / static_cast<double>(TNumNodes);
+
+    // Filling in the diagonal of the lumped mass matrix
+    for (size_t i = 0; i < TNumNodes; ++i)
+    {
+        r_geom[i].SetLock();
+        r_geom[i].FastGetSolutionStepValue(NODAL_MASS) += lumping_factor;
+        r_geom[i].UnSetLock();
+    }
+}
+
+//************************************************************************************
+//************************************************************************************
 
 
 template class ConservedElement<3>;

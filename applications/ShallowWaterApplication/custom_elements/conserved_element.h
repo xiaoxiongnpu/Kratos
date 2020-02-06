@@ -150,6 +150,12 @@ public:
 
     void GetValueOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo) override;
 
+    void Calculate(const Variable<double>& rVariable, double& rOutput, const ProcessInfo& rCurrentProcessInfo) override;
+
+    void AddExplicitContribution(const ProcessInfo& rCurrentProcessInfo) override;
+
+    void AddExplicitContribution(ProcessInfo& rCurrentProcessInfo) override;
+
     ///@}
     ///@name Access
     ///@{
@@ -274,6 +280,8 @@ protected:
         ElementVariables& rVariables);
 
     void CalculateLumpedMassMatrix(LocalMatrixType& rMassMatrix);
+
+    void CalculateAndAddLumpedMass();
 
     ///@}
     ///@name Protected  Access
