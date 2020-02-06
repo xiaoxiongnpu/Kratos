@@ -241,6 +241,8 @@ public:
         std::vector<double>& rValues,
         const ProcessInfo& rCurrentProcessInfo) override;
 
+    void AddExplicitContribution(ProcessInfo& rCurrentProcessInfo) override;
+
     ///@}
     ///@name Access
     ///@{

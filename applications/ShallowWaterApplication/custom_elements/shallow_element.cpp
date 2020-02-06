@@ -254,7 +254,106 @@ void ShallowElement::CalculateRightHandSide(
     VectorType& rRightHandSideVector,
     ProcessInfo& rCurrentProcessInfo)
 {
-    KRATOS_ERROR << "ShallowElement: CalculateRightHandSide not implemented" << std::endl;
+
+    MatrixType left_hand_side_matrix = ZeroMatrix(msElemSize, msElemSize);
+
+    if(rRightHandSideVector.size() != msElemSize)
+        rRightHandSideVector.resize(msElemSize,false);          // False says not to preserve existing storage!!
+
+    // Struct to pass around the data
+    ElementData data;
+    this->InitializeElement(data, rCurrentProcessInfo);
+
+    BoundedMatrix<double,3,2> DN_DX; // Gradients matrix
+    array_1d<double,3> N;            // Position of the gauss point 
+    double area;
+    GeometryUtils::CalculateGeometryData(GetGeometry(), DN_DX, N, area);
+
+    double length = GetGeometry().Length();
+
+    // Mass matrix
+    BoundedMatrix<double,msElemSize,msElemSize> vel_mass_matrix = ZeroMatrix(msElemSize,msElemSize);
+    BoundedMatrix<double,msElemSize,msElemSize> h_mass_matrix = ZeroMatrix(msElemSize,msElemSize);
+    ComputeMassMatrices(data, vel_mass_matrix, h_mass_matrix);
+
+    // main loop (one Gauss point)
+
+    // Build shape functions and derivatives at the Gauss point
+    BoundedMatrix<double,2,msElemSize> N_vel = ZeroMatrix(2,msElemSize);        // Shape functions matrix (for velocity)
+    array_1d<double,msElemSize> N_height = ZeroVector(msElemSize);              // Shape functions vector (for height)
+    array_1d<double,msElemSize> DN_DX_vel = ZeroVector(msElemSize);             // Gradients vector (for velocity)
+    BoundedMatrix<double,2,msElemSize> DN_DX_height = ZeroMatrix(2,msElemSize); // Gradients matrix (for height)
+    for(unsigned int node = 0; node < msNodes; node++)
+    {
+        // Velocity divergence
+        DN_DX_vel[  node*3] = DN_DX(node,0);
+        DN_DX_vel[1+node*3] = DN_DX(node,1);
+        // Height gradient
+        DN_DX_height(0, 2+node*3) = DN_DX(node,0);
+        DN_DX_height(1, 2+node*3) = DN_DX(node,1);
+        // Height shape funtions
+        N_height[2+node*3] = N[node];
+        // Velocity shape functions
+        N_vel(0,   node*3) = N[node];
+        N_vel(1, 1+node*3) = N[node];
+    }
+
+    array_1d<double,2> vel;
+    double height;
+    ComputeElementValues(data, vel, height);
+    int sign;
+    if (height > 0.0)
+        sign = 1;
+    else
+        sign = -1;
+
+    // Auxiliary values to compute friction and stabilization terms
+    const double epsilon = 0.005;
+    const double abs_vel = norm_2(vel);
+    const double aux_height = std::abs(height) + epsilon;
+    const double height4_3 = std::pow(aux_height, 1.33333333);
+    const double c = std::sqrt(data.gravity * aux_height);
+
+    // Build LHS
+    // Wave equation terms
+    BoundedMatrix<double,msElemSize,msElemSize> vel_wave = prod(trans(N_vel),DN_DX_height);
+    noalias(left_hand_side_matrix)  = data.gravity * sign * vel_wave;           // Add <w*g*grad(h)> to Momentum Eq
+    noalias(left_hand_side_matrix) += height * outer_prod(N_height, DN_DX_vel); // Add <q*h*div(u)> to Mass Eq
+
+    // Friction term
+    noalias(left_hand_side_matrix) += data.gravity * data.manning2 * abs_vel / height4_3 * vel_mass_matrix;
+
+    // Build RHS
+    // Source terms (bathymetry contribution)
+    noalias(rRightHandSideVector)  = data.gravity * sign * prod(vel_wave, data.depth);
+
+    // Inertia terms
+    noalias(rRightHandSideVector) += data.dt_inv * prod(vel_mass_matrix, data.proj_unk);
+    noalias(rRightHandSideVector) += data.dt_inv * prod(h_mass_matrix, data.proj_unk);
+
+    // Computing stabilization terms
+    double art = length * data.c_tau / c;
+    double k_dc = 0.5 * length * data.c_tau;
+    const array_1d<double,2> height_grad = prod(DN_DX_height, data.unknown);
+    const double grad_norm = norm_2(height_grad);
+    if (grad_norm > 1e-3)
+        k_dc *= grad_norm;
+    else
+        k_dc *= 0;
+
+    // Mass balance LHS stabilization terms
+    BoundedMatrix<double,msElemSize,msElemSize> diff_h = prod(trans(DN_DX_height), DN_DX_height);
+    noalias(left_hand_side_matrix) += k_dc * diff_h; // Second order FIC shock capturing
+    noalias(rRightHandSideVector) += k_dc * prod(diff_h, data.depth); // Substracting the bottom diffusion
+
+    // Momentum balance stabilization terms
+    BoundedMatrix<double,msElemSize,msElemSize> diff_v = outer_prod(DN_DX_vel, DN_DX_vel);
+    noalias(left_hand_side_matrix) += art * diff_v; // Second order FIC
+
+    // Substracting the Dirichlet term (since we use a residualbased approach)
+    noalias(rRightHandSideVector) -= prod(left_hand_side_matrix, data.unknown);
+
+    rRightHandSideVector *= area;
 }
 
 //----------------------------------------------------------------------
@@ -348,6 +447,25 @@ void ShallowElement::ComputeElementValues(
     }
     rVel *= rData.lumping_factor;
     rHeight *= rData.lumping_factor;
+}
+
+void ShallowElement::AddExplicitContribution(ProcessInfo& rCurrentProcessInfo)
+{
+    VectorType local_vector;
+    this->CalculateRightHandSide(local_vector, rCurrentProcessInfo);
+
+    auto& r_geom = this->GetGeometry();
+    size_t count = 0;
+
+    // Adding the explicit contribution to the RHS variable
+    for (size_t i = 0; i < 3; ++i)
+    {
+        r_geom[i].SetLock();
+        r_geom[i].FastGetSolutionStepValue(RHS_VELOCITY_X) += local_vector[count++];
+        r_geom[i].FastGetSolutionStepValue(RHS_VELOCITY_Y) += local_vector[count++];
+        r_geom[i].FastGetSolutionStepValue(RHS_HEIGHT)     += local_vector[count++];
+        r_geom[i].UnSetLock();
+    }
 }
 
 
