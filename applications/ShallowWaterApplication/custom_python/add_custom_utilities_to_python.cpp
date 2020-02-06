@@ -24,6 +24,7 @@
 #include "custom_utilities/shallow_water_utilities.h"
 #include "custom_utilities/post_process_utilities.h"
 #include "custom_utilities/bfecc_convection_utility.h"
+#include "custom_utilities/test_dofs_performance.h"
 
 
 namespace Kratos
@@ -35,6 +36,12 @@ namespace Python
   void  AddCustomUtilitiesToPython(pybind11::module& m)
   {
     namespace py = pybind11;
+
+    py::class_<TestDofsPerformance>(m, "TestDofsPerformance")
+        .def(py::init<>())
+        .def("TestDofs", &TestDofsPerformance::TestDofs)
+        .def("TestNodes", &TestDofsPerformance::TestNodes)
+        ;
 
     py::class_< MoveShallowWaterParticleUtility<2> > (m, "MoveShallowWaterParticleUtility")
         .def(py::init<ModelPart& , Parameters >())
