@@ -444,10 +444,14 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Asse
     const BoundedMatrixType Ae
     )
 {
+    // Auxiliar values
+    PointType global_point, local_point_parent, gp_global, projected_gp_global;
+    array_1d<double,3> gp_normal;
+    GeometryType::CoordinatesArrayType projected_gp_local;
+    std::vector<PointType::Pointer> points_array (TDim); // The points are stored as local coordinates, we calculate the global coordinates of this points
+    
     for (IndexType i_geom = 0; i_geom < rGeometricalObjectsPointSlave.size(); ++i_geom) {
-        std::vector<PointType::Pointer> points_array (TDim); // The points are stored as local coordinates, we calculate the global coordinates of this points
         for (IndexType i_node = 0; i_node < TDim; ++i_node) {
-            PointType global_point;
             rSlaveGeometry.GlobalCoordinates(global_point, rGeometricalObjectsPointSlave[i_geom][i_node]);
             points_array[i_node] = Kratos::make_shared<PointType>( global_point );
         }
@@ -460,9 +464,6 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Asse
             const GeometryType::IntegrationPointsArrayType& r_integration_points_slave = decomp_geom.IntegrationPoints( rThisIntegrationMethod );
 
             // Integrating the mortar operators
-            PointType local_point_parent, gp_global, projected_gp_global;
-            array_1d<double,3> gp_normal;
-            GeometryType::CoordinatesArrayType projected_gp_local;
             for ( IndexType point_number = 0; point_number < r_integration_points_slave.size(); ++point_number ) {
                 const PointType local_point_decomp{r_integration_points_slave[point_number].Coordinates()};
 
@@ -825,15 +826,6 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Exec
     std::vector<double> norm_bi(variable_size, 0.0);
     double increment_residual_norm = 0.0;
 
-    // Create and initialize condition variables:
-    MortarKinematicVariablesType this_kinematic_variables;
-
-    // Create the mortar operators
-    MortarOperatorType this_mortar_operators;
-
-    // We call the exact integration utility
-    ExactMortarIntegrationUtilityType integration_utility = ExactMortarIntegrationUtilityType(TDim, distance_threshold, 0, zero_tolerance_factor);
-
     // We reset the nodal area
     ResetNodalArea();
 
@@ -851,16 +843,28 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Exec
         const auto it_cond_begin = r_conditions_array.begin();
 
         // We map the values from one side to the other
-        #pragma omp parallel for firstprivate(this_kinematic_variables, this_mortar_operators, integration_utility)
-        for(int i = 0; i < num_conditions; ++i) {
-            auto it_cond = it_cond_begin + i;
+        #pragma omp parallel
+        {
+            // Create and initialize condition variables:
+            MortarKinematicVariablesType this_kinematic_variables;
 
-            if (it_cond->Has( INDEX_SET )) {
-                IndexSet::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_SET ); // These are the master conditions
-                ClearIndexes<IndexSet>(p_indexes_pairs, (*it_cond.base()), integration_utility);
-            } else {
-                IndexMap::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_MAP ); // These are the master conditions
-                ClearIndexes<IndexMap>(p_indexes_pairs, (*it_cond.base()), integration_utility);
+            // Create the mortar operators
+            MortarOperatorType this_mortar_operators;
+
+            // We call the exact integration utility
+            ExactMortarIntegrationUtilityType integration_utility = ExactMortarIntegrationUtilityType(TDim, distance_threshold, 0, zero_tolerance_factor);
+            
+            #pragma omp for
+            for(int i = 0; i < num_conditions; ++i) {
+                auto it_cond = it_cond_begin + i;
+
+                if (it_cond->Has( INDEX_SET )) {
+                    IndexSet::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_SET ); // These are the master conditions
+                    ClearIndexes<IndexSet>(p_indexes_pairs, (*it_cond.base()), integration_utility);
+                } else {
+                    IndexMap::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_MAP ); // These are the master conditions
+                    ClearIndexes<IndexMap>(p_indexes_pairs, (*it_cond.base()), integration_utility);
+                }
             }
         }
     } else {
@@ -870,16 +874,28 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Exec
         const auto it_elem_begin = r_elements_array.begin();
 
         // We map the values from one side to the other
-        #pragma omp parallel for firstprivate(this_kinematic_variables, this_mortar_operators, integration_utility)
-        for(int i = 0; i < num_elements; ++i) {
-            auto it_elem = it_elem_begin + i;
+        #pragma omp parallel
+        {
+            // Create and initialize condition variables:
+            MortarKinematicVariablesType this_kinematic_variables;
 
-            if (it_elem->Has( INDEX_SET )) {
-                IndexSet::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_SET ); // These are the master elements
-                ClearIndexes<IndexSet>(p_indexes_pairs, (*it_elem.base()), integration_utility);
-            } else {
-                IndexMap::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_MAP ); // These are the master elements
-                ClearIndexes<IndexMap>(p_indexes_pairs, (*it_elem.base()), integration_utility);
+            // Create the mortar operators
+            MortarOperatorType this_mortar_operators;
+
+            // We call the exact integration utility
+            ExactMortarIntegrationUtilityType integration_utility = ExactMortarIntegrationUtilityType(TDim, distance_threshold, 0, zero_tolerance_factor);
+            
+            #pragma omp for
+            for(int i = 0; i < num_elements; ++i) {
+                auto it_elem = it_elem_begin + i;
+
+                if (it_elem->Has( INDEX_SET )) {
+                    IndexSet::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_SET ); // These are the master elements
+                    ClearIndexes<IndexSet>(p_indexes_pairs, (*it_elem.base()), integration_utility);
+                } else {
+                    IndexMap::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_MAP ); // These are the master elements
+                    ClearIndexes<IndexMap>(p_indexes_pairs, (*it_elem.base()), integration_utility);
+                }
             }
         }
     }
@@ -902,16 +918,28 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Exec
             const auto it_cond_begin = r_conditions_array.begin();
 
             // We map the values from one side to the other
-            #pragma omp parallel for firstprivate(this_kinematic_variables, this_mortar_operators, integration_utility)
-            for(int i = 0; i < num_conditions; ++i) {
-                auto it_cond = it_cond_begin + i;
+            #pragma omp parallel
+            {
+                // Create and initialize condition variables:
+                MortarKinematicVariablesType this_kinematic_variables;
 
-                if (it_cond->Has( INDEX_SET )) {
-                    IndexSet::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_SET ); // These are the master conditions
-                    PerformMortarOperations<IndexSet>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_cond.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
-                } else {
-                    IndexMap::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_MAP ); // These are the master conditions
-                    PerformMortarOperations<IndexMap>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_cond.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                // Create the mortar operators
+                MortarOperatorType this_mortar_operators;
+
+                // We call the exact integration utility
+                ExactMortarIntegrationUtilityType integration_utility = ExactMortarIntegrationUtilityType(TDim, distance_threshold, 0, zero_tolerance_factor);
+            
+                #pragma omp for
+                for(int i = 0; i < num_conditions; ++i) {
+                    auto it_cond = it_cond_begin + i;
+
+                    if (it_cond->Has( INDEX_SET )) {
+                        IndexSet::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_SET ); // These are the master conditions
+                        PerformMortarOperations<IndexSet>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_cond.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                    } else {
+                        IndexMap::Pointer p_indexes_pairs = it_cond->GetValue( INDEX_MAP ); // These are the master conditions
+                        PerformMortarOperations<IndexMap>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_cond.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                    }
                 }
             }
         } else {
@@ -921,16 +949,28 @@ void SimpleMortarMapperProcess<TDim, TNumNodes, TVarType, TNumNodesMaster>::Exec
             const auto it_elem_begin = r_elements_array.begin();
 
             // We map the values from one side to the other
-            #pragma omp parallel for firstprivate(this_kinematic_variables, this_mortar_operators, integration_utility)
-            for(int i = 0; i < num_elements; ++i) {
-                auto it_elem = it_elem_begin + i;
+            #pragma omp parallel
+            {
+                // Create and initialize condition variables:
+                MortarKinematicVariablesType this_kinematic_variables;
 
-                if (it_elem->Has( INDEX_SET )) {
-                    IndexSet::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_SET ); // These are the master elements
-                    PerformMortarOperations<IndexSet>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_elem.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
-                } else {
-                    IndexMap::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_MAP ); // These are the master elements
-                    PerformMortarOperations<IndexMap>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_elem.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                // Create the mortar operators
+                MortarOperatorType this_mortar_operators;
+
+                // We call the exact integration utility
+                ExactMortarIntegrationUtilityType integration_utility = ExactMortarIntegrationUtilityType(TDim, distance_threshold, 0, zero_tolerance_factor);
+            
+                #pragma omp for
+                for(int i = 0; i < num_elements; ++i) {
+                    auto it_elem = it_elem_begin + i;
+
+                    if (it_elem->Has( INDEX_SET )) {
+                        IndexSet::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_SET ); // These are the master elements
+                        PerformMortarOperations<IndexSet>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_elem.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                    } else {
+                        IndexMap::Pointer p_indexes_pairs = it_elem->GetValue( INDEX_MAP ); // These are the master elements
+                        PerformMortarOperations<IndexMap>(A, b, inverse_conectivity_database, p_indexes_pairs, (*it_elem.base()), integration_utility, this_kinematic_variables, this_mortar_operators, iteration);
+                    }
                 }
             }
         }
