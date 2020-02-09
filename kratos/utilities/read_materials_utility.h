@@ -215,7 +215,6 @@ class KRATOS_API(KRATOS_CORE) ReadMaterialsUtility
      */
     void TrimComponentName(std::string& rLine);
     
-    
     /**
      * @brief This method creates an auxiliar Parameters when reading properties in order to avoid error, so these non-registered properties can be processed later
      * @param VariablesParameters The original variable parameters

@@ -166,11 +166,22 @@ public:
      * @param MaterialData The parameters containing all the configurations of the materials
      * @param rProperty The reference to the property for which the materials are to be assigned
      */
-    void AssingVariablesToProperty(
+    void AssignVariablesToProperty(
         const Parameters MaterialData,
         Properties& rProperty
         ) override;
         
+    /**
+     * @brief This method creates an auxiliar Parameters when reading properties in order to avoid error, so these non-registered properties can be processed later
+     * @param VariablesParameters The original variable parameters
+     * @param PropertyId The current property Id (for a warning)
+     * @return The variables filtered if required
+     */
+    Parameters FilterVariables(
+        const Parameters VariablesParameters,
+        const IndexType PropertyId = 0
+        ) override;
+
     ///@}
     ///@name Protected  Access
     ///@{
