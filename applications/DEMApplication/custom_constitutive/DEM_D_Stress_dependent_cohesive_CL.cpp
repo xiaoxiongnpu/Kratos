@@ -327,7 +327,7 @@ namespace Kratos {
                                                                                 double& MaximumAdmisibleShearForce) {
 
         double share_of_max_contact_stress = element->GetParticleCohesion() * contact_area / normal_contact_force;
-        if (share_of_max_contact_stress >= 1.0) share_of_max_contact_stress = 1.0;
+        // if (share_of_max_contact_stress >= 1.0) share_of_max_contact_stress = 1.0;
 
         LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - share_of_max_contact_stress * mKt * LocalDeltDisp[0];
         LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - share_of_max_contact_stress * mKt * LocalDeltDisp[1];
