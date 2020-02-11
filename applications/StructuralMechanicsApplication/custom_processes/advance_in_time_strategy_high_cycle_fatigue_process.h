@@ -81,6 +81,13 @@ public:
     //  * @param pNodeNormalizedFreeEnergyVector the indicator container
     //  */
     // void NormalizedFreeEnergyExtrapolation(NodeNormalizedFreeEnergy *pNodeNormalizedFreeEnergyVector);
+    
+    /**
+     * returns whether this constitutive Law has specified variable
+     * @param rThisVariable the variable to be checked for
+     * @return true if the variable is defined in the constitutive law
+     */
+    bool Has(const Variable<bool>& rThisVariable);
 
     /**
      * @brief This method computes the free energy 

@@ -34,7 +34,7 @@ void AdvanceInTimeStrategyHighCycleFatigueProcess::Execute()
     KRATOS_WATCH("uno")
     auto& process_info = mrModelPart.GetProcessInfo();
     bool cycle_found = false;
-    std::vector<int> cycle_identificator;
+    std::vector<bool> cycle_identificator;
     std::vector<int> cycles_after_advance_strategy;
     std::vector<double> damage;
     bool damage_indicator = false;
@@ -72,10 +72,10 @@ void AdvanceInTimeStrategyHighCycleFatigueProcess::Execute()
                     this->TimeAndCyclesUpdate(increment);
                     process_info[ADVANCE_STRATEGY_APPLIED] = true;
                 }
-            } else {
-                increment = 1000.0*12.0;
-                    this->TimeAndCyclesUpdate(increment);   
-                    process_info[ADVANCE_STRATEGY_APPLIED] = true;             
+            // } else {
+            //     increment = 1000.0*12.0;
+            //         this->TimeAndCyclesUpdate(increment);   
+            //         process_info[ADVANCE_STRATEGY_APPLIED] = true;             
             }
         }
     }
@@ -93,21 +93,30 @@ void AdvanceInTimeStrategyHighCycleFatigueProcess::CyclePeriodPerIntegrationPoin
     double time = process_info[TIME];
     
     for (auto& r_elem : mrModelPart.Elements()) {
+
         r_elem.GetValueOnIntegrationPoints(CYCLE_INDICATOR, cycle_identificator, process_info);
         r_elem.GetValueOnIntegrationPoints(PREVIOUS_CYCLE, previous_cycle_time, process_info);
         r_elem.GetValueOnIntegrationPoints(CYCLE_PERIOD, period, process_info);
 
 		const int number_of_ip = r_elem.GetGeometry().IntegrationPoints(r_elem.GetIntegrationMethod()).size();
-        for (unsigned int i = 0; i < number_of_ip; i++){
-                if (cycle_identificator[i]){
-                    period[i] = time - previous_cycle_time[i];
-                    previous_cycle_time[i] = time;
-                    rCycleFound = true;
-                }
-        }
+        
+        // Check if the HCF CL is being used. Otherwise there is no reason for entering into the advance in time strategy
+        std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(number_of_ip);
+        r_elem.GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,process_info);
 
-        r_elem.SetValueOnIntegrationPoints(PREVIOUS_CYCLE, previous_cycle_time, process_info);
-        r_elem.SetValueOnIntegrationPoints(CYCLE_PERIOD, period, process_info);
+        const bool is_fatigue = constitutive_law_vector[0]->Has(CYCLE_INDICATOR);
+        
+        if (is_fatigue){
+            for (unsigned int i = 0; i < number_of_ip; i++){
+                    if (cycle_identificator[i]){
+                        period[i] = time - previous_cycle_time[i];
+                        previous_cycle_time[i] = time;
+                        rCycleFound = true;
+                    }
+            }
+            r_elem.SetValueOnIntegrationPoints(PREVIOUS_CYCLE, previous_cycle_time, process_info);
+            r_elem.SetValueOnIntegrationPoints(CYCLE_PERIOD, period, process_info);
+        }    
     }
 }
 
@@ -254,4 +263,7 @@ void AdvanceInTimeStrategyHighCycleFatigueProcess::TimeAndCyclesUpdate(double In
     r_process_info[TIME_INCREMENT] = time_increment - 0.0;
 
 }
+
+
+
 } // namespace Kratos

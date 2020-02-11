@@ -331,45 +331,8 @@ private:
     ///@}    
     ///@name Access
     ///@{
-    double GetFatigueReductionFactor() {return mFatigueReductionFactor;}
-    void SetFatigueReductionFactor(const double toFred) {mFatigueReductionFactor = toFred;}
-
-    Vector GetPreviousStresses() {return mPreviousStresses;}
-    void SetPreviousStresses(const Vector toPreviousStresses) {mPreviousStresses = toPreviousStresses;}
-
-    double GetMaxStress() {return mMaxStress;}
-    void SetMaxStress(const double toMaxStress) {mMaxStress = toMaxStress;}
-
-    double GetMinStress() {return mMinStress;}
-    void SetMinStress(const double toMinStress) {mMinStress = toMinStress;}
-
-    double GetPreviousMaxStress() {return mPreviousMaxStress;}
-    void SetPreviousMaxStress(const double toPreviousMaxStress) {mPreviousMaxStress = toPreviousMaxStress;}
-
-    double GetPreviousMinStress() {return mPreviousMinStress;}
-    void SetPreviousMinStress(const double toPreviousMinStress) {mPreviousMinStress = toPreviousMinStress;}
-
-    unsigned int GetNumberOfCyclesGlobal() {return mNumberOfCyclesGlobal;}
-    void SetNumberOfCyclesGlobal(const unsigned int toCyclesGlobal) {mNumberOfCyclesGlobal = toCyclesGlobal;}
-
-    unsigned int GetNumberOfCyclesLocal() {return mNumberOfCyclesLocal;}
-    void SetNumberOfCyclesLocal(const unsigned int toCyclesLocal) {mNumberOfCyclesLocal = toCyclesLocal;}
-
-    double GetFatigueReductionParameter() {return mFatigueReductionParameter;}
-    void SetFatigueReductionParameter(const double toFatigueReductionParameter) {mFatigueReductionParameter = toFatigueReductionParameter;}
-
     Vector GetStressVector() {return mStressVector;}
     void SetStressVector(const Vector toStressVector) {mStressVector = toStressVector;}
-
-    bool GetMaxDetected() {return mMaxDetected;}
-    void SetMaxDetected(const bool toMaxDetected){mMaxDetected = toMaxDetected;}
-
-    bool GetMinDetected() {return mMinDetected;}
-    void SetMinDetected(const bool toMinDetected){mMinDetected = toMinDetected;}
-
-    double GetWohlerStress() {return mWohlerStress;}
-    void SetWohlerStress(const double toWohlerStress) {mWohlerStress = toWohlerStress;}
-    
     ///@}
     ///@name Member Variables
     ///@{
