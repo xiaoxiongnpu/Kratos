@@ -154,14 +154,13 @@ void DefineEmbeddedWakeProcess::MarkWakeElements(){
             it_elem->SetValue(VELOCITY_LOWER,unit_normal);
         }
         // Mark wake element and save their nodal distances to the wake
-        if (is_wake_element) {
+        if (is_wake_element && it_elem->Is(ACTIVE)) {
             auto& r_geometry = it_elem->GetGeometry();
             if (is_embedded){
                 #pragma omp critical
                 {
                     deactivated_elements_id_list.push_back(it_elem->Id());
                 }
-                it_elem->Set(SOLID, true);
                 // it_elem->Set(ACTIVE, false);
                 for (unsigned int i = 0; i < it_elem->GetGeometry().size(); i++) {
                     r_geometry[i].SetLock();
@@ -197,7 +196,7 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
     ModelPart& deactivated_model_part = mrModelPart.GetSubModelPart("deactivated_model_part");
 
     std::vector<std::size_t> trailing_edge_node_list;
-    std::size_t structure_element_id = -1;
+    std::vector<std::size_t> structure_element_list;
     std::vector<std::size_t> set_kutta_element_list;
 
 
@@ -220,6 +219,47 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
         KRATOS_WATCH(wake_nodes_counter)
 
         if(wake_nodes_counter == r_geometry.size()-1){
+            /*########## BELOW NEWGATIVE APPROACH  ##########*/
+
+            // it_elem->Set(STRUCTURE, true);
+            // it_elem->SetValue(WAKE, true);
+            // BoundedVector<double, 3> distances_to_wake = it_elem->GetValue(ELEMENTAL_DISTANCES);
+
+            // for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
+            //     // if (r_geometry[i_node].FastGetSolutionStepValue(GEOMETRY_DISTANCE)<0.0) {
+            //     if (distances_to_wake[i_node] > 0.0 && r_geometry[i_node].GetValue(KUTTA)) {
+            //         r_geometry[i_node].SetValue(TRAILING_EDGE, true);
+            //         r_geometry[i_node].SetValue(WING_TIP, true);
+            //         trailing_edge_node_list.push_back(r_geometry[i_node].Id());
+
+            //     }
+
+            //     if (distances_to_wake[i_node] < 0.0 && r_geometry[i_node].GetValue(KUTTA)) {
+            //         // r_geometry[i_node].SetValue(TRAILING_EDGE, true);
+            //         r_geometry[i_node].SetValue(WING_TIP, true);
+            //         // trailing_edge_node_list.push_back(r_geometry[i_node].Id());
+
+            //     }
+            // }
+            // double max_x = -1e30;
+            // std::size_t max_node_id = -1;
+            // for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
+            //     if (r_geometry[i_node].X() > max_x ) {
+            //         max_x = r_geometry[i_node].X();
+            //         max_node_id = r_geometry[i_node].Id();
+
+            //     }
+            // }
+
+            // for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
+            //     if (r_geometry[i_node].Id() == max_node_id) {
+            //         r_geometry[i_node].SetValue(WING_TIP, false);
+            //     }
+            // }
+            /*###############################################*/
+
+
+            /*########## BELOW POSITIVE APPROACH  ##########*/
             it_elem->SetValue(KUTTA, true);
             for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
                 auto r_node_elem_candidates = r_geometry[i_node].GetValue(NEIGHBOUR_ELEMENTS);
@@ -235,20 +275,27 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
                         }
                         KRATOS_WATCH(r_elem.Id())
                         KRATOS_WATCH(kutta_nodes_counter)
-                        if(kutta_nodes_counter == r_geometry.size()-1){
-                            r_elem.Set(STRUCTURE, true);
-                            structure_element_id = r_elem.Id();
-                            for (unsigned int i_node_neigh= 0; i_node_neigh < r_neighbour_geometry.size(); i_node_neigh++) {
-                                if(r_neighbour_geometry[i_node_neigh].GetValue(KUTTA) && r_neighbour_geometry[i_node_neigh].GetValue(WAKE_DISTANCE)>0.0) {
+                        structure_element_list.push_back(r_elem.Id());
+
+                        // if(kutta_nodes_counter == r_geometry.size()-1){
+                        //     r_elem.Set(STRUCTURE, true);
+                        //     structure_element_id = r_elem.Id();
+                        for (unsigned int i_node_neigh= 0; i_node_neigh < r_neighbour_geometry.size(); i_node_neigh++) {
+                            if(r_neighbour_geometry[i_node_neigh].GetValue(KUTTA) && r_neighbour_geometry[i_node_neigh].GetValue(WAKE_DISTANCE)>0.0) {
 
                                     r_neighbour_geometry[i_node_neigh].SetValue(TRAILING_EDGE, true);
                                     r_neighbour_geometry[i_node_neigh].SetValue(WING_TIP, true);
                                     trailing_edge_node_list.push_back(r_neighbour_geometry[i_node_neigh].Id());
-                                }
                             }
-                        } else {
-                            set_kutta_element_list.push_back(r_elem.Id());
+                            if(r_neighbour_geometry[i_node_neigh].GetValue(KUTTA) && r_neighbour_geometry[i_node_neigh].GetValue(WAKE_DISTANCE)<0.0) {
+
+                            //    r_neighbour_geometry[i_node_neigh].SetValue(WING_TIP, true);
+                            }
                         }
+                        // }
+                        //  else {
+                        //     set_kutta_element_list.push_back(r_elem.Id());
+                        // }
                     }
                 }
             }
@@ -266,11 +313,14 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
                 is_wing_tip = true;
             }
         }
+        KRATOS_WATCH(elem_id)
         if (is_wing_tip){
             // kutta_elem.SetValue(KUTTA, true);
             // kutta_elem.SetValue(WAKE, false);
             kutta_elem.SetValue(WAKE, true);
+            // structure_element_id = kutta_elem.Id();
             kutta_elem.Set(STRUCTURE);
+            KRATOS_WATCH(kutta_elem.Id())
             for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
 
                 if (r_geometry[i_node].GetValue(KUTTA) && r_geometry[i_node].GetValue(WAKE_DISTANCE)<0.0)
@@ -282,11 +332,14 @@ void DefineEmbeddedWakeProcess::ComputeTrailingEdgeNode(){
     }
 
     KRATOS_WATCH(trailing_edge_node_list)
-    KRATOS_ERROR_IF(structure_element_id < 0) << "Structure element was not found" << std::endl;
-    mrModelPart.GetElement(structure_element_id).Set(STRUCTURE);
+    KRATOS_ERROR_IF(structure_element_list.size() < 0) << "Structure element was not found" << std::endl;
+    // for (auto elem_id : structure_element_list){
+        // mrModelPart.GetElement(elem_id).Set(STRUCTURE);
+    // }
+    // mrModelPart.GetElement(structure_element_id).Set(STRUCTURE);
     // auto& r_geometry = mrModelPart.GetElement(structure_element_id).GetGeometry();
     // for (unsigned int i_node= 0; i_node < r_geometry.size(); i_node++) {
-    //     if(r_geometry[i_node].GetValue(WAKE_DISTANCE)<0.0) {
+    //     if(r_geometry[i_node].GetValue(WAKE_DISTANCE)<0.0 && ) {
     //         r_geometry[i_node].SetValue(WING_TIP, true);
     //     }
     // }

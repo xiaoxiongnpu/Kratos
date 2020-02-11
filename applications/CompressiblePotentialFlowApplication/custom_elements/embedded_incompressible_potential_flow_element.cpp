@@ -58,12 +58,15 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSy
     const int kutta = r_this.GetValue(KUTTA);
 
     BoundedVector<double,NumNodes> distances;
-    for(unsigned int i_node = 0; i_node<NumNodes; i_node++){
-        distances[i_node] = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
+    for(unsigned int i_node = 0; i_node<NumNodes; i_node++) {
+        if ((kutta == 1) && (this->GetGeometry()[i_node].GetValue(TRAILING_EDGE)))
+            distances(i_node) = this->GetGeometry()[i_node].GetValue(TEMPERATURE);
+        else
+            distances(i_node) = this->GetGeometry()[i_node].GetSolutionStepValue(GEOMETRY_DISTANCE);
     }
     const bool is_embedded = PotentialFlowUtilities::CheckIfElementIsCutByDistance<Dim,NumNodes>(distances);
 
-    if (is_embedded && wake == 0) {
+    if (is_embedded && wake == 0){
         CalculateEmbeddedLocalSystem(rLeftHandSideMatrix,rRightHandSideVector,rCurrentProcessInfo);
         if (std::abs(rCurrentProcessInfo[PENALTY_COEFFICIENT]) > std::numeric_limits<double>::epsilon()) {
             AddPotentialGradientStabilizationTerm(rLeftHandSideMatrix,rRightHandSideVector,rCurrentProcessInfo);
@@ -103,7 +106,7 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     bool is_te = false;
     for (unsigned int i = 0; i < NumNodes; ++i)
     {
-        if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
+        if (this->GetGeometry()[i].GetValue(TRAILING_EDGE) || this->GetGeometry()[i].GetValue(WING_TIP))
         {
             is_te = true;
         }
@@ -150,6 +153,7 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     }
     bool is_projection = false;
     if (std::abs(projection)>0.5 && is_te)
+    // if (is_te)
     // if ((std::abs(projection)>0.5 && is_te) || (is_te))
     // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour && kutta == 1))
     // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour && kutta == 0))
@@ -157,17 +161,24 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     // if ((std::abs(projection)>0.5 && is_te) || (is_neighbour) || (kutta==1 && is_te))
     // if ((std::abs(projection)>0.5 && is_te) || (kutta==1 && is_te))
     {
-        KRATOS_WATCH(this->Id())
-        KRATOS_WATCH(projection)
         n_kutta = n_angle;
         is_projection = true;
     }
 
+    // PotentialFlowUtilities::ElementalData<NumNodes, Dim> data;
+
+    // GeometryUtils::CalculateGeometryData(this->GetGeometry(), data.DN_DX, data.N, data.vol);
+
+
+    BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
+
+    // Matrix test=prod(data.DN_DX,n_kutta);
+    // noalias(lhs_kutta) =
+        // data.vol * free_stream_density * prod(test, trans(test));
     // }else{
     // }
 
     BoundedMatrix<double,NumNodes,Dim> DN_DX;
-    BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
     for (unsigned int i_gauss=0;i_gauss<positive_side_sh_func_gradients.size();i_gauss++){
         DN_DX=positive_side_sh_func_gradients(i_gauss);
         Matrix test=prod(DN_DX,n_kutta);
@@ -182,6 +193,7 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
     {
         // if (this->GetGeometry()[i].GetValue(TRAILING_EDGE) && !is_projection)
         // if (this->GetGeometry()[i].FastGetSolutionStepValue(GEOMETRY_DISTANCE) < 0.0 && !is_projection)
+        // if (!is_projection and this->GetGeometry()[i].GetValue(TRAILING_EDGE) )
         if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
         {
             for (unsigned int j = 0; j < NumNodes; ++j)
@@ -190,13 +202,12 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateEmbedde
                 rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
             }
         }
-
-        // if (is_projection && (this->GetGeometry()[i].GetValue(TRAILING_EDGE)   ) )
+        // if (!is_projection && (this->GetGeometry()[i].GetValue(TRAILING_EDGE)   ) )
         // {
         //     for (unsigned int j = 0; j < NumNodes; ++j)
         //     {
         //         // rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
-        //         rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
+        //         // rLeftHandSideMatrix(i, j) += penalty*lhs_kutta(i, j);
         //     }
         // }
     // }
@@ -226,7 +237,9 @@ void EmbeddedIncompressiblePotentialFlowElement<Dim, NumNodes>::AddPotentialGrad
                 neighbour_distances[i] = r_elem.GetGeometry()[i].GetSolutionStepValue(GEOMETRY_DISTANCE);
             }
             const bool is_neighbour_embedded = PotentialFlowUtilities::CheckIfElementIsCutByDistance<Dim,NumNodes>(neighbour_distances);
-            if(!is_neighbour_embedded && r_elem.Is(ACTIVE)) {
+            const bool is_trailing_edge = PotentialFlowUtilities::CheckIfElementIsTrailingEdge(r_elem);
+
+            if((!is_neighbour_embedded && r_elem.Is(ACTIVE)) || (r_elem.Is(ACTIVE) && is_trailing_edge)) {
                 auto r_geometry = r_elem.GetGeometry();
                 const auto& r_integration_method = r_geometry.GetDefaultIntegrationMethod();
                 const auto& r_integration_points = r_geometry.IntegrationPoints(r_integration_method);

@@ -22,6 +22,7 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
             "epsilon": 1e-9
         }''')
         settings.ValidateAndAssignDefaults(default_settings)
+        self.model = Model
 
         self.main_model_part = Model[settings["model_part_name"].GetString()].GetRootModelPart()
         self.wake_model_part=Model.CreateModelPart("wake")
@@ -70,59 +71,44 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
             elem_dist = elem.GetValue(CPFApp.GEOMETRY_ELEMENTAL_DISTANCES)
             elem.SetValue(KratosMultiphysics.ELEMENTAL_DISTANCES, elem_dist)
         list_of_structure_te_nodes= []
-        for node in self.main_model_part.Nodes:
-            if node.GetValue(CPFApp.TRAILING_EDGE):
-                self.trailing_edge_node = node
-                list_of_structure_te_nodes.append(node.Id)
-                print(node.Id, node.GetValue(CPFApp.WAKE_DISTANCE))
-                if node.GetValue(CPFApp.WAKE_DISTANCE) < 0.0:
-                    self.negative_te = node
-                elif node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
-                    self.positive_te = node
+        # for node in self.main_model_part.Nodes:
+        #     if node.GetValue(CPFApp.TRAILING_EDGE) or node.GetValue(CPFApp.WING_TIP):
+        #         self.trailing_edge_node = node
+        #         list_of_structure_te_nodes.append(node.Id)
+        #         print(node.Id, node.GetValue(CPFApp.WAKE_DISTANCE))
+                # if node.GetValue(CPFApp.WAKE_DISTANCE) < 0.0:
+                #     self.negative_te = node
+                # elif node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
+                #     self.positive_te = node
 
-        print(self.trailing_edge_node.Id)
-        # self._FindWakeElements()
-        for id_node in list_of_structure_te_nodes:
-            node = self.main_model_part.GetNode(id_node)
-            if node.GetValue(CPFApp.TRAILING_EDGE) and node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
+        # print(self.trailing_edge_node.Id)
+        # # self._FindWakeElements()
+        # for id_node in list_of_structure_te_nodes:
+        #     node = self.main_model_part.GetNode(id_node)
+            # if node.GetValue(CPFApp.TRAILING_EDGE) and node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
                 # node.SetValue(CPFApp.TRAILING_EDGE, False)
-                node.SetValue(CPFApp.WING_TIP, True)
+                # node.SetValue(CPFApp.WING_TIP, True)
 
         self._RedefineWake()
-        # self.main_model_part.GetElement(107168).Set(KratosMultiphysics.STRUCTURE, True)
-        # self.main_model_part.GetElement(107168).SetValue(CPFApp.WAKE, True)
-        # self.main_model_part.GetElement(107168).SetValue(CPFApp.KUTTA, True)
-        # self.main_model_part.GetElement(67826).Set(KratosMultiphysics.STRUCTURE, False)
-        # self.main_model_part.GetNode(37627).SetValue(CPFApp.WING_TIP, True)
-        # self.main_model_part.GetNode(44248).SetValue(CPFApp.WING_TIP, False)
-        # self.main_model_part.GetNode(44248).SetValue(CPFApp.TRAILING_EDGE, False)
+        # for elem in self.main_model_part.Elements:
+        #     if elem.GetValue(CPFApp.KUTTA):
+        #         n_positive = 0
+        #         n_upper = 0
+        #         for node in elem.GetNodes():
+        #             if node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
+        #                 n_positive += 1
+        #             if node.GetValue(CPFApp.UPPER_SURFACE):
+        #                 n_upper += 1
+        #         if n_positive == 2 and n_upper == 3:
+        #             elem.SetValue(CPFApp.KUTTA, False)
+        #             elem.SetValue(CPFApp.UPPER_WAKE, True)
 
-
-        # self.main_model_part.GetElement(141796).Set(KratosMultiphysics.STRUCTURE, True)
-        # self.main_model_part.GetElement(67826).Set(KratosMultiphysics.STRUCTURE, False)
-        # self.main_model_part.GetElement(67826).SetValue(CPFApp.KUTTA, True)
-        # self.main_model_part.GetElement(67826).SetValue(CPFApp.WAKE, False  )
-        # self.main_model_part.GetElement(77722).SetValue(CPFApp.WAKE, False  )
-        # self.main_model_part.GetElement(77722).SetValue(CPFApp.KUTTA, True)
-
-
-
-        # self.main_model_part.GetElement(81767).Set(KratosMultiphysics.STRUCTURE, True)
-        # self.main_model_part.GetElement(81767).SetValue(CPFApp.WAKE, True)
-        # self.main_model_part.GetElement(81767).SetValue(CPFApp.KUTTA, False)
-        # self.main_model_part.GetElement(75726).Set(KratosMultiphysics.STRUCTURE, False)
-        # self.main_model_part.GetNode(43236).SetValue(CPFApp.WING_TIP, True)
-        # self.main_model_part.GetNode(74353).SetValue(CPFApp.WING_TIP, False)
-        # self.main_model_part.GetNode(74353).SetValue(CPFApp.TRAILING_EDGE, False)
-
-
-        # self.main_model_part.GetElement(147531).Set(KratosMultiphysics.STRUCTURE, True)
-        # self.main_model_part.GetElement(75726).Set(KratosMultiphysics.STRUCTURE, False)
-        # self.main_model_part.GetElement(75726).SetValue(CPFApp.KUTTA, True)
-        # self.main_model_part.GetElement(75726).SetValue(CPFApp.WAKE, False  )
-
-
-
+        for elem in self.main_model_part.Elements:
+            if elem.GetValue(CPFApp.WAKE):
+                for node in elem.GetNodes():
+                    if node.GetValue(CPFApp.WING_TIP) and elem.IsNot(KratosMultiphysics.STRUCTURE):
+                        elem.Set(KratosMultiphysics.STRUCTURE)
+                        print("Setting element to structure", elem.Id)
 
         KratosMultiphysics.Logger.PrintInfo('EmbeddedWake','Wake computation time: ',time.time()-ini_time)
     def _RedefineWake(self):
@@ -135,46 +121,51 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         lower_surface_elem_ids=[]
         for elem in self.main_model_part.Elements:
             if elem.Is(KratosMultiphysics.TO_SPLIT) and elem.Is(KratosMultiphysics.ACTIVE):
-                null_wake_distance = False
-                not_found = True
+                # null_wake_distance = False
+                # # not_found = True
 
-                wake_origin = self.moving_parameters["origin"].GetVector()
-                wake_angle = self.moving_parameters["rotation_angle"].GetDouble()
-                wake_normal = KratosMultiphysics.Vector(3, 0.0)
-                wake_normal[0] = math.sin(-wake_angle)
-                wake_normal[1] = math.cos(-wake_angle)
-                skin_normal = -1*elem.GetValue(CPFApp.VELOCITY_LOWER)
-                projection = wake_normal[0]*(skin_normal[0]) + wake_normal[1]*skin_normal[1]
+                # wake_origin = self.moving_parameters["origin"].GetVector()
+                # wake_angle = self.moving_parameters["rotation_angle"].GetDouble()
+                # wake_normal = KratosMultiphysics.Vector(3, 0.0)
+                # wake_normal[0] = math.sin(-wake_angle)
+                # wake_normal[1] = math.cos(-wake_angle)
+                # skin_normal = -1*elem.GetValue(CPFApp.VELOCITY_LOWER)
+                # projection = wake_normal[0]*(skin_normal[0]) + wake_normal[1]*skin_normal[1]
+
+                # if projection > 0.0:
+                #     for node in elem.GetNodes():
+                #         node.SetValue(CPFApp.UPPER_SURFACE, True)
+
+                # elif projection < 0.0:
+                #     for node in elem.GetNodes():
+                #         node.SetValue(CPFApp.LOWER_SURFACE, True)
 
                 for node in elem.GetNodes():
+                    distance = node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE)
+                    if distance > 0.0:
+                        wake_origin = self.moving_parameters["origin"].GetVector()
+                        wake_angle = self.moving_parameters["rotation_angle"].GetDouble()
+                        wake_normal = KratosMultiphysics.Vector(3, 0.0)
+                        wake_normal[0] = math.sin(-wake_angle)
+                        wake_normal[1] = math.cos(-wake_angle)
+                        projection = wake_normal[0]*(node.X-wake_origin[0]) + wake_normal[1]*(node.Y-wake_origin[1])
+
                         if projection > 0.0:
-                            # elem.SetValue(CPFApp.KUTTA, False)
+                            elem.SetValue(CPFApp.KUTTA, False)
                             for node in elem.GetNodes():
                                 node.SetValue(CPFApp.UPPER_SURFACE, True)
                         elif projection < 0.0:
-                            lower_surface_elem_ids.append(elem.Id)
                             for node in elem.GetNodes():
                                 node.SetValue(CPFApp.LOWER_SURFACE, True)
+        for elem in self.main_model_part.Elements:
+            counter = 0
+            for node in elem.GetNodes():
+                if node.GetValue(CPFApp.LOWER_SURFACE):
+                    counter += 1
+            if counter == 3:
+                lower_surface_elem_ids.append(elem.Id)
 
 
-                # for node in elem.GetNodes():
-                #     distance = node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE)
-                #     if distance > 0.0:
-                #         wake_origin = self.moving_parameters["origin"].GetVector()
-                #         wake_angle = self.moving_parameters["rotation_angle"].GetDouble()
-                #         wake_normal = KratosMultiphysics.Vector(3, 0.0)
-                #         wake_normal[0] = math.sin(-wake_angle)
-                #         wake_normal[1] = math.cos(-wake_angle)
-                #         projection = wake_normal[0]*(node.X-wake_origin[0]) + wake_normal[1]*(node.Y-wake_origin[1])
-
-                #         if projection > 0.0:
-                #             elem.SetValue(CPFApp.KUTTA, False)
-                #             for node in elem.GetNodes():
-                #                 node.SetValue(CPFApp.UPPER_SURFACE, True)
-                #         elif projection < 0.0:
-                #             lower_surface_elem_ids.append(elem.Id)
-                #             for node in elem.GetNodes():
-                #                 node.SetValue(CPFApp.LOWER_SURFACE, True)
 
                 # for node in elem.GetNodes():
                 #     distance = node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE)
@@ -218,26 +209,30 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         self.lower_surface_element_sub_model_part.AddElements(lower_surface_elem_ids)
 
         for node in self.main_model_part.Nodes:
-            if node.GetValue(CPFApp.UPPER_SURFACE) and node.GetValue(CPFApp.LOWER_SURFACE) and node.X < self.trailing_edge_node.X  and node.X > max_inactive_x-0.1 and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
+            if node.GetValue(CPFApp.UPPER_SURFACE) and node.GetValue(CPFApp.LOWER_SURFACE) and node.X > max_inactive_x-0.1 and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
+            # if node.GetValue(CPFApp.UPPER_SURFACE) and node.GetValue(CPFApp.LOWER_SURFACE) and node.X < self.trailing_edge_node.X  and node.X > max_inactive_x-0.1 and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
                 node.SetValue(CPFApp.TRAILING_EDGE, True)
+                print("SETTING NODE TO TRAILING EDGE", node.Id)
 
         for elem in self.lower_surface_element_sub_model_part.Elements:
             if not elem.GetValue(CPFApp.WAKE) and not elem.GetValue(CPFApp.KUTTA) and elem.Is(KratosMultiphysics.ACTIVE):
                 for node in elem.GetNodes():
-                    if node.GetValue(CPFApp.TRAILING_EDGE) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE):
+                    if node.GetValue(CPFApp.TRAILING_EDGE) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) < 0.0:
                         elem.SetValue(CPFApp.KUTTA, True)
-                        if elem.GetValue(CPFApp.UPPER_WAKE):
-                            print("UPPER_WAKE ELEM", elem.Id)
-                            elem.SetValue(CPFApp.UPPER_WAKE, False)
-                            # try:
-                            self.negative_te.SetValue(CPFApp.WING_TIP, False)
-                            # except:
+                    if node.GetValue(CPFApp.WING_TIP) and node.GetValue(CPFApp.WAKE_DISTANCE) > 0.0:
+                        elem.SetValue(CPFApp.KUTTA, True)
+                        node.SetValue(CPFApp.TRAILING_EDGE, True)
+                        # if elem.GetValue(CPFApp.UPPER_WAKE):
+                        #     print("UPPER_WAKE ELEM", elem.Id)
+                        #     elem.SetValue(CPFApp.UPPER_WAKE, False)
+                        #     # try:
+                        #     self.negative_te.SetValue(CPFApp.WING_TIP, False)
+                        #     # except:
+                        #         # pass
+                        #     # try:
+                        #     self.positive_te.SetValue(CPFApp.WING_TIP, True)
+                        #     # except:
                                 # pass
-                            # try:
-                            self.positive_te.SetValue(CPFApp.WING_TIP, True)
-                            # except:
-                                # pass
-
         # self.trailing_edge_node.SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
 
         for node in self.main_model_part.Nodes:
@@ -284,7 +279,10 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         # self.main_model_part.GetNode(37627).SetValue(KratosMultiphysics.TEMPERATURE, 1e-9)
         # self.main_model_part.GetNode(37627).SetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE, 1e-9)
 
-
+        # for node in self.main_model_part.Nodes:
+        #     if node.GetValue(CPFApp.TRAILING_EDGE) and node.GetSolutionStepValue(CPFApp.GEOMETRY_DISTANCE) > 0.0:
+        #         node.SetValue(CPFApp.TRAILING_EDGE, False)
+        #         print("UNSETTING TRAILING EDGE NODE", node.Id)
 
         KratosMultiphysics.Logger.PrintInfo('EmbeddedWake','Redefine time: ',time.time()-ini_time)
 
@@ -304,22 +302,49 @@ class DefineEmbeddedWakeProcess(KratosMultiphysics.Process):
         self.moving_parameters.AddEmptyValue("rotation_angle")
         angle=math.radians(-self.main_model_part.ProcessInfo.GetValue(CPFApp.ROTATION_ANGLE))
         self.moving_parameters["rotation_angle"].SetDouble(angle)
+        # print(self.main_model_part.ProcessInfo.GetValue(CPFApp.WAKE_ORIGIN))
+        # print(angle)
+
+        # inital_point = self.main_model_part.ProcessInfo.GetValue(CPFApp.WAKE_ORIGIN)
+        # vector = KratosMultiphysics.Vector(3, 0.0)
+        # vector[0] =  math.cos(angle)
+        # vector[1] = -math.sin(-angle)
+
+        # max_projection = -1e30
+        # for element in self.main_model_part.Elements:
+        #     if element.IsNot(KratosMultiphysics.ACTIVE):
+        #         x_center = element.GetGeometry().Center().X
+        #         y_center = element.GetGeometry().Center().X
+        #         center_vector = KratosMultiphysics.Vector(3, 0.0)
+        #         center_vector[0] = x_center - inital_point[0]
+        #         center_vector[1] = y_center - inital_point[1]
+        #         product = center_vector[0]*vector[0] + center_vector[1]*vector[1]
+        #         if product > max_projection:
+        #             max_projection = product
+        #             max_y = element.GetGeometry().Center().Y
+        #             max_x = element.GetGeometry().Center().X
+        #             print(element.Id, max_projection, max_x, max_y)
+        # wake_origin = KratosMultiphysics.Vector(3, 0.0)
+        # wake_origin[0] = max_x - 0.00
+        # wake_origin[1] = max_y
 
 
-        max_x = -1e30
-        for element in self.main_model_part.Elements:
-            if element.IsNot(KratosMultiphysics.ACTIVE):
-                x_center = element.GetGeometry().Center().X
-                if x_center > max_x:
-                    max_x = x_center
-                    max_y = element.GetGeometry().Center().Y
-        wake_origin = KratosMultiphysics.Vector(3, 0.0)
-        wake_origin[0] = max_x - 0.00
-        wake_origin[1] = max_y
+        # max_x = -1e30
+        # for element in self.main_model_part.Elements:
+        #     if element.IsNot(KratosMultiphysics.ACTIVE):
+        #         x_center = element.GetGeometry().Center().X
+        #         if x_center > max_x:
+        #             max_x = x_center
+        #             max_y = element.GetGeometry().Center().Y
+        # wake_origin = KratosMultiphysics.Vector(3, 0.0)
+        # wake_origin[0] = max_x - 0.00
+        # wake_origin[1] = max_y
 
-        self.moving_parameters["origin"].SetVector(wake_origin)
-        self.moving_parameters.AddEmptyValue("rotation_angle")
-        self.moving_parameters["rotation_angle"].SetDouble(0.0)
+        # wake_origin[0] = self.model.GetModelPart("skin").GetNode(5000).X - 0.0010
+        # wake_origin[1] = self.model.GetModelPart("skin").GetNode(5000).Y
+        # self.moving_parameters["origin"].SetVector(wake_origin)
+        # self.moving_parameters.AddEmptyValue("rotation_angle")
+        # self.moving_parameters["rotation_angle"].SetDouble(0.0)
 
 
         CPFApp.MoveModelPartProcess(self.wake_model_part, self.moving_parameters).Execute()

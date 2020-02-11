@@ -323,10 +323,10 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetEquationIdVectorUpper
     // Kutta elements have only negative part
     for (unsigned int i = 0; i < NumNodes; i++)
     {
-        if (!GetGeometry()[i].GetValue(WING_TIP))
-            rResult[i] = GetGeometry()[i].GetDof(VELOCITY_POTENTIAL).EquationId();
-        else
+        if (!GetGeometry()[i].GetValue(TRAILING_EDGE))
             rResult[i] = GetGeometry()[i].GetDof(AUXILIARY_VELOCITY_POTENTIAL).EquationId();
+        else
+            rResult[i] = GetGeometry()[i].GetDof(VELOCITY_POTENTIAL).EquationId();
     }
 }
 
@@ -385,10 +385,10 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::GetDofListUpperElement(D
     // Kutta elements have only negative part
     for (unsigned int i = 0; i < NumNodes; i++)
     {
-        if (!GetGeometry()[i].GetValue(WING_TIP))
-            rElementalDofList[i] = GetGeometry()[i].pGetDof(VELOCITY_POTENTIAL);
-        else
+        if (!GetGeometry()[i].GetValue(TRAILING_EDGE))
             rElementalDofList[i] = GetGeometry()[i].pGetDof(AUXILIARY_VELOCITY_POTENTIAL);
+        else
+            rElementalDofList[i] = GetGeometry()[i].pGetDof(VELOCITY_POTENTIAL);
     }
 }
 
@@ -440,13 +440,15 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemNorm
         data.vol * free_stream_density * prod(data.DN_DX, trans(data.DN_DX));
 
     BoundedMatrix<double, 2, 1 > n_kutta;
-    n_kutta(0,0)=0.0;//sin(0.0*3.1415926/180);
-    n_kutta(1,0)=1.0;//cos(0.0*3.1415926/180);
+    double angle_in_deg = rCurrentProcessInfo[ROTATION_ANGLE];
+    n_kutta(0,0)=sin(angle_in_deg*Globals::Pi/180);
+    n_kutta(1,0)=cos(angle_in_deg*Globals::Pi/180);
+
     Matrix test=prod(data.DN_DX,n_kutta);
     BoundedMatrix<double, NumNodes, NumNodes> lhs_kutta = ZeroMatrix(NumNodes, NumNodes);
     noalias(lhs_kutta) = free_stream_density * data.vol * prod(test,trans(test));
-    auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
-    lhs_kutta = penalty*(lhs_kutta);
+    // auto penalty = rCurrentProcessInfo[INITIAL_PENALTY];
+    // lhs_kutta = penalty*(lhs_kutta);
 
 
     const IncompressiblePotentialFlowElement& r_this = *this;
@@ -454,16 +456,16 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemNorm
     const int kutta = r_this.GetValue(KUTTA);
 
     // if (kutta == 1){
-        // for (unsigned int i = 0; i < NumNodes; ++i)
-        // {
-        //     if (this->GetGeometry()[i].GetValue(TRAILING_EDGE))
-        //     {
-        //         for (unsigned int j = 0; j < NumNodes; ++j)
-        //         {
-        //             rLeftHandSideMatrix(i, j) += lhs_kutta(i, j);
-        //         }
-        //     }
-        // }
+    //     for (unsigned int i = 0; i < NumNodes; ++i)
+    //     {
+    //         if (this->GetGeometry()[i].GetValue(WING_TIP))
+    //         {
+    //             for (unsigned int j = 0; j < NumNodes; ++j)
+    //             {
+    //                 rLeftHandSideMatrix(i, j) = lhs_kutta(i, j);
+    //             }
+    //         }
+    //     }
     // }
 
 
@@ -589,8 +591,8 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::CalculateLocalSystemSubd
     // lhs_negative = lhs_kutta_negative;
     // lhs_positive += lhs_negative;
 
-    // lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
-    // lhs_negative += penalty*(lhs_kutta_negative+lhs_kutta_positive);
+    lhs_positive += penalty*(lhs_kutta_positive+lhs_kutta_negative);
+    lhs_negative += penalty*(lhs_kutta_negative+lhs_kutta_positive);
     // lhs_positive += penalty*(lhs_kutta_positive);
     // lhs_negative += penalty*(lhs_kutta_negative);
     // lhs_positive += 100*(lhs_positive+lhs_negative);
@@ -622,7 +624,8 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
         // The TE node takes the contribution of the subdivided element and
         // we do not apply the wake condition on the TE node
         // if (GetGeometry()[i].GetValue(WING_TIP) || GetGeometry()[i].GetValue(TRAILING_EDGE))
-        if (GetGeometry()[i].GetValue(WING_TIP))
+        // if (GetGeometry()[i].GetValue(WING_TIP))
+        if (GetGeometry()[i].GetValue(TRAILING_EDGE))
         // if (true)
         {
 
@@ -632,14 +635,14 @@ void IncompressiblePotentialFlowElement<Dim, NumNodes>::AssignLocalSystemSubdivi
                 for (unsigned int j = 0; j < NumNodes; ++j)
                 {
                     rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
-                    rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
+                    rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i,j);//0.0;// lhs_negative(i, j);//lhs_negative(i, j);
                 }
             }
             else {
-
+                // AssignLocalSystemWakeNode(rLeftHandSideMatrix, lhs_total, data, i);
                 for (unsigned int j = 0; j < NumNodes; ++j)
                 {
-                rLeftHandSideMatrix(i, j) = lhs_positive(i, j);
+                rLeftHandSideMatrix(i, j) = lhs_positive(i,j);//0.0;//lhs_positive(i, j);
                 rLeftHandSideMatrix(i + NumNodes, j + NumNodes) = lhs_negative(i, j);
                 }
 
