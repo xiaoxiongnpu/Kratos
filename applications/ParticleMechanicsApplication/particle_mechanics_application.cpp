@@ -251,6 +251,9 @@ namespace Kratos
         Serializer::Register("ExponentialStrainSofteningLaw", mExponentialStrainSofteningLaw);
         Serializer::Register("CamClayHardeningLaw", mCamClayHardeningLaw);
 
+        // Explicit time integration variables
+        KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MIDDLE_VELOCITY)
+        KRATOS_REGISTER_VARIABLE(MUSL_VELOCITY_FIELD_IS_COMPUTED)
     }
 
 }  // namespace Kratos.

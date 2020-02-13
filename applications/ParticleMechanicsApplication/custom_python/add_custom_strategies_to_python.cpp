@@ -32,6 +32,7 @@
 
 //---schemes
 #include "custom_strategies/schemes/mpm_residual_based_bossak_scheme.hpp"
+#include "custom_strategies/schemes/mpm_explicit_scheme.hpp"
 #include "solving_strategies/schemes/residualbased_incrementalupdate_static_scheme.h"
 
 //---builders and solvers
@@ -61,11 +62,18 @@ namespace Python{
 
         //custom scheme types
         typedef MPMResidualBasedBossakScheme< SparseSpaceType, LocalSpaceType >  MPMResidualBasedBossakSchemeType;
+        typedef MPMExplicitScheme< SparseSpaceType, LocalSpaceType >  MPMExplicitSchemeType;
 
         // MPM Residual Based Bossak Scheme Type
         py::class_< MPMResidualBasedBossakSchemeType,typename MPMResidualBasedBossakSchemeType::Pointer, BaseSchemeType >(m,"MPMResidualBasedBossakScheme")
             .def(py::init < ModelPart&, unsigned int, unsigned int, double, double, bool>())
             .def("Initialize", &MPMResidualBasedBossakSchemeType::Initialize)
+            ;
+
+        // MPM Explicit Scheme Type
+        py::class_< MPMExplicitSchemeType, typename MPMExplicitSchemeType::Pointer, BaseSchemeType >(m, "MPMExplicitScheme")
+            .def(py::init < ModelPart&, const double, const double, const double, const int, const bool>())
+            .def("Initialize", &MPMExplicitSchemeType::Initialize)
             ;
 
         // MPM Residual Based Newton Raphson Strategy Type
