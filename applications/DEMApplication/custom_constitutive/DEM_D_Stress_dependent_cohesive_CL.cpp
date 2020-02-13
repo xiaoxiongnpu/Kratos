@@ -67,7 +67,7 @@ namespace Kratos {
         //Normal and Tangent elastic constants
         mKn = 0.5 * Globals::Pi * equiv_young * equiv_radius;
         // mKt = 8.0 * equiv_shear * equiv_radius;
-        mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = element1->GetProperties()[KN_KT_FACTOR] * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForces(const ProcessInfo& r_process_info,
@@ -156,7 +156,7 @@ namespace Kratos {
 
         mKn = 0.5 * Globals::Pi * equiv_young * effective_radius;
         // mKt = 8.0 * equiv_shear * equiv_radius;
-        mKt = 4.0 * equiv_shear * mKn / equiv_young;
+        mKt = element->GetProperties()[KN_KT_FACTOR] * 4.0 * equiv_shear * mKn / equiv_young;
     }
 
     void DEM_D_Stress_Dependent_Cohesive::CalculateForcesWithFEM(ProcessInfo& r_process_info,
@@ -326,8 +326,8 @@ namespace Kratos {
                                                                                 double& AuxElasticShearForce,
                                                                                 double& MaximumAdmisibleShearForce) {
 
-        double share_of_max_contact_stress = std::pow(element->GetParticleInitialCohesion() * contact_area / normal_contact_force, element->GetProperties()[KN_KT_FACTOR]);
-        // if (share_of_max_contact_stress <= 1.0) share_of_max_contact_stress = 1.0;
+        double share_of_max_contact_stress = 2.0 * element->GetParticleCohesion() * contact_area / normal_contact_force;
+        if (share_of_max_contact_stress <= 1.0) share_of_max_contact_stress = 1.0;
 
         LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - share_of_max_contact_stress * mKt * LocalDeltDisp[0];
         LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - share_of_max_contact_stress * mKt * LocalDeltDisp[1];
