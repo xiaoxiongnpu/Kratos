@@ -12,12 +12,13 @@ from KratosMultiphysics.ParticleMechanicsApplication.mpm_solver import MPMSolver
 def CreateSolver(model, custom_settings):
     return MPMExplicitSolver(model, custom_settings)
 
-class MPMExplicitSolver(PythonSolver):
+class MPMExplicitSolver(MPMSolver):
 
     def __init__(self, model, custom_settings):
+        # Set defaults and validate custom settings in the base class.
+        # Construct the base solver.
         super(MPMExplicitSolver, self).__init__(model, custom_settings)
         KratosMultiphysics.Logger.PrintInfo("::[MPMExplicitSolver]:: ", "Construction is finished.")
-
 
     @classmethod
     def GetDefaultSettings(cls):
@@ -27,6 +28,7 @@ class MPMExplicitSolver(PythonSolver):
         }""")
         this_defaults.AddMissingParameters(super(MPMExplicitSolver, cls).GetDefaultSettings())
         return this_defaults
+
 
     def AddVariables(self):
         super(MPMExplicitSolver, self).AddVariables()

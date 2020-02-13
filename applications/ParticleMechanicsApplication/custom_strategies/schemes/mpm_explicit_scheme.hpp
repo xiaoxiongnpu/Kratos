@@ -7,7 +7,7 @@
 //  License:		 BSD License
 //					 Kratos default license: kratos/license.txt
 //
-//  Main authors:    Peter Wilson (adapted from Klaus B Sautter)
+//  Main authors:    Peter Wilson (thanks Klaus Sautter)
 //
 //
 
