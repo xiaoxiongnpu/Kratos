@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gid version="13.5">
+  <pre>
+    <layer_to_use name="Layer0"/>
+    <groups>
+      <group id="1" name="Group0" color="#ffaaaaff"/>
+      <group id="2" name="Constraints" color="#0000ffff"/>
+      <group id="3" name="DesignSurface" color="#ff00ffff"/>
+      <group id="4" name="PointLoad1" color="#00ffffff"/>
+      <group id="5" name="PointLoad2" color="#a60021ff"/>
+      <group id="6" name="Structure" color="#00ff00ff"/>
+      <group id="7" name="Total" color="#996600ff" parent_id="2" state="hidden"/>
+      <group id="8" name="Total" color="#b33366ff" parent_id="4" state="hidden"/>
+      <group id="9" name="Group1" color="#0000ffff"/>
+      <group id="10" name="Total" color="#338080ff" parent_id="5" state="hidden"/>
+      <group id="11" name="Total - 0" color="#4d4d80ff" parent_id="4" state="hidden"/>
+      <group id="12" name="Total - 0" color="#ff4d4dff" parent_id="5" state="hidden"/>
+    </groups>
+    <entities_groups>
+      <entities_group name="nodes">
+        <vector name="entity_ids" length="259" type="integer">1:259</vector>
+        <vector name="entity_num_groups" length="259" type="ushort">4x3 2 4 4 2 2 4 2 2 4 2x5 4 2x3 4 2x3 4 2x3 4 2x5 4 2x3 4 2x5 4 2x6 4 2x9 4 2x8 4 2x12 4 2x16 5 2x33 5 2x38 4 2x7 5 2x9 4 2x25 4 2x14 4 4 2 4 4 2 4x3 2x4 4 2 4 4 2x3 4 4 2 4x3</vector>
+        <vector name="entity_groups" length="599" type="ushort">3 2 6 7 3 2 6 7 3 2 6 7 3 6 3 2 6 7 3 2 6 7 3 6 3 6 3 2 6 7 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 5 6 10 12 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 4 6 8 11 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 5 6 10 12 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 2 6 7 3 2 6 7 3 6 3 2 6 7 3 2 6 7 3 6 3 2 6 7 3 2 6 7 3 2 6 7 3 6 3 6 3 6 3 6 3 2 6 7 3 6 3 2 6 7 3 2 6 7 3 6 3 6 3 6 3 2 6 7 3 2 6 7 3 6 3 2 6 7 3 2 6 7 3 2 6 7</vector>
+      </entities_group>
+      <entities_group name="elements">
+        <vector name="entity_ids" length="381" type="integer">1:381</vector>
+        <vector name="entity_num_groups" length="381" type="ushort">2x381</vector>
+        <vector name="entity_groups" length="762" type="ushort">3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6 3 6</vector>
+      </entities_group>
+    </entities_groups>
+  </pre>
+</gid>

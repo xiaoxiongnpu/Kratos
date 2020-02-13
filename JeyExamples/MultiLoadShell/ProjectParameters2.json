@@ -1,6 +1,6 @@
 {
     "problem_data"     : {
-        "problem_name"  : "plate",
+        "problem_name"  : "ShellLoad",
         "parallel_type" : "OpenMP",
         "echo_level"    : 0,
         "start_time"    : 0.0,
@@ -14,7 +14,7 @@
         "analysis_type"                   : "linear",
         "model_import_settings"           : {
             "input_type"     : "mdpa",
-            "input_filename" : "plate"
+            "input_filename" : "ShellLoad"
         },
         "material_import_settings"        : {
             "materials_filename" : "StructuralMaterials_2.json"
@@ -42,11 +42,11 @@
             "kratos_module" : "KratosMultiphysics",
             "check"         : "DirectorVectorNonZero direction",
             "Parameters"    : {
-                "model_part_name" : "Struct_Load_2.PointLoad3D_Load",
+                "model_part_name" : "Struct_Load_2.PointLoad3D_PointLoad2",
                 "variable_name"   : "POINT_LOAD",
                 "interval"        : [0.0,"End"],
                 "modulus"         : 250.0,
-                "direction"       : [0,0.0,1]
+                "direction"       : [0,0.0,-1]
             }
         }],
         "list_other_processes"     : []
@@ -59,7 +59,7 @@
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
                 "model_part_name"        : "Struct_Load_2",
-                "output_name"            : "plate2",
+                "output_name"            : "Shell_2",
                 "postprocess_parameters" : {
                     "result_file_configuration" : {
                         "gidpost_flags"               : {

@@ -39,18 +39,18 @@ if __name__ == "__main__":
     optimizer = optimizer_factory.CreateOptimizer(parameters["optimization_settings"], model)
     optimizer.Optimize()
 
-    #---------------------------------------------------------------
-    print("###############################")
-    print("--------LOAD CASE 2-------------------")
-    print("###############################")
-    # Read parameters (Optimization)
-    with open("optimization_parameters2.json",'r') as parameter_file:
-        parameters = KM.Parameters(parameter_file.read())
+    # #---------------------------------------------------------------
+    # print("###############################")
+    # print("--------LOAD CASE 2-------------------")
+    # print("###############################")
+    # # Read parameters (Optimization)
+    # with open("optimization_parameters2.json",'r') as parameter_file:
+    #     parameters = KM.Parameters(parameter_file.read())
 
-    model = KM.Model()
-    # Create optimizer and perform optimization
-    optimizer = optimizer_factory.CreateOptimizer(parameters["optimization_settings"], model)
-    optimizer.Optimize()
+    # model = KM.Model()
+    # # Create optimizer and perform optimization
+    # optimizer = optimizer_factory.CreateOptimizer(parameters["optimization_settings"], model)
+    # optimizer.Optimize()
 
     # #---------------------------------------------------------------
     # print("###############################")

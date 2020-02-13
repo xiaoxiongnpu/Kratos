@@ -1,28 +1,34 @@
 {
     "problem_data"     : {
-        "problem_name"  : "plate",
+        "problem_name"  : "ShellLoad",
         "parallel_type" : "OpenMP",
-        "echo_level"    : 0,
+        "echo_level"    : 1,
         "start_time"    : 0.0,
         "end_time"      : 1.0
     },
     "solver_settings"  : {
         "solver_type"                     : "Static",
-        "model_part_name"                 : "Struct_Load_2",
+        "model_part_name"                 : "Structure",
         "domain_size"                     : 3,
         "echo_level"                      : 0,
         "analysis_type"                   : "linear",
         "model_import_settings"           : {
             "input_type"     : "mdpa",
-            "input_filename" : "plate"
+            "input_filename" : "ShellLoadR"
         },
         "material_import_settings"        : {
-            "materials_filename" : "StructuralMaterials_2.json"
+            "materials_filename" : "StructuralMaterials.json"
         },
         "time_stepping"                   : {
             "time_step" : 1.1
         },
         "line_search"                     : false,
+        "convergence_criterion"           : "residual_criterion",
+        "displacement_relative_tolerance" : 0.0001,
+        "displacement_absolute_tolerance" : 1e-9,
+        "residual_relative_tolerance"     : 0.0001,
+        "residual_absolute_tolerance"     : 1e-9,
+        "max_iteration"                   : 10,
         "rotation_dofs"                   : true
     },
     "processes"        : {
@@ -30,7 +36,7 @@
             "python_module" : "assign_vector_variable_process",
             "kratos_module" : "KratosMultiphysics",
             "Parameters"    : {
-                "model_part_name" : "Struct_Load_2.DISPLACEMENT_Constraint",
+                "model_part_name" : "Structure.DISPLACEMENT_Constraint",
                 "variable_name"   : "DISPLACEMENT",
                 "interval"        : [0.0,"End"],
                 "constrained"     : [true,true,true],
@@ -42,11 +48,11 @@
             "kratos_module" : "KratosMultiphysics",
             "check"         : "DirectorVectorNonZero direction",
             "Parameters"    : {
-                "model_part_name" : "Struct_Load_2.PointLoad3D_Load",
+                "model_part_name" : "Structure.PointLoad3D_PointLoad1",
                 "variable_name"   : "POINT_LOAD",
                 "interval"        : [0.0,"End"],
                 "modulus"         : 250.0,
-                "direction"       : [0,0.0,1]
+                "direction"       : [0.0,0.0,-1]
             }
         }],
         "list_other_processes"     : []
@@ -58,8 +64,8 @@
             "process_name"  : "GiDOutputProcess",
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
-                "model_part_name"        : "Struct_Load_2",
-                "output_name"            : "plate2",
+                "model_part_name"        : "Structure",
+                "output_name"            : "ShellLoad",
                 "postprocess_parameters" : {
                     "result_file_configuration" : {
                         "gidpost_flags"               : {
@@ -75,7 +81,7 @@
                         "node_output"                 : false,
                         "skin_output"                 : false,
                         "plane_output"                : [],
-                        "nodal_results"               : ["DISPLACEMENT","REACTION","ROTATION"],
+                        "nodal_results"               : ["DISPLACEMENT","REACTION","CONTACT","CONTACT_SLAVE","ROTATION"],
                         "gauss_point_results"         : [],
                         "nodal_nonhistorical_results" : []
                     },

@@ -1,40 +1,40 @@
 {
     "problem_data"     : {
-        "problem_name"  : "plate1",
+        "problem_name"  : "Bridge",
         "parallel_type" : "OpenMP",
-        "echo_level"    : 0,
+        "echo_level"    : 1,
         "start_time"    : 0.0,
         "end_time"      : 1.0
     },
     "solver_settings"  : {
-        "solver_type"                     : "Static",
-        "model_part_name"                 : "Structure",
-        "domain_size"                     : 3,
-        "echo_level"                      : 0,
-        "analysis_type"                   : "linear",
-        "model_import_settings"           : {
+        "solver_type"                        : "Static",
+        "model_part_name"                    : "Struct_Load_1",
+        "domain_size"                        : 3,
+        "echo_level"                         : 0,
+        "analysis_type"                      : "linear",
+        "model_import_settings"              : {
             "input_type"     : "mdpa",
-            "input_filename" : "plateR"
+            "input_filename" : "Bridge"
         },
-        "material_import_settings"        : {
-            "materials_filename" : "StructuralMaterials.json"
+        "material_import_settings"           : {
+            "materials_filename" : "StructuralMaterials1.json"
         },
-        "time_stepping"                   : {
+        "time_stepping"                      : {
             "time_step" : 1.1
         },
-        "line_search"                     : false,
-        "rotation_dofs"                   : true
+        "line_search"                        : false,
+        "rotation_dofs"                      : true
     },
     "processes"        : {
         "constraints_process_list" : [{
             "python_module" : "assign_vector_variable_process",
             "kratos_module" : "KratosMultiphysics",
             "Parameters"    : {
-                "model_part_name" : "Structure.DISPLACEMENT_Constraint",
+                "model_part_name" : "Struct_Load_1.DISPLACEMENT_Constraints",
                 "variable_name"   : "DISPLACEMENT",
-                "interval"        : [0.0,"End"],
                 "constrained"     : [true,true,true],
-                "value"           : [0.0,0.0,0.0]
+                "value"           : [0.0,0.0,0.0],
+                "interval"        : [0.0,"End"]
             }
         }],
         "loads_process_list"       : [{
@@ -42,11 +42,11 @@
             "kratos_module" : "KratosMultiphysics",
             "check"         : "DirectorVectorNonZero direction",
             "Parameters"    : {
-                "model_part_name" : "Structure.PointLoad3D_Load",
+                "model_part_name" : "Struct_Load_1.PointLoad3D_PointLoad1",
                 "variable_name"   : "POINT_LOAD",
-                "interval"        : [0.0,"End"],
-                "modulus"         : 250.0,
-                "direction"       : [0.0,0.0,-1]
+                "modulus"         : 25e5,
+                "direction"       : [0.0,-1,0.0],
+                "interval"        : [0.0,"End"]
             }
         }],
         "list_other_processes"     : []
@@ -58,26 +58,25 @@
             "process_name"  : "GiDOutputProcess",
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
-                "model_part_name"        : "Structure",
-                "output_name"            : "plate1",
+                "model_part_name"        : "Struct_Load_1",
+                "output_name"            : "Bridge1",
                 "postprocess_parameters" : {
                     "result_file_configuration" : {
-                        "gidpost_flags"               : {
+                        "gidpost_flags"       : {
                             "GiDPostMode"           : "GiD_PostBinary",
                             "WriteDeformedMeshFlag" : "WriteDeformed",
                             "WriteConditionsFlag"   : "WriteConditions",
                             "MultiFileFlag"         : "SingleFile"
                         },
-                        "file_label"                  : "step",
-                        "output_control_type"         : "step",
-                        "output_frequency"            : 1,
-                        "body_output"                 : true,
-                        "node_output"                 : false,
-                        "skin_output"                 : false,
-                        "plane_output"                : [],
-                        "nodal_results"               : ["DISPLACEMENT","REACTION","ROTATION"],
-                        "gauss_point_results"         : [],
-                        "nodal_nonhistorical_results" : []
+                        "file_label"          : "step",
+                        "output_control_type" : "step",
+                        "output_frequency"    : 1,
+                        "body_output"         : true,
+                        "node_output"         : false,
+                        "skin_output"         : false,
+                        "plane_output"        : [],
+                        "nodal_results"       : ["DISPLACEMENT","REACTION","ROTATION"],
+                        "gauss_point_results" : []
                     },
                     "point_data_configuration"  : []
                 }

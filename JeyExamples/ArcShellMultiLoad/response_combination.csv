@@ -1,0 +1,7 @@
+---------------------------------
+f0: compromise_function
+f1: strain_energy_1
+f2: strain_energy_2
+---------------------------------
+ itr,     f0_value,     f1_value,     f2_value, ||df0dx_st||, ||df1dx_st||, ||df2dx_st||
+   1,  8.22072E+15,  6.17544E+14,  1.52064E+16,  2.95648E+14,  2.95648E+14,  2.69101E+14

@@ -221,9 +221,9 @@ class MechanicalSolver(PythonSolver):
         self.get_mechanical_solution_strategy().Predict()
 
     def SolveSolutionStep(self):
-        # model_part_nodes = self.main_model_part.Nodes
-        # for node in model_part_nodes:
-        #     print(node.Id, node.X, node.Y, node.Z)
+        model_part_nodes = self.main_model_part.Nodes
+        for node in model_part_nodes:
+            print(node.Id, node.X, node.Y, node.Z)
         is_converged = self.get_mechanical_solution_strategy().SolveSolutionStep()
         if not is_converged:
             msg  = "Solver did not converge for step " + str(self.main_model_part.ProcessInfo[KratosMultiphysics.STEP]) + "\n"

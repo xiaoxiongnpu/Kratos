@@ -1,6 +1,6 @@
 {
     "problem_data"     : {
-        "problem_name"  : "plate",
+        "problem_name"  : "ShellLoad",
         "parallel_type" : "OpenMP",
         "echo_level"    : 0,
         "start_time"    : 0.0,
@@ -8,16 +8,16 @@
     },
     "solver_settings"  : {
         "solver_type"                     : "Static",
-        "model_part_name"                 : "Struct_Load_2",
+        "model_part_name"                 : "Struct_Load_1",
         "domain_size"                     : 3,
         "echo_level"                      : 0,
         "analysis_type"                   : "linear",
         "model_import_settings"           : {
             "input_type"     : "mdpa",
-            "input_filename" : "plate"
+            "input_filename" : "ShellLoad"
         },
         "material_import_settings"        : {
-            "materials_filename" : "StructuralMaterials_2.json"
+            "materials_filename" : "StructuralMaterials_1.json"
         },
         "time_stepping"                   : {
             "time_step" : 1.1
@@ -30,7 +30,7 @@
             "python_module" : "assign_vector_variable_process",
             "kratos_module" : "KratosMultiphysics",
             "Parameters"    : {
-                "model_part_name" : "Struct_Load_2.DISPLACEMENT_Constraint",
+                "model_part_name" : "Struct_Load_1.DISPLACEMENT_Constraint",
                 "variable_name"   : "DISPLACEMENT",
                 "interval"        : [0.0,"End"],
                 "constrained"     : [true,true,true],
@@ -42,11 +42,11 @@
             "kratos_module" : "KratosMultiphysics",
             "check"         : "DirectorVectorNonZero direction",
             "Parameters"    : {
-                "model_part_name" : "Struct_Load_2.PointLoad3D_Load",
+                "model_part_name" : "Struct_Load_1.PointLoad3D_PointLoad1",
                 "variable_name"   : "POINT_LOAD",
                 "interval"        : [0.0,"End"],
                 "modulus"         : 250.0,
-                "direction"       : [0,0.0,1]
+                "direction"       : [0.0,0.0,-1]
             }
         }],
         "list_other_processes"     : []
@@ -58,8 +58,8 @@
             "process_name"  : "GiDOutputProcess",
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
-                "model_part_name"        : "Struct_Load_2",
-                "output_name"            : "plate2",
+                "model_part_name"        : "Struct_Load_1",
+                "output_name"            : "Shell_1",
                 "postprocess_parameters" : {
                     "result_file_configuration" : {
                         "gidpost_flags"               : {
