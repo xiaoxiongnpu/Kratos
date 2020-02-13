@@ -61,6 +61,10 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
     def AnalyzeDesignAndReportToCommunicator( self, currentDesign, optimizationIteration, communicator ):
         
         optimization_model_part = self.model_part_controller.GetOptimizationModelPart()
+        model_part_nodes = optimization_model_part.Nodes
+        for node in model_part_nodes:
+            if node.Id < 6:
+                print(node.Id, node.X, node.Y, node.Z)
        
         time_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.TIME)
         step_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.STEP)
