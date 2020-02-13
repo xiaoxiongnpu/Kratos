@@ -15,6 +15,7 @@ scripts/configure.sh
 scripts/configure.bat
 build/*
 bin/*
+JeyExamples/*
 
 # Compile and install directories
 KratosMultiphysics/*
