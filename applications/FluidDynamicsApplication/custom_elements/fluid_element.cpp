@@ -242,7 +242,7 @@ void FluidElement<TElementData>::CalculateLocalVelocityContribution(
 
 template <class TElementData>
 void FluidElement<TElementData>::CalculateMassMatrix(MatrixType& rMassMatrix,
-                                                     ProcessInfo& rCurrentProcessInfo)
+                                                    ProcessInfo& rCurrentProcessInfo)
 {
     // Resize and intialize output
     if (rMassMatrix.size1() != LocalSize)

@@ -33,13 +33,13 @@ class EthierBenchmarkAnalysis(BaseAnalysis):
         self.mesh_tag = self.project_parameters["mesh_tag"].GetString()
         # Creating a code for the used input variables
         self.run_code = '_ndiv_' \
-                      + str(self.project_parameters["size_parameter"].GetDouble()) \
-                      + '_mat_deriv_type_' \
-                      + str(self.project_parameters["material_acceleration_calculation_type"].GetInt()) \
-                      + '_lapl_type_' \
-                      + str(self.project_parameters["laplacian_calculation_type"].GetInt()) \
-                      + '_' + self.field_identifier \
-                      + '_' + self.mesh_tag
+                        + str(self.project_parameters["size_parameter"].GetDouble()) \
+                        + '_mat_deriv_type_' \
+                        + str(self.project_parameters["material_acceleration_calculation_type"].GetInt()) \
+                        + '_lapl_type_' \
+                        + str(self.project_parameters["laplacian_calculation_type"].GetInt()) \
+                        + '_' + self.field_identifier \
+                        + '_' + self.mesh_tag
 
     def ReadFluidModelParts(self):
         problem_name = self.pp.problem_name.replace('Fluid', '')

@@ -23,10 +23,10 @@ class Hdf5OutputTool:
         self.model_part = model[self.settings["model_part_name"].GetString()]
 
         case_dtype = np.dtype([("framework", h5py.special_dtype(vlen=str)),
-                               ("num_nodes", np.uint32),
-                               ("num_elems", np.uint32),
-                               ("time_step", np.float),
-                               ("rel_error", np.float)])
+                                ("num_nodes", np.uint32),
+                                ("num_elems", np.uint32),
+                                ("time_step", np.float),
+                                ("rel_error", np.float)])
 
         self.f = h5py.File(self.settings["file_name"].GetString() + ".hdf5", 'a') # 'a' means append mode
 
@@ -47,10 +47,10 @@ class Hdf5OutputTool:
 
     def WriteAverageRelativeError(self, rel_err):
         case_data = (self.settings["framework"].GetString(),
-                     self.model_part.Nodes.__len__(),
-                     self.model_part.Elements.__len__(),
-                     self.model_part.ProcessInfo[KratosMultiphysics.DELTA_TIME],
-                     rel_err)
+                        self.model_part.Nodes.__len__(),
+                        self.model_part.Elements.__len__(),
+                        self.model_part.ProcessInfo[KratosMultiphysics.DELTA_TIME],
+                        rel_err)
 
         case_idx = self.vortex_dset.len()
         self.vortex_dset.resize((case_idx+1,))

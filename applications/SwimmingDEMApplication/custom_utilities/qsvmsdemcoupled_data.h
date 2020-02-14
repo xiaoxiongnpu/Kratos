@@ -64,7 +64,7 @@ void Initialize(const Element& rElement, const ProcessInfo& rProcessInfo) overri
     this->FillFromNodalData(Acceleration, ACCELERATION, r_geometry);
     QSVMSData<TDim, TNumNodes, TElementIntegratesInTime>::Initialize(rElement,rProcessInfo);
 
-    ElementSize = ElementSizeCalculator<TDim,TNumNodes>::AverageElementSize(r_geometry);
+    ElementSize = ElementSizeCalculator<TDim,TNumNodes>::MinimumElementSize(r_geometry);
 }
 
 static int Check(const Element& rElement, const ProcessInfo& rProcessInfo)
