@@ -159,21 +159,6 @@ public:
     {
         KRATOS_TRY
 
-            if ((mDeltaTime.PredictionLevel > 0) && (!BaseType::SchemeIsInitialized())) 
-            {
-                Parameters prediction_parameters = Parameters(R"(
-            {
-                "time_step_prediction_level" : 2.0,
-                "max_delta_time"             : 1.0e0,
-                "safety_factor"              : 0.8
-            })");
-                prediction_parameters["time_step_prediction_level"].SetDouble(mDeltaTime.PredictionLevel);
-                prediction_parameters["max_delta_time"].SetDouble(mDeltaTime.Maximum);
-
-                std::cout << "\n\n EXPLICIT CFL DT CALCULATION DISABLED \n\n" << std::endl;
-                //MPMExplicitUtilities::CalculateDeltaTime(rModelPart, prediction_parameters);
-            }
-
         ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
 
         // Preparing the time values for the first step (where time = initial_time +
@@ -205,8 +190,8 @@ public:
     {
         KRATOS_TRY
 
-            /// The array of ndoes
-            NodesArrayType& r_nodes = rModelPart.Nodes();
+        /// The array of ndoes
+        NodesArrayType& r_nodes = rModelPart.Nodes();
 
         // The first iterator of the array of nodes
         const auto it_node_begin = rModelPart.NodesBegin();
@@ -286,7 +271,7 @@ public:
         // Getting dof position
         const IndexType disppos = it_node_begin->GetDofPosition(DISPLACEMENT_X);
 
-#pragma omp parallel for schedule(guided,512)
+        #pragma omp parallel for schedule(guided,512)
         for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
             // Current step information "N+1" (before step update).
             this->UpdateTranslationalDegreesOfFreedom(it_node_begin + i, disppos, dim);
@@ -417,7 +402,7 @@ public:
         OpenMPUtils::PartitionVector element_partition;
         OpenMPUtils::DivideInPartitions(rModelPart.Elements().size(), num_threads, element_partition);
 
-#pragma omp parallel
+        #pragma omp parallel
         {
             int k = OpenMPUtils::ThisThread();
             ElementsArrayType::iterator element_begin = rModelPart.Elements().begin() + element_partition[k];
@@ -451,7 +436,7 @@ public:
         OpenMPUtils::PartitionVector condition_partition;
         OpenMPUtils::DivideInPartitions(rModelPart.Conditions().size(), num_threads, condition_partition);
 
-#pragma omp parallel
+        #pragma omp parallel
         {
             int k = OpenMPUtils::ThisThread();
             ConditionsArrayType::iterator condition_begin = rModelPart.Conditions().begin() + condition_partition[k];
@@ -489,7 +474,7 @@ public:
             ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
         BaseType::InitializeSolutionStep(r_model_part, A, Dx, b);
         // LOOP OVER THE GRID NODES PERFORMED FOR CLEAR ALL NODAL INFORMATION
-#pragma omp parallel for
+        #pragma omp parallel for
         for (int iter = 0; iter < static_cast<int>(mr_grid_model_part.Nodes().size()); ++iter)
         {
             auto i = mr_grid_model_part.NodesBegin() + iter;
@@ -630,7 +615,7 @@ public:
         OpenMPUtils::PartitionVector condition_partition;
         OpenMPUtils::DivideInPartitions(rConditions.size(), num_threads, condition_partition);
 
-#pragma omp parallel
+        #pragma omp parallel
         {
             int k = OpenMPUtils::ThisThread();
 
@@ -792,7 +777,7 @@ public:
         // Getting dof position
         const IndexType disppos = it_node_begin->GetDofPosition(DISPLACEMENT_X);
 
-#pragma omp parallel for schedule(guided,512)
+        #pragma omp parallel for schedule(guided,512)
         for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
             // Current step information "N+1" (before step update).
             auto it_node = it_node_begin + i;
