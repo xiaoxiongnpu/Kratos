@@ -376,12 +376,13 @@ class MPMSolver(PythonSolver):
         raise Exception("Solution Scheme creation must be implemented in the derived class.")
 
     def _CreateSolutionStrategy(self):
+        # this is for implicit only. explicit is implemented in derived mpm_explicit_solver
         analysis_type = self.settings["analysis_type"].GetString()
         if analysis_type == "non_linear":
                 solution_strategy = self._CreateNewtonRaphsonStrategy()
         else:
-            err_msg =  "The requested analysis type \"" + analysis_type + "\" is not available!\n"
-            err_msg += "Available options are: \"non_linear\""
+            err_msg =  "The requested implicit analysis type \"" + analysis_type + "\" is not available!\n"
+            err_msg += "Available implicit options are: \"non_linear\""
             raise Exception(err_msg)
         return solution_strategy
 

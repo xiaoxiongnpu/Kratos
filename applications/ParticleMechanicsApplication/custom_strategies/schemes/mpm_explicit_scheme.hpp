@@ -14,11 +14,11 @@
 #if !defined(KRATOS_MPM_EXPLICIT_SCHEME)
 #define KRATOS_MPM_EXPLICIT_SCHEME
 
-/* System includes */
+// System includes
 
-/* External includes */
+// External includes
 
-/* Project includes */
+// Project includes
 #include "includes/define.h"
 #include "includes/model_part.h"
 #include "includes/variables.h"
@@ -121,9 +121,6 @@ public:
      */
         MPMExplicitScheme(
         ModelPart& grid_model_part,
-        const double MaximumDeltaTime,
-        const double DeltaTimeFraction,
-        const double DeltaTimePredictionLevel,
         const int StressUpdateOption,
         const bool isCentralDifference
         )
@@ -132,17 +129,8 @@ public:
             mStressUpdateOption(StressUpdateOption),
             mIsCentralDifference(isCentralDifference)
     {
-        mDeltaTime.PredictionLevel = DeltaTimePredictionLevel;
-        mDeltaTime.Maximum = MaximumDeltaTime;
-        mDeltaTime.Fraction = DeltaTimeFraction;
-
         //mStressUpdateOption = StressUpdateOption; // 0 = USF, 1 = USL, 2 = MUSL
         //mIsCentralDifference = isCentralDifference;
-
-        //pjw hard coded so far
-        mDeltaTime.PredictionLevel = 0;
-        mDeltaTime.Maximum = 1.0;
-        mDeltaTime.Fraction = 1.0;
 
         std::cout << "\n\n =========================== USING MPM EXPLICIT ========================== \n\n" << std::endl;
     }
@@ -948,7 +936,6 @@ protected:
     ///@{
 
     TimeVariables mTime;            /// This struct contains the details of the time variables
-    DeltaTimeParameters mDeltaTime; /// This struct contains the information related with the increment od time step
 
     ModelPart& mr_grid_model_part;
 

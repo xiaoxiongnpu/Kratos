@@ -4,8 +4,8 @@
 //   _|\_\_|  \__,_|\__|\___/ ____/
 //                   Multi-Physics
 //
-//  License:		 BSD License
-//					 Kratos default license: kratos/license.txt
+//  License:         BSD License
+//                   Kratos default license: kratos/license.txt
 //
 //  Main authors:    Peter Wilson (thanks Klaus Sautter)
 //
@@ -15,11 +15,11 @@
 #if !defined(KRATOS_MPM_EXPLICIT_STRATEGY )
 #define  KRATOS_MPM_EXPLICIT_STRATEGY
 
-/* System includes */
+// System includes
 
-/* External includes */
+// External includes
 
-/* Project includes */
+// Project includes
 #include "includes/define.h"
 #include "includes/model_part.h"
 #include "utilities/variable_utils.h"
@@ -59,12 +59,12 @@ namespace Kratos
     /*@{ */
 
     /// Short class definition.
-
-    /**   Detail class definition.
-
-
-
-     */
+/**
+ * @class MPMExplicitStrategy
+ * @ingroup ParticleMechanicsApplciation
+ * @brief This strategy is used for the explicit time integration
+ * @author Peter Wilson (based on the work of Klaus B Sautter)
+ */
     template<class TSparseSpace,
         class TDenseSpace,
         class TLinearSolver
@@ -110,18 +110,6 @@ namespace Kratos
         /**@name Life Cycle
          */
          /*@{ */
-
-         /** Constructors.
-          */
-        MPMExplicitStrategy(
-            ModelPart& model_part,
-            bool MoveMeshFlag = false
-        )
-            : SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(model_part, MoveMeshFlag)
-        {
-        }
-
-
         MPMExplicitStrategy(
             ModelPart& model_part,
             typename TSchemeType::Pointer pScheme,
@@ -129,19 +117,14 @@ namespace Kratos
             bool ReformDofSetAtEachStep = false,
             bool MoveMeshFlag = false
         )
-            : SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(model_part, MoveMeshFlag)
+            : SolvingStrategy<TSparseSpace, TDenseSpace, TLinearSolver>(model_part, MoveMeshFlag),
+            mpScheme(pScheme),
+            mReformDofSetAtEachStep(ReformDofSetAtEachStep),
+            mCalculateReactionsFlag(CalculateReactions)
         {
             KRATOS_TRY
 
-                mKeepSystemConstantDuringIterations = false;
-
-            // Set flags to default values
-            mCalculateReactionsFlag = CalculateReactions;
-
-            mReformDofSetAtEachStep = ReformDofSetAtEachStep;
-
-            // Saving the scheme
-            mpScheme = pScheme;
+            mKeepSystemConstantDuringIterations = false;
 
             // Set flags to start correcty the calculations
             mSolutionStepIsInitialized = false;
@@ -153,8 +136,8 @@ namespace Kratos
             // Set EchoLevel to the default value (only time is displayed)
             SetEchoLevel(1);
 
-            // By default the matrices are rebuilt at each iteration
-            this->SetRebuildLevel(2);
+            // By default the matrices are rebuilt at each solution step
+            this->SetRebuildLevel(1);
 
             KRATOS_CATCH("")
         }
@@ -247,24 +230,23 @@ namespace Kratos
             // if the operations needed were already performed this does nothing
             if (mInitializeWasPerformed == false)
             {
-                KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() > 1) << "Initializing solving strategy" << std::endl;
+                KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() > 1) << "Initializing solving strategy" << std::endl;
                 KRATOS_ERROR_IF(mInitializeWasPerformed == true) << "Initialization was already performed " << mInitializeWasPerformed << std::endl;
 
                 // Initialize The Scheme - OPERATIONS TO BE DONE ONCE
-                KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() > 1) << "Initializing scheme" << std::endl;
+                KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() > 1) << "Initializing scheme" << std::endl;
                 if (pScheme->SchemeIsInitialized() == false)
                     pScheme->Initialize(BaseType::GetModelPart());
 
                 // Initialize The Elements - OPERATIONS TO BE DONE ONCE
-                KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() > 1) << "Initializing elements" << std::endl;
+                KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() > 1) << "Initializing elements" << std::endl;
                 if (pScheme->ElementsAreInitialized() == false)
                     pScheme->InitializeElements(BaseType::GetModelPart());
 
                 // Initialize The Conditions - OPERATIONS TO BE DONE ONCE
-                KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() > 1) << "Initializing conditions" << std::endl;
+                KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() > 1) << "Initializing conditions" << std::endl;
                 if (pScheme->ConditionsAreInitialized() == false)
                     pScheme->InitializeConditions(BaseType::GetModelPart());
-
 
                 mInitializeWasPerformed = true;
             }
@@ -272,8 +254,47 @@ namespace Kratos
             // Prints informations about the current time
             if (this->GetEchoLevel() == 2 && BaseType::GetModelPart().GetCommunicator().MyPID() == 0)
             {
-                KRATOS_INFO("MPM_Strategy") << "CurrentTime = " << BaseType::GetModelPart().GetProcessInfo()[TIME] << std::endl;
+                KRATOS_INFO("MPM_Explicit_Strategy") << "CurrentTime = " << BaseType::GetModelPart().GetProcessInfo()[TIME] << std::endl;
             }
+
+            KRATOS_CATCH("")
+        }
+
+        void InitializeSolutionStep() override
+        {
+            KRATOS_TRY
+
+                // Initialize solution step
+                if (mSolutionStepIsInitialized == false)
+                {
+                    typename TSchemeType::Pointer pScheme = GetScheme();
+
+                    ModelPart& r_model_part = BaseType::GetModelPart();
+
+                    TSystemMatrixType matrix_a_dummy = TSystemMatrixType();
+                    TSystemVectorType rDx = TSystemVectorType();
+                    TSystemVectorType rb = TSystemVectorType();
+
+
+                    TSystemMatrixType mA = TSystemMatrixType();
+                    TSystemVectorType mDx = TSystemVectorType();
+                    TSystemVectorType mb = TSystemVectorType();
+
+                    // Initial operations ... things that are constant over the Solution Step
+                    pScheme->InitializeSolutionStep(BaseType::GetModelPart(), mA, mDx, mb);
+
+
+                    if (BaseType::mRebuildLevel > 0)
+                    { // TODO: Right now is computed in the Initialize() because is always zero, the option to set the RebuildLevel should be added in the constructor or in some place
+                        ProcessInfo& r_current_process_info = r_model_part.GetProcessInfo();
+                        ElementsArrayType& r_elements = r_model_part.Elements();
+                        const auto it_elem_begin = r_elements.begin();
+                    }
+                }
+
+            mSolutionStepIsInitialized = true;
+
+            KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() >= 3) << "Initialize Solution Step in strategy finished" << std::endl;
 
             KRATOS_CATCH("")
         }
@@ -450,60 +471,7 @@ namespace Kratos
         //**********************************************************************
         //**********************************************************************
 
-        void InitializeSolutionStep() override
-        {
-            KRATOS_TRY
-
-                // Initialize solution step
-                if (mSolutionStepIsInitialized == false)
-                {
-                    typename TSchemeType::Pointer pScheme = GetScheme();
-
-                    ModelPart& r_model_part = BaseType::GetModelPart();
-
-                    TSystemMatrixType matrix_a_dummy = TSystemMatrixType();
-                    TSystemVectorType rDx = TSystemVectorType();
-                    TSystemVectorType rb = TSystemVectorType();
-
-
-                    TSystemMatrixType mA = TSystemMatrixType();
-                    TSystemVectorType mDx = TSystemVectorType();
-                    TSystemVectorType mb = TSystemVectorType();
-
-                    // Initial operations ... things that are constant over the Solution Step
-                    pScheme->InitializeSolutionStep(BaseType::GetModelPart(), mA, mDx, mb);
-
-
-                    if (BaseType::mRebuildLevel > 0)
-                    { // TODO: Right now is computed in the Initialize() because is always zero, the option to set the RebuildLevel should be added in the constructor or in some place
-                        ProcessInfo& r_current_process_info = r_model_part.GetProcessInfo();
-                        ElementsArrayType& r_elements = r_model_part.Elements();
-                        const auto it_elem_begin = r_elements.begin();
-
-                        // Set Nodal Mass and Damping to zero
-                        NodesArrayType& r_nodes = r_model_part.Nodes();
-                        //VariableUtils().SetNonHistoricalVariable(NODAL_MASS, 0.0, r_nodes);
-                        VariableUtils().SetNonHistoricalVariable(NODAL_DISPLACEMENT_DAMPING, 0.0, r_nodes);
-
-                        Vector dummy_vector;
-                        // If we consider the rotation DoF
-                        /* #pragma omp parallel for firstprivate(dummy_vector), schedule(guided,512)
-                        for (int i = 0; i < static_cast<int>(r_elements.size()); ++i) {
-                            // Getting nodal mass and inertia from element
-                            // this function needs to be implemented in the respective
-                            // element to provide nodal masses
-                            auto it_elem = it_elem_begin + i;
-                            it_elem->AddExplicitContribution(dummy_vector, RESIDUAL_VECTOR, NODAL_MASS, r_current_process_info);
-                        } */
-                    }
-                }
-
-            mSolutionStepIsInitialized = true;
-
-            KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() >= 3) << "Initialize Solution Step in strategy finished" << std::endl;
-
-            KRATOS_CATCH("")
-        }
+        
 
 
         //**********************************************************************
@@ -523,7 +491,7 @@ namespace Kratos
             to avoid error accumulation*/
             if (mFinalizeSolutionStep)
             {
-                KRATOS_INFO_IF("MPM_Strategy", this->GetEchoLevel() >= 3) << "Calling FinalizeSolutionStep" << std::endl;
+                KRATOS_INFO_IF("MPM_Explicit_Strategy", this->GetEchoLevel() >= 3) << "Calling FinalizeSolutionStep" << std::endl;
 
                 pScheme->FinalizeSolutionStep(BaseType::GetModelPart(), mA, mDx, mb);
                 if (BaseType::MoveMeshFlag()) BaseType::MoveMesh();

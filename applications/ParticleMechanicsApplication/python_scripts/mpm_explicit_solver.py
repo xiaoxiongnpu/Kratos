@@ -70,12 +70,34 @@ class MPMExplicitSolver(MPMSolver):
         is_dynamic = self._IsDynamic()
 
         return KratosParticle.MPMExplicitScheme( grid_model_part,
-                                                 MaximumDeltaTime,
-                                                 DeltaTimeFraction,
-                                                 DeltaTimePredictionLevel,
                                                  StressUpdateOption,
                                                  isCentralDifference)
 
+    def _CreateSolutionStrategy(self):
+        analysis_type = self.settings["analysis_type"].GetString()
+        if analysis_type == "linear":
+                self.material_point_model_part.ProcessInfo.SetValue(KratosParticle.IS_EXPLICIT, True)
+                solution_strategy = self._CreateLinearStrategy()
+        else:
+            err_msg =  "The requested explicit analysis type \"" + analysis_type + "\" is not available!\n"
+            err_msg += "Available explicit options are: \"linear\""
+            raise Exception(err_msg)
+        return solution_strategy
+
+
+    def _CreateLinearStrategy(self):
+        computing_model_part = self.GetComputingModelPart()
+        solution_scheme = self._GetSolutionScheme()
+        linear_solver = self._GetLinearSolver()
+        reform_dofs_at_each_step = False ## hard-coded, but can be changed upon implementation
+        calc_norm_dx_flag = False ## hard-coded, but can be changed upon implementation
+        return KratosMultiphysics.ResidualBasedLinearStrategy(computing_model_part,
+                                                              solution_scheme,
+                                                              linear_solver,
+                                                              self.settings["compute_reactions"].GetBool(),
+                                                              reform_dofs_at_each_step,
+                                                              calc_norm_dx_flag,
+                                                              self.settings["move_mesh_flag"].GetBool())
 
     def _IsDynamic(self):
         return True
