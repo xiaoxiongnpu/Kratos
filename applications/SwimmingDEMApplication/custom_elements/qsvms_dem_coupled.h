@@ -245,6 +245,8 @@ public:
                         const BoundedMatrix<double, NumNodes, Dim>& rDN_DX,
                         const double Weight);
 
+    void AlgebraicMomentumResidual(const TElementData& rData, const array_1d<double,3> &rConvectionVelocity, array_1d<double,3>& rResidual) const override;
+    
     void AddMassRHS(VectorType& F,
                     const double Density,
                     const array_1d<double, NumNodes>& rShapeFunc,

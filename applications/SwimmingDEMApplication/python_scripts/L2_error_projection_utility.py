@@ -20,19 +20,21 @@ class L2ErrorProjectionUtility:
         self.error_model_part.AddNodalSolutionStepVariable(SDEM.ERROR_X)
         self.error_model_part.AddNodalSolutionStepVariable(SDEM.ERROR_Y)
         self.error_model_part.AddNodalSolutionStepVariable(SDEM.ERROR_Z)
+        self.error_model_part.AddNodalSolutionStepVariable(SDEM.SCALAR_ERROR)
         model_part_cloner = KratosMultiphysics.ConnectivityPreserveModeler()
         model_part_cloner.GenerateModelPart(self.model_part, self.error_model_part, self.element_name)
         self.error_model_part.ProcessInfo = self.model_part.ProcessInfo
-        self.DOFs = (SDEM.ERROR_X, SDEM.ERROR_Y, SDEM.ERROR_Z)
+        self.DOFs = (SDEM.ERROR_X, SDEM.ERROR_Y, SDEM.ERROR_Z, SDEM.SCALAR_ERROR)
         self.AddDofs(self.DOFs)
         self.SetStrategy()
 
     def ProjectL2(self):
         self.ComputeVelocityError()
+        self.ComputePressureError()
         self.Solve()
 
-        self.velocity_error_projected = SDEM.L2ErrorProjection().GetL2Projection(self.error_model_part)
-        self.pressure_error_projected = 0.0
+        self.velocity_error_projected = SDEM.L2ErrorProjection().GetL2VectorProjection(self.error_model_part)
+        self.pressure_error_projected = SDEM.L2ErrorProjection().GetL2ScalarProjection(self.error_model_part)
         return self.velocity_error_projected, self.pressure_error_projected, self.error_model_part
 
     def ComputeVelocityError(self):
@@ -43,6 +45,12 @@ class L2ErrorProjectionUtility:
             node.SetSolutionStepValue(SDEM.VECTORIAL_ERROR, vectorial_error)
 
         print("av_mod_error :", mod_error / len(self.error_model_part.Elements))
+
+    def ComputePressureError(self):
+        mod_error = 0
+        for node in self.error_model_part.Nodes:
+            scalar_error = node.GetSolutionStepValue(KratosMultiphysics.PRESSURE) - node.GetSolutionStepValue(SDEM.EXACT_PRESSURE)
+            node.SetSolutionStepValue(SDEM.SCALAR_ERROR, scalar_error)
 
     def SetStrategy(self):
         scheme = KratosMultiphysics.ResidualBasedIncrementalUpdateStaticScheme()

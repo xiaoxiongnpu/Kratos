@@ -6,8 +6,8 @@ namespace Kratos
 
 template <unsigned int TDim, unsigned int TNumNodes>
 void CalculateErrorL2Projection<TDim, TNumNodes>::CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
-                                  VectorType& rRightHandSideVector,
-                                  ProcessInfo& rCurrentProcessInfo)
+                                                                        VectorType& rRightHandSideVector,
+                                                                        ProcessInfo& rCurrentProcessInfo)
 {
     const unsigned int NumNodes(TDim+1), LocalSize(TDim * NumNodes);
 
@@ -31,7 +31,7 @@ void CalculateErrorL2Projection<TDim, TNumNodes>::CalculateLocalSystem(MatrixTyp
 
 template <unsigned int TDim, unsigned int TNumNodes>
 void CalculateErrorL2Projection<TDim, TNumNodes>::EquationIdVector(EquationIdVectorType& rResult,
-                              ProcessInfo& rCurrentProcessInfo)
+                                                                ProcessInfo& rCurrentProcessInfo)
 {
 
     const unsigned int NumNodes(TDim+1), LocalSize(TDim * NumNodes);
@@ -132,8 +132,8 @@ void CalculateErrorL2Projection<TDim, TNumNodes>::AddConsistentMassMatrixContrib
 
 template <unsigned int TDim, unsigned int TNumNodes>
 void CalculateErrorL2Projection<TDim, TNumNodes>::AddIntegrationPointRHSContribution(VectorType& F,
-                             const array_1d<double,TNumNodes>& rShapeFunc,
-                             const double Weight)
+                                                                                    const array_1d<double,TNumNodes>& rShapeFunc,
+                                                                                    const double Weight)
 {
     double Coef = Weight;
     int LocalIndex = 0;

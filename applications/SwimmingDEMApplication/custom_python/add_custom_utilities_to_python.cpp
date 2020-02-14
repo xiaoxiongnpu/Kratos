@@ -494,7 +494,8 @@ void  AddCustomUtilitiesToPython(pybind11::module& m){
 
     py::class_<L2ErrorProjection> (m, "L2ErrorProjection")
         .def(py::init<>())
-        .def("GetL2Projection", &L2ErrorProjection::GetL2Projection)
+        .def("GetL2VectorProjection", &L2ErrorProjection::GetL2VectorProjection)
+        .def("GetL2ScalarProjection", &L2ErrorProjection::GetL2ScalarProjection)
         ;
 
     py::class_<MeshRotationUtility> (m, "MeshRotationUtility")

@@ -31,11 +31,11 @@ class FluidFractionTestAnalysis(SwimmingDEMAnalysis):
     def _CreateSolver(self):
         import fluid_fraction_test_solver as sdem_solver
         return sdem_solver.FluidFractionTestSolver(self.model,
-                                                   self.project_parameters,
-                                                   self.GetFieldUtility(),
-                                                   self._GetFluidAnalysis()._GetSolver(),
-                                                   self._GetDEMAnalysis()._GetSolver(),
-                                                   self.vars_man)
+                                                self.project_parameters,
+                                                self.GetFieldUtility(),
+                                                self._GetFluidAnalysis()._GetSolver(),
+                                                self._GetDEMAnalysis()._GetSolver(),
+                                                self.vars_man)
 
     def SetUpResultsDatabase(self):
         #pass

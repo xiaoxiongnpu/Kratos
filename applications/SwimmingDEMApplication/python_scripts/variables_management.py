@@ -78,8 +78,8 @@ class VariablesManager:
 
     def SetOptions(self, parameters):
         self.do_include_history_force = (PT.RecursiveFindParametersWithCondition(
-                                         parameters["properties"], 'history_force_parameters',
-                                         condition=lambda value: value['name'].GetString() != 'default'))
+                                        parameters["properties"], 'history_force_parameters',
+                                        condition=lambda value: value['name'].GetString() != 'default'))
 
         if self.do_include_history_force: #TODO: extend to multiple properties
             for prop in parameters["properties"].values():
@@ -105,8 +105,8 @@ class VariablesManager:
         if parameters["laplacian_calculation_type"].GetInt() == 3: # recovery through solving a system
             fluid_model_part.ProcessInfo.SetValue(Kratos.COMPUTE_LUMPED_MASS_MATRIX, 1)
         elif (parameters["material_acceleration_calculation_type"].GetInt() == 4
-              or parameters["material_acceleration_calculation_type"].GetInt() == 5
-              or parameters["material_acceleration_calculation_type"].GetInt() == 6): # recovery by solving a system
+            or parameters["material_acceleration_calculation_type"].GetInt() == 5
+            or parameters["material_acceleration_calculation_type"].GetInt() == 6): # recovery by solving a system
             fluid_model_part.ProcessInfo.SetValue(Kratos.COMPUTE_LUMPED_MASS_MATRIX, 0)
 
         if parameters["material_acceleration_calculation_type"].GetInt() == 5 or parameters["material_acceleration_calculation_type"].GetInt() == 6:
@@ -339,7 +339,7 @@ class VariablesManager:
 
         # fluid coupling variables
         self.coupling_fluid_vars = []
-        self.coupling_fluid_vars += [Kratos.MATERIAL_ACCELERATION, SDEM.EXACT_VELOCITY, SDEM.VECTORIAL_ERROR, SDEM.ERROR_X, SDEM.ERROR_Y, SDEM.ERROR_Z]
+        self.coupling_fluid_vars += [Kratos.MATERIAL_ACCELERATION, SDEM.EXACT_VELOCITY, SDEM.VECTORIAL_ERROR, SDEM.ERROR_X, SDEM.ERROR_Y, SDEM.ERROR_Z, SDEM.SCALAR_ERROR, SDEM.EXACT_PRESSURE]
 
         self.coupling_fluid_vars += [Kratos.KratosGlobals.GetVariable(parameters["body_force_per_unit_mass_variable_name"].GetString() )]
 

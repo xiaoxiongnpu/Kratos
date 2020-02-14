@@ -1,6 +1,7 @@
 import KratosMultiphysics as Kratos
 from KratosMultiphysics import Vector
 import KratosMultiphysics.SwimmingDEMApplication
+from importlib import import_module
 import swimming_DEM_solver
 import sympy as sp
 import numpy as np
@@ -10,12 +11,15 @@ import L2_error_projection_utility as error_projector
 class FluidFractionTestSolver(BaseSolver):
     def __init__(self, model, project_parameters, field_utility, fluid_solver, dem_solver, variables_manager):
         self.project_parameters = project_parameters
+        self.solution = self.project_parameters["fluid_parameters"]["processes"]["boundary_conditions_process_list"][1]["Parameters"]["benchmark_name"].GetString()
+        self.solution_parameters = self.project_parameters["fluid_parameters"]["processes"]["boundary_conditions_process_list"][1]["Parameters"]["benchmark_parameters"]
+
         super(FluidFractionTestSolver, self).__init__(model,
-                                                      project_parameters,
-                                                      field_utility,
-                                                      fluid_solver,
-                                                      dem_solver,
-                                                      variables_manager)
+                                                        project_parameters,
+                                                        field_utility,
+                                                        fluid_solver,
+                                                        dem_solver,
+                                                        variables_manager)
 
     def CannotIgnoreFluidNow(self):
         return self.solve_system and self.calculating_fluid_in_current_step
@@ -35,11 +39,11 @@ class FluidFractionTestSolver(BaseSolver):
         y = np.array([node.Y for node in self.fluid_solver.main_model_part.Nodes])
         z = np.array([node.Z for node in self.fluid_solver.main_model_part.Nodes])
 
-        from KratosMultiphysics.SwimmingDEMApplication.custom_body_force import casas_fluid_fraction_solution
-        self.casas_solution = casas_fluid_fraction_solution.CasasFluidFractionSolution(self.project_parameters["fluid_parameters"]["processes"]["boundary_conditions_process_list"][1]["Parameters"]["benchmark_parameters"])
-        fluid_fraction_list = np.array([self.casas_solution.alpha(current_time, x, y, z) for x, y, z in zip(x, y, z)])
-        fluid_fraction_rate_list = np.array([self.casas_solution.dalphat(current_time, x, y, z) for x, y, z in zip(x, y, z)])
-        fluid_fraction_gradient_list = np.array([[self.casas_solution.alpha1(current_time, x, y, z), self.casas_solution.alpha2(current_time, x, y, z), self.casas_solution.alpha3(current_time, x, y, z)] for x, y, z in zip(x, y, z)])
+        benchmark_module = import_module(self.solution)
+        self.fluid_fraction_solution = benchmark_module.CreateManufacturedSolution(self.solution_parameters)
+        fluid_fraction_list = np.array([self.fluid_fraction_solution.alpha(current_time, x, y, z) for x, y, z in zip(x, y, z)])
+        fluid_fraction_rate_list = np.array([self.fluid_fraction_solution.dalphat(current_time, x, y, z) for x, y, z in zip(x, y, z)])
+        fluid_fraction_gradient_list = np.array([[self.fluid_fraction_solution.alpha1(current_time, x, y, z), self.fluid_fraction_solution.alpha2(current_time, x, y, z), self.fluid_fraction_solution.alpha3(current_time, x, y, z)] for x, y, z in zip(x, y, z)])
 
 
         iterator = 0

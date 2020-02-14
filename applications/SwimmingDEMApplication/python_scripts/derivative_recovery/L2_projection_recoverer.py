@@ -15,7 +15,7 @@ class L2ProjectionDerivativesRecoverer(recoverer.DerivativesRecoverer):
         self.custom_functions_tool = SDEM.CustomFunctionsCalculator3D()
         self.calculate_vorticity = (project_parameters["vorticity_calculation_type"].GetInt() > 0
                                     or PT.RecursiveFindParametersWithCondition(project_parameters["properties"],
-                                                                               'vorticity_induced_lift_parameters'))
+                                                                                'vorticity_induced_lift_parameters'))
 
         if self.use_lumped_mass_matrix:
             self.model_part.ProcessInfo[Kratos.COMPUTE_LUMPED_MASS_MATRIX] = 1
@@ -72,7 +72,7 @@ class L2ProjectionGradientRecoverer(L2ProjectionDerivativesRecoverer, recoverer.
         self.AddDofs(self.DOFs)
         self.calculate_vorticity = (project_parameters["vorticity_calculation_type"].GetInt() > 0
                                     or PT.RecursiveFindParametersWithCondition(project_parameters["properties"],
-                                                                               'vorticity_induced_lift_parameters'))
+                                                                                'vorticity_induced_lift_parameters'))
 
     def Solve(self):
         print("\nSolving for the fluid acceleration...")

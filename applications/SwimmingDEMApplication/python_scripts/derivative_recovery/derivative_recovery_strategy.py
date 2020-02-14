@@ -138,17 +138,15 @@ class DerivativeRecoveryStrategy:
         elif self.fluid_fraction_grad_type == 2:
             return zhang_guo_recoverer.ZhangGuoGradientRecoverer(self.parameters, self.fluid_model_part)
         elif self.fluid_fraction_grad_type == 3:
-            return manufactured_solution_recoverer.CasasSolutionRecoverer(self.parameters, self.fluid_model_part)
-        elif self.fluid_fraction_grad_type == 4:
-            return manufactured_solution_recoverer.StationarySolutionRecoverer(self.parameters, self.fluid_model_part)
+            return manufactured_solution_recoverer.ManufacturedFluidFractionSolutionRecoverer(self.parameters, self.fluid_model_part)
         else:
             raise Exception('The value of fluid_fraction_grad_type is ' + str(self.fluid_fraction_grad_type) + ' , which does not correspond to any valid option.')
 
     def Recover(self):
         # Some of the following may be empty, and some may do the work of others for efficiency.
         self.mat_deriv_tool.RecoverMaterialAcceleration()
-        # standard = standard_recoverer.StandardMaterialAccelerationRecoverer(self.parameters, self.fluid_model_part)
-        # standard.cplusplus_recovery_tool.SmoothVectorField(self.fluid_model_part, MATERIAL_ACCELERATION, VELOCITY_COMPONENT_GRADIENT)
+        #standard = standard_recoverer.StandardMaterialAccelerationRecoverer(self.parameters, self.fluid_model_part)
+        #standard.cplusplus_recovery_tool.SmoothVectorField(self.fluid_model_part, MATERIAL_ACCELERATION, VELOCITY_COMPONENT_GRADIENT)
         self.velocity_grad_tool.RecoverGradientOfVelocity()
         self.pressure_grad_tool.RecoverPressureGradient()
         self.fluid_fraction_grad_tool.RecoverFluidFractionGradient()

@@ -157,8 +157,8 @@ class SwimmingDEMAnalysis(AnalysisStage):
 
         if self.fluid_time_step < self.time_step:
             error_message = ('The fluid time step (' + str(self.fluid_time_step)
-                             + ') must be larger or equal than the overall time step (' + str(self.time_step)
-                             + ')!')
+                            + ') must be larger or equal than the overall time step (' + str(self.time_step)
+                            + ')!')
             raise Exception(error_message)
 
         self.fluid_time_step = int(self.fluid_time_step / self.time_step) * self.time_step
@@ -345,8 +345,8 @@ class SwimmingDEMAnalysis(AnalysisStage):
 
         # otherwise variables are set to 0 by default:
         SDP.InitializeVariablesWithNonZeroValues(self.project_parameters,
-                                                 self.fluid_model_part,
-                                                 self.spheres_model_part)
+                                                self.fluid_model_part,
+                                                self.spheres_model_part)
 
         if self.do_print_results:
             self.SetUpResultsDatabase()
@@ -417,7 +417,7 @@ class SwimmingDEMAnalysis(AnalysisStage):
         self._GetDEMAnalysis().Initialize()
 
     def SetPostUtils(self):
-          # creating a Post Utils object that executes several post-related tasks
+        # creating a Post Utils object that executes several post-related tasks
         self.post_utils = SDP.PostUtils(self.swimming_DEM_gid_io,
                                         self.project_parameters,
                                         self.vars_man,
