@@ -264,6 +264,9 @@ namespace Kratos
         {
             KRATOS_TRY
 
+
+                std::cout << "\n\n STRATEGY INITIALIZE SS \n\n" << std::endl;
+
                 // Initialize solution step
                 if (mSolutionStepIsInitialized == false)
                 {

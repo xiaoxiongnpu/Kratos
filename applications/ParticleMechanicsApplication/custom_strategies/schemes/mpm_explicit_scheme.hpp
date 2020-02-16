@@ -471,6 +471,8 @@ public:
     {
         KRATOS_TRY
 
+            std::cout << "\n\n SCHEME INITIALIZE SS \n\n" << std::endl;
+
             ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
         BaseType::InitializeSolutionStep(r_model_part, A, Dx, b);
         // LOOP OVER THE GRID NODES PERFORMED FOR CLEAR ALL NODAL INFORMATION
