@@ -187,7 +187,6 @@
                         "list_of_variables": [
                             "VELOCITY",
                             "PRESSURE",
-                            "RANS_Y_PLUS",
                             "VISCOSITY",
                             "TURBULENT_VISCOSITY",
                             "KINEMATIC_VISCOSITY",

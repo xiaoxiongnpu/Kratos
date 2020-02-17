@@ -50,16 +50,6 @@
             "velocity_pressure_relaxation_factor": 0.5,
             "auxiliar_process_list": [
                 {
-                    "python_module": "process_factory",
-                    "kratos_module": "KratosMultiphysics",
-                    "process_name": "ApplyConstantScalarValueProcess",
-                    "Parameters": {
-                        "model_part_name": "FluidModelPart.Slip2D",
-                        "variable_name": "RANS_Y_PLUS",
-                        "value" : 17.25677
-                    }
-                },
-                {
                     "python_module": "cpp_process_factory",
                     "kratos_module": "KratosMultiphysics.RANSApplication",
                     "process_name": "NutKEpsilonHighReCalculationProcess",
