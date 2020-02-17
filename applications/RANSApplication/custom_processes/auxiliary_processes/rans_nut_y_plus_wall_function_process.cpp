@@ -108,9 +108,6 @@ void RansNutYPlusWallFunctionProcess::Execute()
     KRATOS_TRY
 
     ModelPart& r_model_part = mrModel.GetModelPart(mModelPartName);
-
-    const double y_plus_limit = r_model_part.GetProcessInfo()[RANS_Y_PLUS_LIMIT];
-
     VariableUtils().SetHistoricalVariableToZero(TURBULENT_VISCOSITY,
                                                 r_model_part.Nodes());
 
@@ -122,8 +119,7 @@ void RansNutYPlusWallFunctionProcess::Execute()
         if (RansCalculationUtilities::IsWall(r_cond))
         {
             ConditionType::GeometryType& r_geometry = r_cond.GetGeometry();
-            const double y_plus =
-                (r_cond.Is(MARKER) ? r_cond.GetValue(RANS_Y_PLUS) : y_plus_limit);
+            const double y_plus = r_cond.GetValue(RANS_Y_PLUS) ;
 
             for (IndexType i_node = 0; i_node < r_geometry.PointsNumber(); ++i_node)
             {

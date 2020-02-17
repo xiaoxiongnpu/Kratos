@@ -149,6 +149,9 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             RansCalculationUtilities::CalculateWallVelocity(*this);
         const double wall_cell_center_velocity_magnitude = norm_2(wall_cell_center_velocity);
 
+        const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
+        double& y_plus = this->GetValue(RANS_Y_PLUS);
+
         if (wall_cell_center_velocity_magnitude > eps)
         {
             constexpr unsigned int block_size = TDim + 1;
@@ -156,27 +159,14 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             // calculate cell centered y_plus value
             const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
             const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
-            const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
             const double wall_height = this->GetValue(Y_WALL);
             const double nu = RansCalculationUtilities::EvaluateInParentCenter(
                 KINEMATIC_VISCOSITY, *this);
 
-            double y_plus, u_tau;
+            double u_tau;
             RansCalculationUtilities::CalculateYPlusAndUtau(
                 y_plus, u_tau, wall_cell_center_velocity_magnitude, wall_height,
                 nu, kappa, beta);
-
-            const bool is_in_log_region = (y_plus >= y_plus_limit);
-            this->Set(MARKER, is_in_log_region);
-
-            this->SetValue(FRICTION_VELOCITY, u_tau);
-            this->SetValue(RANS_Y_PLUS, y_plus);
-            this->SetValue(KINEMATIC_VISCOSITY, nu);
-
-            auto& r_parent_element = this->GetValue(NEIGHBOUR_ELEMENTS)[0];
-            r_parent_element.SetValue(FRICTION_VELOCITY, u_tau);
-            r_parent_element.SetValue(RANS_Y_PLUS, y_plus);
-            r_parent_element.Set(MARKER, this->Is(MARKER));
 
             GeometryType& r_geometry = this->GetGeometry();
 
@@ -196,8 +186,10 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             const double c_mu_25 =
                 std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
             const std::function<double(double, double)> linear_region_functional =
-                [c_mu_25, y_plus_limit](const double tke, const double velocity) -> double {
-                return std::max(c_mu_25 * std::sqrt(std::max(tke, 0.0)), velocity / y_plus_limit);
+                [c_mu_25, y_plus_limit](const double TurbulentKineticEnergy,
+                                        const double Velocity) -> double {
+                return std::max(c_mu_25 * std::sqrt(std::max(TurbulentKineticEnergy, 0.0)),
+                                Velocity / y_plus_limit);
             };
 
             // log region, apply the u_tau which is calculated based on the cell centered velocity
@@ -205,7 +197,10 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
                 [u_tau](const double, const double) -> double { return u_tau; };
 
             const std::function<double(double, double)> wall_tau_function =
-                (is_in_log_region ? log_region_functional : linear_region_functional);
+                ((y_plus >= y_plus_limit) ? log_region_functional : linear_region_functional);
+
+            double& condition_u_tau = this->GetValue(FRICTION_VELOCITY);
+            condition_u_tau = 0.0;
 
             for (size_t g = 0; g < number_of_gauss_points; ++g)
             {
@@ -226,6 +221,8 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
                     const double gauss_u_tau =
                         wall_tau_function(tke, wall_velocity_magnitude);
 
+                    condition_u_tau += gauss_u_tau;
+
                     const double value = rho * std::pow(gauss_u_tau, 2) *
                                          weight / wall_velocity_magnitude;
 
@@ -245,7 +242,11 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
                     }
                 }
             }
+
+            condition_u_tau /= static_cast<double>(number_of_gauss_points);
         }
+
+        y_plus = std::max(y_plus, y_plus_limit);
     }
 }
 

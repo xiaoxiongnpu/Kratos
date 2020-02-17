@@ -260,12 +260,10 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
     const double epsilon_sigma =
         rCurrentProcessInfo[TURBULENT_ENERGY_DISSIPATION_RATE_SIGMA];
     const double c_mu_25 = std::pow(rCurrentProcessInfo[TURBULENCE_RANS_C_MU], 0.25);
-    const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
     const double eps = std::numeric_limits<double>::epsilon();
 
     const ConditionType& r_parent_condition = *this->GetValue(PARENT_CONDITION_POINTER);
-    const double y_plus =
-        (r_parent_condition.Is(MARKER) ? r_parent_condition.GetValue(RANS_Y_PLUS) : y_plus_limit);
+    const double y_plus = r_parent_condition.GetValue(RANS_Y_PLUS);
 
     for (IndexType g = 0; g < num_gauss_points; ++g)
     {
