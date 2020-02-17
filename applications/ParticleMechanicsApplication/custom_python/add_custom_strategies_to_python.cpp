@@ -26,7 +26,7 @@
 //---strategies
 #include "solving_strategies/strategies/solving_strategy.h"
 #include "custom_strategies/strategies/mpm_residual_based_newton_raphson_strategy.hpp"
-//#include "custom_strategies/strategies/mpm_explicit_strategy.hpp"
+#include "custom_strategies/strategies/mpm_explicit_strategy.hpp"
 
 //---convergence criterias
 #include "solving_strategies/convergencecriterias/convergence_criteria.h"
@@ -61,6 +61,7 @@ namespace Python{
 
         //custom strategy types
         typedef MPMResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType> MPMResidualBasedNewtonRaphsonStrategyType;
+        typedef MPMExplicitStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType> MPMExplicitStrategyType;
 
         //custom scheme types
         typedef MPMResidualBasedBossakScheme< SparseSpaceType, LocalSpaceType >  MPMResidualBasedBossakSchemeType;
@@ -90,6 +91,17 @@ namespace Python{
             .def("GetKeepSystemConstantDuringIterations", &MPMResidualBasedNewtonRaphsonStrategyType::GetKeepSystemConstantDuringIterations)
             .def("SetFinalizeSolutionStepFlag", &MPMResidualBasedNewtonRaphsonStrategyType::SetFinalizeSolutionStepFlag)
             .def("GetFinalizeSolutionStepFlag", &MPMResidualBasedNewtonRaphsonStrategyType::GetFinalizeSolutionStepFlag)
+            ;
+
+        // MPM Explicit Strategy Type
+        py::class_< MPMExplicitStrategyType, typename MPMExplicitStrategyType::Pointer, BaseSolvingStrategyType >(m, "MPMExplicitStrategy")
+            .def(py::init< ModelPart&, BaseSchemeType::Pointer, bool, bool, bool >())
+            .def("SetInitializePerformedFlag", &MPMExplicitStrategyType::SetInitializePerformedFlag)
+            .def("GetInitializePerformedFlag", &MPMExplicitStrategyType::GetInitializePerformedFlag)
+            .def("SetKeepSystemConstantDuringIterations", &MPMExplicitStrategyType::SetKeepSystemConstantDuringIterations)
+            .def("GetKeepSystemConstantDuringIterations", &MPMExplicitStrategyType::GetKeepSystemConstantDuringIterations)
+            .def("SetFinalizeSolutionStepFlag", &MPMExplicitStrategyType::SetFinalizeSolutionStepFlag)
+            .def("GetFinalizeSolutionStepFlag", &MPMExplicitStrategyType::GetFinalizeSolutionStepFlag)
             ;
 
     }
