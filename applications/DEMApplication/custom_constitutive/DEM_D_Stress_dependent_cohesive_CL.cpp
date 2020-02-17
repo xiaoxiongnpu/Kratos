@@ -328,7 +328,6 @@ namespace Kratos {
 
         double share_of_max_contact_stress = element->GetParticleCohesion() * contact_area / normal_contact_force;
         if (share_of_max_contact_stress <= 1.0) share_of_max_contact_stress = 1.0;
-        else if (share_of_max_contact_stress >= element->GetParticleCohesion() / element->GetParticleInitialCohesion()) share_of_max_contact_stress = element->GetParticleCohesion() / element->GetParticleInitialCohesion();
 
         LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - share_of_max_contact_stress * mKt * LocalDeltDisp[0];
         LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - share_of_max_contact_stress * mKt * LocalDeltDisp[1];
@@ -337,11 +336,11 @@ namespace Kratos {
 
         const double my_tg_of_static_friction_angle        = element->GetProperties()[PARTICLE_STATIC_FRICTION_COEF];
         const double neighbour_tg_of_static_friction_angle = neighbour->GetProperties()[PARTICLE_STATIC_FRICTION_COEF];
-        const double equiv_tg_of_static_fri_ang            = 0.5 * share_of_max_contact_stress * (my_tg_of_static_friction_angle + neighbour_tg_of_static_friction_angle);
+        const double equiv_tg_of_static_fri_ang            = 0.5 * (my_tg_of_static_friction_angle + neighbour_tg_of_static_friction_angle);
 
         const double my_tg_of_dynamic_friction_angle        = element->GetProperties()[PARTICLE_DYNAMIC_FRICTION_COEF];
         const double neighbour_tg_of_dynamic_friction_angle = neighbour->GetProperties()[PARTICLE_DYNAMIC_FRICTION_COEF];
-        const double equiv_tg_of_dynamic_fri_ang            = 0.5 * share_of_max_contact_stress * (my_tg_of_dynamic_friction_angle + neighbour_tg_of_dynamic_friction_angle);
+        const double equiv_tg_of_dynamic_fri_ang            = 0.5 * (my_tg_of_dynamic_friction_angle + neighbour_tg_of_dynamic_friction_angle);
 
         if(equiv_tg_of_static_fri_ang < 0.0 || equiv_tg_of_dynamic_fri_ang < 0.0) {
             KRATOS_ERROR << "The averaged friction is negative for one contact of element with Id: "<< element->Id()<<std::endl;
