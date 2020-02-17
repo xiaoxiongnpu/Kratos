@@ -124,6 +124,8 @@ namespace Kratos
         {
             KRATOS_TRY
 
+                std::cout << "\n\n MPMExplicitStrategy MADE SS \n\n" << std::endl;
+
             mKeepSystemConstantDuringIterations = false;
 
             // Set flags to start correcty the calculations
@@ -224,6 +226,8 @@ namespace Kratos
         {
             KRATOS_TRY
 
+                std::cout << "\n\n STRATEGY INITIALIZE SS \n\n" << std::endl;
+
                 typename TSchemeType::Pointer pScheme = GetScheme();
 
             // OPERATIONS THAT SHOULD BE DONE ONCE - internal check to avoid repetitions
@@ -310,6 +314,7 @@ namespace Kratos
          //**********************************************************************
         bool SolveSolutionStep() override
         {
+            std::cout << "\n\n EXPLICIT STRATEGY SOLVE SOLUTION STEP \n\n" << std::endl;
             typename TSchemeType::Pointer pScheme = GetScheme();
             DofsArrayType dof_set_dummy;
             TSystemMatrixType mA = TSystemMatrixType();

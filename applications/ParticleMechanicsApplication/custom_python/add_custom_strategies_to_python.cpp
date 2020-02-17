@@ -26,7 +26,7 @@
 //---strategies
 #include "solving_strategies/strategies/solving_strategy.h"
 #include "custom_strategies/strategies/mpm_residual_based_newton_raphson_strategy.hpp"
-#include "custom_strategies/strategies/mpm_explicit_strategy.hpp"
+//#include "custom_strategies/strategies/mpm_explicit_strategy.hpp"
 
 //---convergence criterias
 #include "solving_strategies/convergencecriterias/convergence_criteria.h"
@@ -59,6 +59,7 @@ namespace Python{
         typedef Scheme< SparseSpaceType, LocalSpaceType > BaseSchemeType;
         typedef ConvergenceCriteria< SparseSpaceType, LocalSpaceType > ConvergenceCriteriaType;
 
+        //custom strategy types
         typedef MPMResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType> MPMResidualBasedNewtonRaphsonStrategyType;
 
         //custom scheme types
