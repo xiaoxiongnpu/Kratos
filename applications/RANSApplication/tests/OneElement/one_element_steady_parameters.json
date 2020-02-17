@@ -53,16 +53,6 @@
             "velocity_pressure_relaxation_factor": 0.1,
             "auxiliar_process_list": [
                 {
-                    "python_module": "process_factory",
-                    "kratos_module": "KratosMultiphysics",
-                    "process_name": "ApplyConstantScalarValueProcess",
-                    "Parameters": {
-                        "model_part_name": "MainModelPart.Boundary",
-                        "variable_name": "RANS_Y_PLUS",
-                        "value": 17.25677
-                    }
-                },
-                {
                     "python_module": "cpp_process_factory",
                     "kratos_module": "KratosMultiphysics.RANSApplication",
                     "process_name": "NutKEpsilonHighReCalculationProcess",
@@ -76,7 +66,7 @@
                     "kratos_module": "KratosMultiphysics.RANSApplication",
                     "process_name": "NutYPlusWallFunctionProcess",
                     "Parameters": {
-                        "model_part_name": "MainModelPart.Boundary",
+                        "model_part_name": "MainModelPart.Structure",
                         "echo_level": 0
                     }
                 }
@@ -179,6 +169,15 @@
         ],
         "boundary_conditions_process_list": [
             {
+                "python_module": "apply_noslip_process",
+                "kratos_module": "KratosMultiphysics.FluidDynamicsApplication",
+                "process_name": "ApplyNoSlipProcess",
+                "Parameters": {
+                    "mesh_id": 0,
+                    "model_part_name": "MainModelPart.Structure"
+                }
+            },
+            {
                 "python_module": "assign_vector_by_direction_process",
                 "kratos_module": "KratosMultiphysics",
                 "process_name": "AssignVectorByDirectionProcess",
@@ -203,15 +202,6 @@
                     "model_part_name": "MainModelPart.Outlet",
                     "variable_name": "PRESSURE",
                     "value": 0
-                }
-            },
-            {
-                "python_module": "apply_noslip_process",
-                "kratos_module": "KratosMultiphysics.FluidDynamicsApplication",
-                "process_name": "ApplyNoSlipProcess",
-                "Parameters": {
-                    "mesh_id": 0,
-                    "model_part_name": "MainModelPart.Boundary"
                 }
             },
             {
@@ -263,7 +253,7 @@
                 "process_name": "AssignScalarVariableProcess",
                 "Parameters": {
                     "mesh_id": 0,
-                    "model_part_name": "MainModelPart.Boundary",
+                    "model_part_name": "MainModelPart.Structure",
                     "variable_name": "TURBULENT_KINETIC_ENERGY",
                     "constrained": true,
                     "value": 0.0
@@ -275,7 +265,7 @@
                 "process_name": "AssignScalarVariableProcess",
                 "Parameters": {
                     "mesh_id": 0,
-                    "model_part_name": "MainModelPart.Boundary",
+                    "model_part_name": "MainModelPart.Structure",
                     "variable_name": "TURBULENT_ENERGY_DISSIPATION_RATE",
                     "constrained": true,
                     "value": 0.0
@@ -289,7 +279,7 @@
                 "kratos_module": "KratosMultiphysics.FluidDynamicsApplication",
                 "process_name": "ComputeBodyFittedDragProcess",
                 "Parameters": {
-                    "model_part_name": "MainModelPart.Structure",
+                    "model_part_name": "MainModelPart.Boundary",
                     "interval": [
                         0.0,
                         1e30
@@ -305,7 +295,7 @@
                 "help": "",
                 "process_name": "CompareTwoFilesCheckProcess",
                 "Parameters": {
-                    "output_file_name": "MainModelPart.Structure_drag.dat",
+                    "output_file_name": "MainModelPart.Boundary_drag.dat",
                     "reference_file_name": "one_element_steady_drag_ref.dat",
                     "comparison_type": "dat_file",
                     "remove_output_file": true,
