@@ -335,7 +335,7 @@
                     "output_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe1.dat",
                     "reference_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe1_ref.dat",
                     "comparison_type": "dat_file",
-                    "remove_output_file": true,
+                    "remove_output_file": false,
                     "tolerance": 1e-5
                 }
             },
@@ -348,7 +348,7 @@
                     "output_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe2.dat",
                     "reference_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe2_ref.dat",
                     "comparison_type": "dat_file",
-                    "remove_output_file": true,
+                    "remove_output_file": false,
                     "tolerance": 1e-5
                 }
             },
@@ -361,7 +361,7 @@
                     "output_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe3.dat",
                     "reference_file_name": "channel_flow_step_k_epsilon_transient_mpi_test_probe3_ref.dat",
                     "comparison_type": "dat_file",
-                    "remove_output_file": true,
+                    "remove_output_file": false,
                     "tolerance": 1e-5
                 }
             },
@@ -374,7 +374,7 @@
                     "output_file_name": "FluidModelPart.Slip2D_drag.dat",
                     "reference_file_name": "channel_flow_step_k_epsilon_transient_drag_mpi_ref.dat",
                     "comparison_type": "dat_file",
-                    "remove_output_file": true,
+                    "remove_output_file": false,
                     "tolerance": 1e-5
                 }
             }
