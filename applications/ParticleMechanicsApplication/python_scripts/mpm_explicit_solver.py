@@ -33,6 +33,15 @@ class MPMExplicitSolver(MPMSolver):
     def AddVariables(self):
         super(MPMExplicitSolver, self).AddVariables()
         self._AddDynamicVariables(self.grid_model_part)
+        grid_model_part = self.GetGridModelPart()
+
+        # Adding explicit variables
+        grid_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.FORCE_RESIDUAL)
+        grid_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.RESIDUAL_VECTOR)
+
+        scheme_type = self.settings["scheme_type"].GetString()
+        if(scheme_type == "central_differences"):
+            grid_model_part.AddNodalSolutionStepVariable(ParticleMechanicsApplication.MIDDLE_VELOCITY)
         KratosMultiphysics.Logger.PrintInfo("::[MPMExplicitSolver]:: ", "Variables are all added.")
 
     ### Protected functions ###

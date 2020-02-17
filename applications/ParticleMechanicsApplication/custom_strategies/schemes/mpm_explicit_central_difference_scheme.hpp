@@ -11,8 +11,8 @@
 //
 //
 
-#if !defined(KRATOS_MPM_EXPLICIT_SCHEME)
-#define KRATOS_MPM_EXPLICIT_SCHEME
+#if !defined(KRATOS_MPM_EXPLICIT_CENTRAL_DIFFERENCE_SCHEME)
+#define KRATOS_MPM_EXPLICIT_CENTRAL_DIFFERENCE_SCHEME
 
 // System includes
 
@@ -51,7 +51,7 @@ namespace Kratos{
 ///@{
 
 /**
- * @class MPMExplicitScheme
+ * @class MPMExplicitCentralDifferenceScheme
  * @ingroup KratosParticle
  * @brief A MPM explicit scheme
  * @details Scheme options include Forward Euler or Central Difference. 
@@ -62,16 +62,16 @@ namespace Kratos{
 template <class TSparseSpace,
           class TDenseSpace //= DenseSpace<double>
           >
-class MPMExplicitScheme
-    : public Scheme<TSparseSpace, TDenseSpace> {
+class MPMExplicitCentralDifferenceScheme
+    : public MPMExplicitScheme<TSparseSpace, TDenseSpace> {
 
 public:
     /**@name Type Definitions */
 
     /*@{ */
-    KRATOS_CLASS_POINTER_DEFINITION(MPMExplicitScheme);
+    KRATOS_CLASS_POINTER_DEFINITION(MPMExplicitCentralDifferenceScheme);
 
-    typedef Scheme<TSparseSpace, TDenseSpace>                      BaseType;
+    typedef MPMExplicitScheme<TSparseSpace, TDenseSpace>                      BaseType;
 
     typedef typename BaseType::TDataType                         TDataType;
 
@@ -111,90 +111,10 @@ public:
     ///@}
     ///@name Life Cycle
     ///@{
-
-    /**
-     * @brief Default constructor.
-     * @details The MPMExplicitScheme method
-     * @param MaximumDeltaTime The maximum delta time to be considered
-     * @param DeltaTimeFraction The delta ttime fraction
-     * @param DeltaTimePredictionLevel The prediction level
-     */
-        MPMExplicitScheme(
-        ModelPart& grid_model_part,
-        const int StressUpdateOption,
-        const bool isCentralDifference
-        )
-        : Scheme<TSparseSpace, TDenseSpace>(), 
-            mr_grid_model_part(grid_model_part), 
-            mStressUpdateOption(StressUpdateOption),
-            mIsCentralDifference(isCentralDifference)
-    {
-        //mStressUpdateOption = StressUpdateOption; // 0 = USF, 1 = USL, 2 = MUSL
-        //mIsCentralDifference = isCentralDifference;
-
-        std::cout << "\n\n =========================== USING MPM EXPLICIT ========================== \n\n" << std::endl;
-        if (!mIsCentralDifference)
-        {
-            std::cout << "\n\n =========================== FORWARD EULER ========================== \n\n" << std::endl;
-        }
-        else
-        {
-            // TODO add errors
-        }
-    }
-
-    /** Destructor.
-    */
-    virtual ~MPMExplicitScheme() {}
-
-    ///@}
-    ///@name Operators
-    ///@{
-
-    /**
-     * Clone
-     */
-    BaseTypePointer Clone() override
-    {
-        return BaseTypePointer(new MPMExplicitScheme(*this));
-    }
-
-    /**
-     * @brief This is the place to initialize the Scheme. This is intended to be called just once when the strategy is initialized
-     * @param rModelPart The model of the problem to solve
-     */
-    void Initialize(ModelPart& rModelPart) override
-    {
-        KRATOS_TRY
-
-        ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
-
-        // Preparing the time values for the first step (where time = initial_time +
-        // dt)
-        mTime.Current = r_current_process_info[TIME] + r_current_process_info[DELTA_TIME];
-        mTime.Delta = r_current_process_info[DELTA_TIME];
-        mTime.Middle = mTime.Current - 0.5 * mTime.Delta;
-        mTime.Previous = mTime.Current - mTime.Delta;
-        mTime.PreviousMiddle = mTime.Current - 1.5 * mTime.Delta;
-
-        /// Working in 2D/3D (the definition of DOMAIN_SIZE is check in the Check method)
-        const SizeType dim = r_current_process_info[DOMAIN_SIZE];
-
-        // Initialize scheme
-        if (!BaseType::SchemeIsInitialized())
-            InitializeExplicitScheme(rModelPart, dim);
-        else
-            SchemeCustomInitialization(rModelPart, dim);
-
-        BaseType::SetSchemeIsInitialized();
-
-        KRATOS_CATCH("")
-    }
-
-    void InitializeExplicitScheme(
+    void InitializeExplicitScheme (
         ModelPart& rModelPart,
         const SizeType DomainSize = 3
-    )
+    )override
     {
         KRATOS_TRY
 
@@ -203,6 +123,20 @@ public:
 
         // The first iterator of the array of nodes
         const auto it_node_begin = rModelPart.NodesBegin();
+
+        if (mIsCentralDifference) // TODO can this be cleaned up into one big loop?
+        {
+            /// Initialise the database of the nodes
+            const array_1d<double, 3> zero_array = ZeroVector(3);
+            #pragma omp parallel for schedule(guided,512)
+            for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
+                auto it_node = (it_node_begin + i);
+                //it_node->SetValue(NODAL_MASS, 0.0);
+                array_1d<double, 3>& r_middle_velocity = it_node->FastGetSolutionStepValue(MIDDLE_VELOCITY);
+                r_middle_velocity = ZeroVector(3);
+            }
+        }
+
 
         #pragma omp parallel for schedule(guided,512)
         for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
@@ -213,6 +147,15 @@ public:
             for (IndexType j = 0; j < DomainSize; j++) {
                 r_current_residual[j] = 0.0;
             }
+
+            if (mIsCentralDifference)
+            {
+                array_1d<double, 3>& r_middle_velocity = it_node->FastGetSolutionStepValue(MIDDLE_VELOCITY);
+                const array_1d<double, 3>& r_current_velocity = it_node->FastGetSolutionStepValue(VELOCITY);
+                for (IndexType j = 0; j < DomainSize; j++) {
+                    r_middle_velocity[j] = r_current_velocity[j];
+                }
+            }
         }
 
         KRATOS_CATCH("")
@@ -220,66 +163,11 @@ public:
 
     //***************************************************************************
     //***************************************************************************
-
-    /**
-     * Performing the update of the solution
-     * Incremental update within newton iteration. It updates the state variables at the end of the time step: u_{n+1}^{k+1}= u_{n+1}^{k}+ \Delta u
-     * @param r_model_part
-     * @param rDofSet set of all primary variables
-     * @param A	LHS matrix
-     * @param Dx incremental update of primary variables
-     * @param b RHS Vector
-     */
-    void Update(
-        ModelPart& r_model_part,
-        DofsArrayType& rDofSet,
-        TSystemMatrixType& A,
-        TSystemVectorType& Dx,
-        TSystemVectorType& b) override
-    {
-        KRATOS_TRY
-            // The current process info
-            ProcessInfo& r_current_process_info = r_model_part.GetProcessInfo();
-
-        // The array of nodes
-        NodesArrayType& r_nodes = r_model_part.Nodes();
-
-        /// Working in 2D/3D (the definition of DOMAIN_SIZE is check in the Check method)
-        const SizeType dim = r_current_process_info[DOMAIN_SIZE];
-
-        // Step Update
-        // The first step is time =  initial_time ( 0.0) + delta time
-        mTime.Current = r_current_process_info[TIME];
-        mTime.Delta = r_current_process_info[DELTA_TIME];
-
-        mTime.Middle = mTime.Current - 0.50 * mTime.Delta;
-        mTime.Previous = mTime.Current - 1.00 * mTime.Delta;
-        mTime.PreviousMiddle = mTime.Middle - 1.00 * mTime.Delta;
-
-        if (mTime.Previous < 0.0) mTime.Previous = 0.00;
-        if (mTime.PreviousMiddle < 0.0) mTime.PreviousMiddle = 0.00;
-        // The iterator of the first node
-        const auto it_node_begin = r_model_part.NodesBegin();
-
-        // Getting dof position
-        const IndexType disppos = it_node_begin->GetDofPosition(DISPLACEMENT_X);
-
-        #pragma omp parallel for schedule(guided,512)
-        for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
-            // Current step information "N+1" (before step update).
-            this->UpdateTranslationalDegreesOfFreedom(it_node_begin + i, disppos, dim);
-        } // for Node parallel
-        KRATOS_CATCH("")
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    void UpdateTranslationalDegreesOfFreedom(
+    void UpdateTranslationalDegreesOfFreedom (
         NodeIterator itCurrentNode,
         const IndexType DisplacementPosition,
         const SizeType DomainSize = 3
-    )
+    )override
     {
 
         //PJW
@@ -382,69 +270,7 @@ public:
         //PJW integrated momentum form of explicit advance =============================
     }
 
-
-    /**
-    This is the place to initialize the elements.
-    This is intended to be called just once when the strategy is initialized
-     */
-    void InitializeElements(ModelPart& rModelPart) override
-    {
-        KRATOS_TRY
-
-            int num_threads = OpenMPUtils::GetNumThreads();
-        OpenMPUtils::PartitionVector element_partition;
-        OpenMPUtils::DivideInPartitions(rModelPart.Elements().size(), num_threads, element_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-            ElementsArrayType::iterator element_begin = rModelPart.Elements().begin() + element_partition[k];
-            ElementsArrayType::iterator element_end = rModelPart.Elements().begin() + element_partition[k + 1];
-
-            for (ElementsArrayType::iterator itElem = element_begin; itElem != element_end; itElem++)
-            {
-                itElem->Initialize(); // function to initialize the element
-            }
-        }
-
-        this->mElementsAreInitialized = true;
-
-        KRATOS_CATCH("")
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    /**
-    This is the place to initialize the conditions.
-    This is intended to be called just once when the strategy is initialized
-    */
-    void InitializeConditions(ModelPart& rModelPart) override
-    {
-        KRATOS_TRY
-
-            KRATOS_ERROR_IF(this->mElementsAreInitialized == false) << "Before initilizing Conditions, initialize Elements FIRST" << std::endl;
-
-        int num_threads = OpenMPUtils::GetNumThreads();
-        OpenMPUtils::PartitionVector condition_partition;
-        OpenMPUtils::DivideInPartitions(rModelPart.Conditions().size(), num_threads, condition_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-            ConditionsArrayType::iterator condition_begin = rModelPart.Conditions().begin() + condition_partition[k];
-            ConditionsArrayType::iterator condition_end = rModelPart.Conditions().begin() + condition_partition[k + 1];
-
-            for (ConditionsArrayType::iterator itCond = condition_begin; itCond != condition_end; itCond++)
-            {
-                itCond->Initialize(); // Function to initialize the condition
-            }
-        }
-
-        this->mConditionsAreInitialized = true;
-        KRATOS_CATCH("")
-    }
-
+    
     //***************************************************************************
     //***************************************************************************
 
@@ -466,7 +292,7 @@ public:
 
             std::cout << "\n\n SCHEME INITIALIZE SS \n\n" << std::endl;
 
-        ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
+            ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
         BaseType::InitializeSolutionStep(r_model_part, A, Dx, b);
         // LOOP OVER THE GRID NODES PERFORMED FOR CLEAR ALL NODAL INFORMATION
         #pragma omp parallel for
@@ -476,6 +302,7 @@ public:
 
             // Variables to be cleaned
             double& nodal_mass = (i)->FastGetSolutionStepValue(NODAL_MASS);
+            double& nodal_density = (i)->FastGetSolutionStepValue(DENSITY);
             array_1d<double, 3 >& nodal_momentum = (i)->FastGetSolutionStepValue(NODAL_MOMENTUM);
             array_1d<double, 3 >& nodal_inertia = (i)->FastGetSolutionStepValue(NODAL_INERTIA);
             array_1d<double, 3 >& nodal_force = (i)->FastGetSolutionStepValue(FORCE_RESIDUAL); //PJW
@@ -493,6 +320,7 @@ public:
 
             // Clear
             nodal_mass = 0.0;
+            nodal_density = 0.0;
             nodal_momentum.clear();
             nodal_inertia.clear();
             nodal_force.clear(); //PJW
@@ -502,6 +330,12 @@ public:
             nodal_acceleration.clear();
             nodal_old_pressure = 0.0;
             nodal_pressure = 0.0;
+
+            if (mIsCentralDifference)
+            {
+                array_1d<double, 3 >& nodal_middle_velocity = (i)->FastGetSolutionStepValue(MIDDLE_VELOCITY); //PJW
+                nodal_middle_velocity.clear(); //PJW
+            }
         }
 
         // Extrapolate from Material Point Elements and Conditions
@@ -511,195 +345,7 @@ public:
     }
 
 
-    //***************************************************************************
-    //***************************************************************************
-    /**
-    Function called once at the end of a solution step, after convergence is reached if
-    an iterative process is needed
-     */
-    void FinalizeSolutionStep(
-        ModelPart& rModelPart,
-        TSystemMatrixType& A,
-        TSystemVectorType& Dx,
-        TSystemVectorType& b) override
-    {
-        KRATOS_TRY
-
-        //PJW: finalize solution step
-
-        ElementsArrayType& rElements = rModelPart.Elements();
-        ProcessInfo& CurrentProcessInfo = rModelPart.GetProcessInfo();
-
-        if (mStressUpdateOption == 2)
-        {
-            // MUSL stress update. This works by projecting the updated particle
-            // velocity back to the nodes. The nodal velocity field is then
-            // used for stress computations.
-
-            // We need to call 'FinalizeSolutionStep' twice. 
-            // First, to update the particles and then aggregate the new particle velocities on the grid.
-            // Second, to calculate the stresses from the grid velocity
-
-
-            for (int iter = 0; iter < static_cast<int>(mr_grid_model_part.Nodes().size()); ++iter)
-            {
-                auto i = mr_grid_model_part.NodesBegin() + iter;
-                (i)->SetValue(MUSL_VELOCITY_FIELD_IS_COMPUTED, false);
-            }
-
-
-            // Call each particle and aggregate the nodal velocity field
-            for (ElementsArrayType::iterator it = rElements.begin(); it != rElements.end(); ++it)
-            {
-                (it)->FinalizeSolutionStep(CurrentProcessInfo);
-            }
-
-
-            // Reapply dirichlet BCs to MUSL velocity field
-            const SizeType DomainSize = CurrentProcessInfo[DOMAIN_SIZE];
-            NodesArrayType& r_nodes = rModelPart.Nodes();
-            const auto it_node_begin = rModelPart.NodesBegin();
-            const IndexType DisplacementPosition = it_node_begin->GetDofPosition(DISPLACEMENT_X);
-
-            for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i)
-            {
-                NodeIterator itCurrentNode = it_node_begin + i;
-
-                std::array<bool, 3> fix_displacements = { false, false, false };
-                fix_displacements[0] = (itCurrentNode->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
-                fix_displacements[1] = (itCurrentNode->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
-                if (DomainSize == 3)
-                    fix_displacements[2] = (itCurrentNode->GetDof(DISPLACEMENT_Z, DisplacementPosition + 2).IsFixed());
-
-                array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
-
-                for (IndexType j = 0; j < DomainSize; j++)
-                {
-                    if (fix_displacements[j])
-                    {
-                        r_current_velocity[j] = 0.0;
-                    }
-                }
-            }
-        }
-
-        int num_threads = OpenMPUtils::GetNumThreads();
-        OpenMPUtils::PartitionVector element_partition;
-        OpenMPUtils::DivideInPartitions(rElements.size(), num_threads, element_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-
-            ElementsArrayType::iterator element_begin = rElements.begin() + element_partition[k];
-            ElementsArrayType::iterator element_end = rElements.begin() + element_partition[k + 1];
-
-            for (ElementsArrayType::iterator itElem = element_begin; itElem != element_end; itElem++)
-            {
-                itElem->FinalizeSolutionStep(CurrentProcessInfo);
-            }
-        }
-
-        ConditionsArrayType& rConditions = rModelPart.Conditions();
-
-        OpenMPUtils::PartitionVector condition_partition;
-        OpenMPUtils::DivideInPartitions(rConditions.size(), num_threads, condition_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-
-            ConditionsArrayType::iterator condition_begin = rConditions.begin() + condition_partition[k];
-            ConditionsArrayType::iterator condition_end = rConditions.begin() + condition_partition[k + 1];
-
-            for (ConditionsArrayType::iterator itCond = condition_begin; itCond != condition_end; itCond++)
-            {
-                itCond->FinalizeSolutionStep(CurrentProcessInfo);
-            }
-        }
-        KRATOS_CATCH("")
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    void InitializeNonLinIteration(ModelPart& r_model_part,
-        TSystemMatrixType& A,
-        TSystemVectorType& Dx,
-        TSystemVectorType& b) override
-    {
-        KRATOS_TRY
-
-            ElementsArrayType& pElements = r_model_part.Elements();
-        ProcessInfo& CurrentProcessInfo = r_model_part.GetProcessInfo();
-
-        for (ElementsArrayType::iterator it = pElements.begin(); it != pElements.end(); ++it)
-        {
-            (it)->InitializeNonLinearIteration(CurrentProcessInfo);
-        }
-
-        ConditionsArrayType& pConditions = r_model_part.Conditions();
-        for (ConditionsArrayType::iterator it = pConditions.begin(); it != pConditions.end(); ++it)
-        {
-            (it)->InitializeNonLinearIteration(CurrentProcessInfo);
-        }
-
-        KRATOS_CATCH("")
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    void InitializeNonLinearIteration(Condition::Pointer rCurrentCondition,
-        ProcessInfo& CurrentProcessInfo) override
-    {
-        (rCurrentCondition)->InitializeNonLinearIteration(CurrentProcessInfo);
-    }
-
-
-    //***************************************************************************
-    //***************************************************************************
-
-    void InitializeNonLinearIteration(Element::Pointer rCurrentElement,
-        ProcessInfo& CurrentProcessInfo) override
-    {
-        (rCurrentElement)->InitializeNonLinearIteration(CurrentProcessInfo);
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    //***************************************************************************
-    //***************************************************************************
-
-
-    //***************************************************************************
-    //***************************************************************************
-
-    /** Function that returns the list of Degrees of freedom to be
-    assembled in the system for a Given Element
-     */
-    void GetElementalDofList(
-        Element::Pointer rCurrentElement,
-        Element::DofsVectorType& ElementalDofList,
-        ProcessInfo& CurrentProcessInfo) override
-    {
-        rCurrentElement->GetDofList(ElementalDofList, CurrentProcessInfo);
-    }
-
-    //***************************************************************************
-    //***************************************************************************
-
-    /** Function that returns the list of Degrees of freedom to be
-    assembled in the system for a Given Element
-     */
-    void GetConditionDofList(
-        Condition::Pointer rCurrentCondition,
-        Element::DofsVectorType& ConditionDofList,
-        ProcessInfo& CurrentProcessInfo) override
-    {
-        rCurrentCondition->GetDofList(ConditionDofList, CurrentProcessInfo);
-    }
+    
 
     //***************************************************************************
     //***************************************************************************
@@ -724,6 +370,7 @@ public:
         KRATOS_ERROR_IF(ACCELERATION.Key() == 0) << "ACCELERATION has Key zero! (check if the application is correctly registered" << std::endl;
 
         //check that variables are correctly allocated
+        // TODO add middle velocity
         for (ModelPart::NodesContainerType::iterator it = r_model_part.NodesBegin();
             it != r_model_part.NodesEnd(); it++)
         {
@@ -751,7 +398,7 @@ public:
     virtual void SchemeCustomInitialization(
         ModelPart& rModelPart,
         const SizeType DomainSize = 3
-    )
+    ) override
     {
         KRATOS_TRY
 
@@ -773,6 +420,12 @@ public:
             auto it_node = it_node_begin + i;
 
             const double nodal_mass = it_node->GetValue(NODAL_MASS);
+
+            array_1d<double, 3>& r_middle_velocity;
+            if (mIsCentralDifference)
+            {
+                r_middle_velocity = it_node->FastGetSolutionStepValue(MIDDLE_VELOCITY);
+            }
 
             const array_1d<double, 3>& r_current_residual = it_node->FastGetSolutionStepValue(FORCE_RESIDUAL);
 
@@ -798,9 +451,22 @@ public:
             for (IndexType j = 0; j < DomainSize; j++) {
                 if (fix_displacements[j]) {
                     r_current_acceleration[j] = 0.0;
+
+                    if (mIsCentralDifference)
+                    {
+                        r_middle_velocity[j] = 0.0;
+                    }
+                    
                 }
-                r_current_velocity[j] += (mTime.Previous - mTime.PreviousMiddle) * r_current_acceleration[j];
+
+                if (mIsCentralDifference)
+                {
+                    r_middle_velocity[j] = 0.0 + (mTime.Middle - mTime.Previous) * r_current_acceleration[j];
+                    r_current_velocity[j] = r_middle_velocity[j] + (mTime.Previous - mTime.PreviousMiddle) * r_current_acceleration[j]; //+ actual_velocity;
+
+                }
                 // r_current_displacement[j]  = 0.0;
+
             } // for DomainSize
 
         }     // for node parallel
@@ -810,60 +476,7 @@ public:
         KRATOS_CATCH("")
     }
 
-    void Calculate_RHS_Contribution(
-        Element::Pointer pCurrentElement,
-        LocalSystemVectorType& RHS_Contribution,
-        Element::EquationIdVectorType& EquationId,
-        ProcessInfo& rCurrentProcessInfo
-    ) override
-    {
-        KRATOS_TRY
-
-            this->TCalculate_RHS_Contribution(pCurrentElement, RHS_Contribution, rCurrentProcessInfo);
-        KRATOS_CATCH("")
-    }
-
-    /**
-     * @brief Functions that calculates the RHS of a "condition" object
-     * @param pCondition The condition to compute
-     * @param RHS_Contribution The RHS vector contribution
-     * @param EquationId The ID's of the condition degrees of freedom
-     * @param rCurrentProcessInfo The current process info instance
-     */
-    void Condition_Calculate_RHS_Contribution(
-        Condition::Pointer pCurrentCondition,
-        LocalSystemVectorType& RHS_Contribution,
-        Element::EquationIdVectorType& EquationId,
-        ProcessInfo& rCurrentProcessInfo
-    ) override
-    {
-        KRATOS_TRY
-
-            this->TCalculate_RHS_Contribution(pCurrentCondition, RHS_Contribution, rCurrentProcessInfo);
-
-        KRATOS_CATCH("")
-    }
-
-    template <typename TObjectType>
-    void TCalculate_RHS_Contribution(
-        TObjectType pCurrentEntity,
-        LocalSystemVectorType& RHS_Contribution,
-        ProcessInfo& rCurrentProcessInfo
-    )
-    {
-        KRATOS_TRY
-
-            //PJW
-            pCurrentEntity->CalculateRightHandSide(RHS_Contribution, rCurrentProcessInfo);
-
-        pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
-
-        pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
-
-        KRATOS_CATCH("")
-    }
-
-
+   
     /*@} */
     /**@name Operations */
     /*@{ */
