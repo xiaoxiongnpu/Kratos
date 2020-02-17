@@ -322,6 +322,7 @@ protected:
   double ComputeFrictionViscosityFritz(ElementalVariables &rElementalVariables,bool boundaryElement);
 
   double ComputeNonLinearViscosity(double &equivalentStrainRate);
+  double ComputeNonLinearViscosity(double &equivalentStrainRate,double FluidYieldShear);
 
   void ComputeMaterialParametersGranularGas(double &Density,
                                             double &DeviatoricCoeff,

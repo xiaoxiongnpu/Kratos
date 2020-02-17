@@ -232,6 +232,25 @@ double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeNonLinearVis
 }
 
 template <unsigned int TDim>
+double TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeNonLinearViscosity(double &equivalentStrainRate,
+                                                                                       double FluidYieldShear)
+{
+  double FluidNonLinearViscosity = 0;
+  double FluidAdaptiveExponent = 1000;
+  double exponent = -FluidAdaptiveExponent * equivalentStrainRate;
+  if (equivalentStrainRate != 0)
+  {
+    FluidNonLinearViscosity = (FluidYieldShear / equivalentStrainRate) * (1 - exp(exponent));
+  }
+  if (equivalentStrainRate < 0.00001 && FluidYieldShear != 0 && FluidAdaptiveExponent != 0)
+  {
+    // for gamma_dot very small the limit of the Papanastasiou viscosity is mu=m*tau_yield
+    FluidNonLinearViscosity = FluidAdaptiveExponent * FluidYieldShear;
+  }
+  return FluidNonLinearViscosity;
+}
+
+template <unsigned int TDim>
 void TwoStepUpdatedLagrangianVPImplicitFluidElement<TDim>::ComputeMaterialParametersGranularGas(double &Density,
                                                                                                 double &DeviatoricCoeff,
                                                                                                 double &VolumetricCoeff,
