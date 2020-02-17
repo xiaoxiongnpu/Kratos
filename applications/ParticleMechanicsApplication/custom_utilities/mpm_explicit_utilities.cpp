@@ -11,18 +11,132 @@
 //
 
 // System includes
-
+#include "includes/ublas_interface.h"
+#include "includes/element.h"
+#include "includes/variables.h"
+#include "utilities/math_utils.h"
 // External includes
 
 // Project includes
 #include "geometries/point.h"
 #include "custom_utilities/mpm_explicit_integration_utilities.h"
+#include "utilities/math_utils.h"
+#include "includes/element.h"
 #include "particle_mechanics_application_variables.h"
+#include "includes/ublas_interface.h"
+#include "boost/numeric/ublas/vector.hpp"
+
+
 
 namespace Kratos
 {
 namespace ExplicitIntegrationUtilities
 {
+    void CalcuateExplicitInternalForce(const GeometryType& rGeom, const Matrix& rDN_DX, 
+        const Vector& rMPStress, const double& rMPVolume)
+    {     
+        KRATOS_TRY
+
+        const unsigned int dimension = rGeom.WorkingSpaceDimension();
+        const unsigned int number_of_nodes = rGeom.PointsNumber();
+        array_1d<double, 3> nodal_force_internal_normal = ZeroVector(3); //PJW, needed for explicit force
+
+        // Add in explicit internal force calculation (Fint = Volume*divergence(sigma))
+        // TODO extend to 3D
+        for (unsigned int i = 0; i < number_of_nodes; i++)
+        {
+            //f_x = V*(s_xx*dNdX + s_xy*dNdY)
+            nodal_force_internal_normal[0] = rMPVolume *
+                (rMPStress[0] * rDN_DX(i, 0) +
+                    rMPStress[2] * rDN_DX(i, 1));
+
+            //f_x = V*(s_yy*dNdX + s_xy*dNdX)
+            nodal_force_internal_normal[1] = rMPVolume *
+                (rMPStress[1] * rDN_DX(i, 1) +
+                    rMPStress[2] * rDN_DX(i, 0));
+
+            rGeom[i].SetLock();
+            rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL, 0) -= nodal_force_internal_normal; //PJW, minus sign, internal forces
+            rGeom[i].UnSetLock();
+
+            KRATOS_CATCH("")
+        }
+    }
+
+
+    void CalculateExplicitKinematics(const GeometryType& rGeom, const double rDeltaTime, Vector& rMPStrain, 
+        Matrix& rDeformationGradient, const bool& isCompressible)
+    {
+        KRATOS_TRY
+
+        GeometryType& rGeom = GetGeometry();
+        const unsigned int dimension = rGeom.WorkingSpaceDimension();
+        const unsigned int number_of_nodes = rGeom.PointsNumber();
+
+        //Calculate velocity gradients
+        Matrix velocityGradient = Matrix(dimension, dimension, 0.0);
+        for (unsigned int nodeIndex = 0; nodeIndex < number_of_nodes; nodeIndex++)
+        {
+            const array_1d<double, 3 >& nodal_velocity = rGeom[nodeIndex].FastGetSolutionStepValue(VELOCITY);
+
+            for (unsigned int i = 0; i < dimension; i++)
+            {
+                for (unsigned int j = 0; j < dimension; j++)
+                {
+                    velocityGradient(i, j) += nodal_velocity[i] * mDN_DX(nodeIndex, j);
+                }
+            }
+        }
+
+        //Calculate rate of deformation and spin tensors
+        Matrix rateOfDeformation = 0.5 * (velocityGradient + trans(velocityGradient));
+        Matrix spinTensor = velocityGradient - rateOfDeformation;
+
+        //Calculate objective jaumann strain rate
+        Matrix jaumannRate = rateOfDeformation -
+            (prod(spinTensor, rateOfDeformation)) * delta_time +
+            prod((rateOfDeformation * delta_time), spinTensor);
+
+        // TODO extend to 3D
+        MP_Strain(0) += jaumannRate(0, 0) * delta_time; //e_xx
+        MP_Strain(1) += jaumannRate(1, 1) * delta_time; //e_yy
+        MP_Strain(2) += 2.0 * jaumannRate(0, 1) * delta_time; //e_xy
+
+        if (isCompressible)
+        {
+            //PJW calculate compressiblity related phenomena
+            Matrix I = IdentityMatrix(dimension);
+            Matrix updatedDeformationGradient = prod((I + delta_time * velocityGradient),
+                rVariables.F);
+            rVariables.F = updatedDeformationGradient;
+        }
+
+        KRATOS_CATCH("")
+    }
+
+
+    void UpdateGaussPointExplicit(const GeometryType& rGeom, const double& rDeltaTime,
+        const bool& isCentralDifference, const Element& rElement)
+    {
+        KRATOS_TRY
+
+
+
+        KRATOS_CATCH("")
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
 double CalculateDeltaTime(
     ModelPart& rModelPart,
     Parameters ThisParameters
@@ -88,10 +202,11 @@ double CalculateDeltaTime(
 
     KRATOS_CATCH("")
 }
+*/
 
 /***********************************************************************************/
 /***********************************************************************************/
-
+    /*
 double InnerCalculateDeltaTime(
     ModelPart& rModelPart,
     const double TimeStepPredictionLevel,
@@ -119,7 +234,7 @@ double InnerCalculateDeltaTime(
     for (int i = 0; i < static_cast<int>(r_elements.size()); ++i) {
         auto it_elem = it_elem_begin + i;
 
-        /* Get geometric and material properties */
+        // Get geometric and material properties 
         const Properties& r_properties = it_elem->GetProperties();
         auto& r_geometry = it_elem->GetGeometry();
 
@@ -206,6 +321,7 @@ double InnerCalculateDeltaTime(
 
     KRATOS_CATCH("")
 }
+*/
 
-} // namespace ExplicitIntegrationUtilities
+} // namespace MPMExplicitUtilities
 } // namespace Kratos

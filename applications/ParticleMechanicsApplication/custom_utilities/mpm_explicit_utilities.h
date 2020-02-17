@@ -19,6 +19,10 @@
 
 // Project includes
 #include "includes/model_part.h"
+#include "includes/ublas_interface.h"
+#include "includes/element.h"
+#include "includes/variables.h"
+#include "utilities/math_utils.h"
 
 namespace Kratos
 {
@@ -57,6 +61,8 @@ namespace MPMExplicitUtilities
     /// The arrays of elements and nodes
     typedef ModelPart::ElementsContainerType ElementsArrayType;
     typedef ModelPart::NodesContainerType NodesArrayType;
+    typedef Node<3> NodeType;
+    typedef Geometry<NodeType> GeometryType;
 
     /**
      * @brief This method computes the necessry delta time to avoid numerical instabilities
@@ -64,11 +70,12 @@ namespace MPMExplicitUtilities
      * @param ThisParameters The configuration parameters
      * @return The critical delta time
      */
+    /*
     double KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalculateDeltaTime(
         ModelPart& rModelPart,
         Parameters ThisParameters = Parameters(R"({})")
         );
-
+        */
     /**
      * @brief This method computes the necessry delta time to avoid numerical instabilities (inner method)
      * @param rModelPart The model of the problem to solve
@@ -78,6 +85,7 @@ namespace MPMExplicitUtilities
      * @param MassFactor The factor that multiplies the mass
      * @return The critical delta time
      */
+    /*
     double KRATOS_API(PARTICLE_MECHANICS_APPLICATION) InnerCalculateDeltaTime(
         ModelPart& rModelPart,
         const double TimeStepPredictionLevel,
@@ -85,14 +93,24 @@ namespace MPMExplicitUtilities
         const double SafetyFactor,
         const double MassFactor
         );
+        */
+    
+    // Reference https://github.com/KratosMultiphysics/Kratos/blob/MPM/explicit_time_int2/applications/ParticleMechanicsApplication/custom_elements/updated_lagrangian_quadrilateral.cpp
 
-    // CalculateExplicitKinematics
 
     // CalcuateExplicitInternalForce
+    void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalcuateExplicitInternalForce(const GeometryType& rGeom, 
+        const Matrix& rDN_DX, const Vector& rMPStress, const double& rMPVolume);
+    
+    // UpdateGaussPointExplicit
+
 
     // FinalizeSolutionStepExplicit
 
-    // UpdateGaussPointExplicit
+    // CalculateExplicitKinematics
+    void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalculateExplicitKinematics(const GeometryType& rGeom, 
+        const double rDeltaTime, Vector& rMPStrain, Matrix& rDeformationGradient, const bool& isCompressible);
+
 
 }; // namespace ExplicitIntegrationUtilities
 }  // namespace Kratos
