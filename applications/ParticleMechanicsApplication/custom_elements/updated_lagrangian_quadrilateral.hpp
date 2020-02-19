@@ -340,9 +340,19 @@ public:
     void InitializeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
 
     /**
-     * Called at the end of eahc solution step
+     * Called at the end of each solution step
      */
     void FinalizeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
+
+    /**
+     * Called at the end of each solution step
+     */
+    void FinalizeImplicitSolutionStep(ProcessInfo& rCurrentProcessInfo);
+
+    /**
+     * Called at the end of each solution step
+     */
+    void FinalizeExplicitSolutionStep(ProcessInfo& rCurrentProcessInfo);
 
     //************* COMPUTING  METHODS
 
@@ -514,7 +524,7 @@ protected:
     /**
      * Boolean for explicit time integration
      */
-    bool mIsExplicit;
+    bool mIsExplicit = False;
 
 
 
@@ -587,7 +597,7 @@ protected:
     /**
       * Calculation of the Explicit Internal Forces Vector. Fi = div. sigma
       */
-    void CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector, GeneralVariables& rVariables, const double& rIntegrationWeight);
+    void CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector);
 
 
     /**

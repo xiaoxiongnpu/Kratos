@@ -525,62 +525,12 @@ public:
     {
         KRATOS_TRY
 
-        //PJW: finalize solution step
-
         ElementsArrayType& rElements = rModelPart.Elements();
         ProcessInfo& CurrentProcessInfo = rModelPart.GetProcessInfo();
 
         if (mStressUpdateOption == 2)
         {
-            // MUSL stress update. This works by projecting the updated particle
-            // velocity back to the nodes. The nodal velocity field is then
-            // used for stress computations.
-
-            // We need to call 'FinalizeSolutionStep' twice. 
-            // First, to update the particles and then aggregate the new particle velocities on the grid.
-            // Second, to calculate the stresses from the grid velocity
-
-
-            for (int iter = 0; iter < static_cast<int>(mr_grid_model_part.Nodes().size()); ++iter)
-            {
-                auto i = mr_grid_model_part.NodesBegin() + iter;
-                (i)->SetValue(MUSL_VELOCITY_FIELD_IS_COMPUTED, false);
-            }
-
-
-            // Call each particle and aggregate the nodal velocity field
-            for (ElementsArrayType::iterator it = rElements.begin(); it != rElements.end(); ++it)
-            {
-                (it)->FinalizeSolutionStep(CurrentProcessInfo);
-            }
-
-
-            // Reapply dirichlet BCs to MUSL velocity field
-            const SizeType DomainSize = CurrentProcessInfo[DOMAIN_SIZE];
-            NodesArrayType& r_nodes = rModelPart.Nodes();
-            const auto it_node_begin = rModelPart.NodesBegin();
-            const IndexType DisplacementPosition = it_node_begin->GetDofPosition(DISPLACEMENT_X);
-
-            for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i)
-            {
-                NodeIterator itCurrentNode = it_node_begin + i;
-
-                std::array<bool, 3> fix_displacements = { false, false, false };
-                fix_displacements[0] = (itCurrentNode->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
-                fix_displacements[1] = (itCurrentNode->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
-                if (DomainSize == 3)
-                    fix_displacements[2] = (itCurrentNode->GetDof(DISPLACEMENT_Z, DisplacementPosition + 2).IsFixed());
-
-                array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
-
-                for (IndexType j = 0; j < DomainSize; j++)
-                {
-                    if (fix_displacements[j])
-                    {
-                        r_current_velocity[j] = 0.0;
-                    }
-                }
-            }
+            PerformModifiedUpdateStressLastMapping()
         }
 
         int num_threads = OpenMPUtils::GetNumThreads();
@@ -622,6 +572,58 @@ public:
 
     //***************************************************************************
     //***************************************************************************
+    void PerformModifiedUpdateStressLastMapping()
+    {
+        // MUSL stress update. This works by projecting the updated particle
+        // velocity back to the nodes. The nodal velocity field is then
+        // used for stress computations.
+
+        // We need to call 'FinalizeSolutionStep' twice. 
+        // First, to update the particles and then aggregate the new particle velocities on the grid.
+        // Second, to calculate the stresses from the grid velocity
+        for (int iter = 0; iter < static_cast<int>(mr_grid_model_part.Nodes().size()); ++iter)
+        {
+            auto i = mr_grid_model_part.NodesBegin() + iter;
+            (i)->SetValue(MUSL_VELOCITY_FIELD_IS_COMPUTED, false);
+        }
+
+
+        // Call each particle and aggregate the nodal velocity field
+        for (ElementsArrayType::iterator it = rElements.begin(); it != rElements.end(); ++it)
+        {
+            (it)->FinalizeSolutionStep(CurrentProcessInfo);
+        }
+
+
+        // Reapply dirichlet BCs to MUSL velocity field
+        const SizeType DomainSize = CurrentProcessInfo[DOMAIN_SIZE];
+        NodesArrayType& r_nodes = rModelPart.Nodes();
+        const auto it_node_begin = rModelPart.NodesBegin();
+        const IndexType DisplacementPosition = it_node_begin->GetDofPosition(DISPLACEMENT_X);
+
+        for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i)
+        {
+            NodeIterator itCurrentNode = it_node_begin + i;
+
+            std::array<bool, 3> fix_displacements = { false, false, false };
+            fix_displacements[0] = (itCurrentNode->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
+            fix_displacements[1] = (itCurrentNode->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
+            if (DomainSize == 3)
+                fix_displacements[2] = (itCurrentNode->GetDof(DISPLACEMENT_Z, DisplacementPosition + 2).IsFixed());
+
+            array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
+
+            for (IndexType j = 0; j < DomainSize; j++)
+            {
+                if (fix_displacements[j])
+                {
+                    r_current_velocity[j] = 0.0;
+                }
+            }
+        }
+    }
+
+
 
     void InitializeNonLinIteration(ModelPart& r_model_part,
         TSystemMatrixType& A,

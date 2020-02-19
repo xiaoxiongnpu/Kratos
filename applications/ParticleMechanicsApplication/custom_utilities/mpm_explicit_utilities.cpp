@@ -56,6 +56,74 @@ namespace Kratos
             KRATOS_CATCH("")
     }
 
+
+    void MPMExplicitUtilities::UpdateGaussPointExplicit(
+        GeometryType& rGeom, 
+        const double& rDeltaTime,
+        const bool& isCentralDifference, 
+        Element& rElement,
+        Vector& rN)
+    {
+        KRATOS_TRY
+
+        // TODO add central difference option
+
+        const unsigned int number_of_nodes = rGeom.PointsNumber();
+        const unsigned int dimension = rGeom.WorkingSpaceDimension();
+
+        array_1d<double, 3> delta_xg = ZeroVector(3);
+        array_1d<double, 3> MP_Acceleration = ZeroVector(3);
+
+        for (unsigned int i = 0; i < number_of_nodes; i++)
+        {
+            if (rN[i] > std::numeric_limits<double>::epsilon())
+            {
+                const double nodal_mass = rGeom[i].FastGetSolutionStepValue(NODAL_MASS);
+
+                if (nodal_mass > std::numeric_limits<double>::epsilon())
+                {
+                    const array_1d<double, 3>& r_nodal_momenta = rGeom[i].FastGetSolutionStepValue(NODAL_MOMENTUM);
+                    const array_1d<double, 3>& r_current_residual = rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL);
+
+                    for (unsigned int j = 0; j < dimension; j++)
+                    {
+                        MP_Acceleration[j] += rN[i] * r_current_residual[j] / nodal_mass;
+                        delta_xg[j] += rDeltaTime * rN[i] * r_nodal_momenta[j] / nodal_mass;
+                    }
+                }
+            }
+        }
+
+        // Update the MP Velocity
+        const array_1d<double, 3>& MP_PreviousVelocity = rElement.GetValue(MP_VELOCITY);
+        array_1d<double, 3> MP_Velocity = ZeroVector(3);
+        for (unsigned int j = 0; j < dimension; j++)
+        {
+            MP_Velocity[j] = MP_PreviousVelocity[j] + rDeltaTime * MP_Acceleration[j];
+
+        }
+        rElement.SetValue(MP_VELOCITY, MP_Velocity);
+
+
+        // Update the MP Position
+        const array_1d<double, 3>& xg = rElement.GetValue(MP_COORD);
+        const array_1d<double, 3>& new_xg = xg + delta_xg;
+        rElement.SetValue(MP_COORD, new_xg);
+
+
+        // Update the MP Acceleration
+        rElement.SetValue(MP_ACCELERATION, MP_Acceleration);
+
+
+        // Update the MP total displacement
+        array_1d<double, 3>& MP_Displacement = rElement.GetValue(MP_DISPLACEMENT);
+        MP_Displacement += delta_xg;
+        rElement.SetValue(MP_DISPLACEMENT, MP_Displacement);
+
+        KRATOS_CATCH("")
+    }
+    
+
     /*
     void MPMExplicitUtilities::CalculateExplicitKinematics(
         const GeometryType& rGeom,
@@ -109,20 +177,7 @@ namespace Kratos
 
         KRATOS_CATCH("")
     }
-
-
-    void UpdateGaussPointExplicit(const GeometryType& rGeom, const double& rDeltaTime,
-        const bool& isCentralDifference, const Element& rElement)
-    {
-        KRATOS_TRY
-
-
-
-        KRATOS_CATCH("")
-    }
     */
-
-
 
 
 
