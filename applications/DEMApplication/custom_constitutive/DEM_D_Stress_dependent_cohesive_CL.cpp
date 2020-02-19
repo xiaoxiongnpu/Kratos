@@ -330,8 +330,8 @@ namespace Kratos {
         if (share_of_max_contact_stress >= 1.0) share_of_max_contact_stress = 1.0;
         // share_of_max_contact_stress = 1.0;
 
-        LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - mKt * LocalDeltDisp[0];
-        LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - mKt * LocalDeltDisp[1];
+        LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - share_of_max_contact_stress * mKt * LocalDeltDisp[0];
+        LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - share_of_max_contact_stress * mKt * LocalDeltDisp[1];
 
         AuxElasticShearForce = sqrt(LocalElasticContactForce[0] * LocalElasticContactForce[0] + LocalElasticContactForce[1] * LocalElasticContactForce[1]);
 
