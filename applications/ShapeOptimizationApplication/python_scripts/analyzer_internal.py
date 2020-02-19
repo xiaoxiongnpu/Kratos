@@ -62,21 +62,41 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
         
         optimization_model_part = self.model_part_controller.GetOptimizationModelPart()
         model_part_nodes = optimization_model_part.Nodes
+        print("::OPTI MODEL::")
+        x = []
+        y = []
+        z = []
         for node in model_part_nodes:
-            if node.Id < 6:
-                print(node.Id, node.X, node.Y, node.Z)
+            x.append(node.X)
+            y.append(node.Y)
+            z.append(node.Z)
+            #if node.Id < 6:
+            #print(node.Id, x[node.Id-1], y[node.Id-1], z[node.Id-1])
        
         time_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.TIME)
         step_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.STEP)
         delta_time_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.DELTA_TIME)
         
-        for identifier, response in self.response_functions.items():              
+        for identifier, response in self.response_functions.items():        
 
             # Reset step/time iterators such that they match the optimization iteration after calling CalculateValue (which internally calls CloneTimeStep)
             optimization_model_part.ProcessInfo.SetValue(km.STEP, step_before_analysis-1)
             optimization_model_part.ProcessInfo.SetValue(km.TIME, time_before_analysis-1)
             optimization_model_part.ProcessInfo.SetValue(km.DELTA_TIME, 0)
 
+            print("::PRIMAL::")
+            # for node in response.primal_model_part.Nodes:
+            #     if node.Id < 6:
+            #         print(node.Id, node.X, node.Y, node.Z)
+            for node in response.primal_model_part.Nodes:
+                node.X = x[node.Id-1]
+                node.Y = y[node.Id-1]
+                node.Z = z[node.Id-1]
+                # if node.Id < 6:
+                #print(node.Id, node.X, node.Y, node.Z)
+
+            KSO.MeshControllerUtilities(response.primal_model_part).SetReferenceMeshToMesh()
+            
             response.InitializeSolutionStep()
 
             # response values

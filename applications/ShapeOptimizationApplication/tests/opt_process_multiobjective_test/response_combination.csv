@@ -1,0 +1,8 @@
+---------------------------------
+f0: compromise_function
+f1: strain_energy
+f2: compromise_function_2
+f3: mass
+f4: length
+---------------------------------
+ itr,     f0_value,     f1_value,     f2_value,     f3_value,     f4_value, ||df0dx_st||, ||df1dx_st||, ||df2dx_st||, ||df3dx_st||, ||df4dx_st||

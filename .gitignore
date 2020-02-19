@@ -15,7 +15,6 @@ scripts/configure.sh
 scripts/configure.bat
 build/*
 bin/*
-JeyExamples/*
 
 # Compile and install directories
 KratosMultiphysics/*
@@ -74,30 +73,4 @@ script.py
 
 # Most used editor files
 *.vscode
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.cnd
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.geo
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.lin
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.msh
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.png
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.spd
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.tree
-JeyExamples/lenova_data/100el_plate.gid/100el_plate.vv
-JeyExamples/TensegrityNode/20191111_Knoten_4_clean.stp
-JeyExamples/TensegrityNode/01_analysis/corrected_model.mdpa
-JeyExamples/TensegrityNode/01_analysis/MainKratos.py
-JeyExamples/TensegrityNode/01_analysis/ProjectParameters.json
-JeyExamples/TensegrityNode/01_analysis/StructuralMaterials.json
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.cnd
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.geo
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.lin
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.mdpa
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.msh
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.png
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.prj
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.rdr
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.spd
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.tree
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/corrected_model.vv
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/MainKratos.py
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/ProjectParameters.json
-JeyExamples/TensegrityNode/corrected_model.gid/corrected_model.gid/StructuralMaterials.json
+JeyExamples/
