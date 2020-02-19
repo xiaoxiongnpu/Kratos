@@ -917,7 +917,7 @@ class DEMFEMProcedures(object):
 
         self.fem_mesh_nodes = []
 
-        self.graph_counter = 1
+        self.graph_counter = 0
         self.balls_graph_counter = 0
 
         self.graph_frequency = int((self.DEM_parameters["GraphExportFreq"].GetDouble() / spheres_model_part.ProcessInfo.GetValue(DELTA_TIME)))
@@ -1121,8 +1121,8 @@ class DEMFEMProcedures(object):
                                                             " " + str("%.6g" % total_force[2]).rjust(13) + " " + str("%.6g" % total_moment[0]).rjust(13) +
                                                             " " + str("%.6g" % total_moment[1]).rjust(13) + " " + str("%.6g" % total_moment[2]).rjust(13) + "\n")
                         self.graph_forces[identifier].flush()
-
-            self.graph_counter += 1
+            else:
+                self.graph_counter += 1
 
     def FinalizeGraphs(self, rigid_face_model_part):
 
