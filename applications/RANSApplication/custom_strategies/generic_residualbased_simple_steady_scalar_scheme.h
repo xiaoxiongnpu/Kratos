@@ -23,6 +23,7 @@
 #include "processes/process.h"
 #include "solving_strategies/schemes/scheme.h"
 #include "utilities/openmp_utils.h"
+#include "fluid_dynamics_application_variables.h"
 
 // debugging
 #include "input_output/vtk_output.h"
@@ -124,6 +125,12 @@ public:
         if (SteadyLHS.size1() != 0)
             noalias(LHS_Contribution) += SteadyLHS;
 
+        const double residual_coeff = rCurrentElement->GetValue(ERROR_OVERALL);
+        Vector values;
+        rCurrentElement->GetFirstDerivativesVector(values, 0);
+        AddRelaxation(rCurrentElement->GetGeometry(), LHS_Contribution,
+                      RHS_Contribution, residual_coeff, values, CurrentProcessInfo);
+
         KRATOS_CATCH("");
     }
 
@@ -184,7 +191,51 @@ public:
 protected:
     ///@name Protected Operators
     ///@{
+    void AddRelaxation(const GeometryType& rGeometry,
+                       LocalSystemMatrixType& LHS_Contribution,
+                       LocalSystemVectorType& RHS_Contribution,
+                       const double ResidualScalar,
+                       const Vector& rValues,
+                       ProcessInfo& CurrentProcessInfo)
+    {
+        if (LHS_Contribution.size1() == 0)
+            return;
 
+        const unsigned int NumNodes = rGeometry.PointsNumber();
+        Matrix Mass;
+        this->CalculateLumpedMassMatrix(rGeometry, Mass);
+
+        for (unsigned int iNode = 0; iNode < NumNodes; iNode++)
+        {
+            const array_1d<double, 3>& r_velocity =
+                rGeometry[iNode].FastGetSolutionStepValue(VELOCITY);
+            const double length =
+                rGeometry[iNode].FastGetSolutionStepValue(CHARACTERISTIC_LENGTH);
+            const double velocity_magnitude = norm_2(r_velocity);
+
+            const double local_limit_dt =
+                (velocity_magnitude > 0.0) ? length / velocity_magnitude : 1.0;
+
+            Mass(iNode, iNode) *= ResidualScalar / local_limit_dt;
+        }
+
+        noalias(LHS_Contribution) += Mass;
+    }
+
+    void CalculateLumpedMassMatrix(const GeometryType& rGeometry,
+                                   LocalSystemMatrixType& rLumpedMass) const
+    {
+        const unsigned int number_of_nodes = rGeometry.PointsNumber();
+
+        if (rLumpedMass.size1() != number_of_nodes)
+        {
+            rLumpedMass.resize(number_of_nodes, number_of_nodes, false);
+        }
+
+        const double size_fraction = rGeometry.DomainSize() / number_of_nodes;
+        noalias(rLumpedMass) = IdentityMatrix(number_of_nodes, number_of_nodes);
+        noalias(rLumpedMass) = rLumpedMass * size_fraction;
+    }
     ///@}
 
 private:
