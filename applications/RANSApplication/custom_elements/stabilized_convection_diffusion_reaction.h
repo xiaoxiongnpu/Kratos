@@ -399,6 +399,7 @@ public:
         BoundedMatrix<double, TNumNodes, TNumNodes> local_matrix;
         const double scalar_multiplier =
             this->CalculatePrimalDampingMatrix(local_matrix, rCurrentProcessInfo);
+        this->SetValue(ERROR_OVERALL, scalar_multiplier);
 
         double local_matrix_norm = norm_frobenius(local_matrix);
         local_matrix_norm = (local_matrix_norm > 0.0 ? local_matrix_norm : 1.0);

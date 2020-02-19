@@ -1202,6 +1202,45 @@ protected:
         this->EvaluateInPoint(BodyForce,BODY_FORCE,rShapeFunc);
         BodyForce *= Density;
 
+        BoundedMatrix<double, TDim, TDim> velocity_gradient;
+        this->CalculateGradient(velocity_gradient, this->GetGeometry(), VELOCITY, rShapeDeriv);
+
+        double pressure;
+        this->EvaluateInPoint(pressure, PRESSURE, rShapeFunc);
+
+        array_1d<double, 3> pressure_gradient;
+        this->CalculateGradient(pressure_gradient, this->GetGeometry(), PRESSURE, rShapeDeriv);
+
+        double momentum_residual = 0.0;
+        for (unsigned int d = 0; d < TDim; ++d)
+        {
+            double current_momentum_residual = 0.0;
+            current_momentum_residual +=
+                Density * inner_prod(row(velocity_gradient, d), rAdvVel);
+            current_momentum_residual += pressure_gradient[d];
+            current_momentum_residual -= BodyForce[d];
+            momentum_residual += std::abs(current_momentum_residual);
+        }
+
+        double momentum_scalar_value = 0.0;
+        momentum_scalar_value += Density * norm_2(rAdvVel) * this->GetGeometry().Length();
+        momentum_scalar_value += Density * std::abs(pressure) * TauOne;
+
+        double residual_scalar = 0.0;
+        if (momentum_scalar_value > 0.0)
+        {
+            residual_scalar += momentum_residual * TauOne * Density *
+                               this->GetGeometry().Length() / momentum_scalar_value;
+        }
+
+        double velocity_divergence = 0;
+        for (unsigned int d = 0; d < TDim; ++d)
+            velocity_divergence += velocity_gradient(d, d);
+
+        residual_scalar += std::abs(velocity_divergence) * TauOne * Density;
+
+        this->SetValue(ERROR_OVERALL, residual_scalar);
+
         for (unsigned int i = 0; i < TNumNodes; ++i) // iterate over rows
         {
             for (unsigned int j = 0; j < TNumNodes; ++j) // iterate over columns
@@ -1272,6 +1311,46 @@ protected:
         this->AddViscousTerm(rDampingMatrix,rShapeDeriv,Viscosity*Weight);
     }
 
+    void CalculateGradient(BoundedMatrix<double, TDim, TDim>& rOutput,
+                           const Geometry<ModelPart::NodeType>& rGeometry,
+                           const Variable<array_1d<double, 3>>& rVariable,
+                           const Matrix& rShapeDerivatives,
+                           const int Step = 0)
+    {
+        rOutput.clear();
+        std::size_t number_of_nodes = rGeometry.PointsNumber();
+
+        for (unsigned int a = 0; a < number_of_nodes; ++a)
+        {
+            const array_1d<double, 3>& r_value =
+                rGeometry[a].FastGetSolutionStepValue(rVariable, Step);
+            for (unsigned int i = 0; i < TDim; ++i)
+            {
+                for (unsigned int j = 0; j < TDim; ++j)
+                {
+                    rOutput(i, j) += rShapeDerivatives(a, j) * r_value[i];
+                }
+            }
+        }
+    }
+
+    void CalculateGradient(array_1d<double, 3>& rOutput,
+                           const Geometry<ModelPart::NodeType>& rGeometry,
+                           const Variable<double>& rVariable,
+                           const Matrix& rShapeDerivatives,
+                           const int Step = 0)
+    {
+        rOutput.clear();
+        std::size_t number_of_nodes = rGeometry.PointsNumber();
+        unsigned int domain_size = rShapeDerivatives.size2();
+
+        for (std::size_t a = 0; a < number_of_nodes; ++a)
+        {
+            const double value = rGeometry[a].FastGetSolutionStepValue(rVariable, Step);
+            for (unsigned int i = 0; i < domain_size; ++i)
+                rOutput[i] += rShapeDerivatives(a, i) * value;
+        }
+    }
 
     /// Assemble the contribution from an integration point to the element's residual.
     /** Note that the dynamic term is not included in the momentum equation.
