@@ -526,11 +526,11 @@ public:
         KRATOS_TRY
 
         ElementsArrayType& rElements = rModelPart.Elements();
-        ProcessInfo& CurrentProcessInfo = rModelPart.GetProcessInfo();
+        const ProcessInfo& rCurrentProcessInfo = rModelPart.GetProcessInfo();
 
         if (mStressUpdateOption == 2)
         {
-            PerformModifiedUpdateStressLastMapping()
+            PerformModifiedUpdateStressLastMapping(rCurrentProcessInfo, rModelPart, rElements);
         }
 
         int num_threads = OpenMPUtils::GetNumThreads();
@@ -546,7 +546,7 @@ public:
 
             for (ElementsArrayType::iterator itElem = element_begin; itElem != element_end; itElem++)
             {
-                itElem->FinalizeSolutionStep(CurrentProcessInfo);
+                itElem->FinalizeSolutionStep(rCurrentProcessInfo);
             }
         }
 
@@ -564,7 +564,7 @@ public:
 
             for (ConditionsArrayType::iterator itCond = condition_begin; itCond != condition_end; itCond++)
             {
-                itCond->FinalizeSolutionStep(CurrentProcessInfo);
+                itCond->FinalizeSolutionStep(rCurrentProcessInfo);
             }
         }
         KRATOS_CATCH("")
@@ -572,7 +572,7 @@ public:
 
     //***************************************************************************
     //***************************************************************************
-    void PerformModifiedUpdateStressLastMapping()
+    void PerformModifiedUpdateStressLastMapping(const ProcessInfo& rCurrentProcessInfo, ModelPart& rModelPart, ElementsArrayType& rElements)
     {
         // MUSL stress update. This works by projecting the updated particle
         // velocity back to the nodes. The nodal velocity field is then
@@ -591,12 +591,12 @@ public:
         // Call each particle and aggregate the nodal velocity field
         for (ElementsArrayType::iterator it = rElements.begin(); it != rElements.end(); ++it)
         {
-            (it)->FinalizeSolutionStep(CurrentProcessInfo);
+            (it)->FinalizeSolutionStep(rCurrentProcessInfo);
         }
 
 
         // Reapply dirichlet BCs to MUSL velocity field
-        const SizeType DomainSize = CurrentProcessInfo[DOMAIN_SIZE];
+        const SizeType DomainSize = rCurrentProcessInfo[DOMAIN_SIZE];
         NodesArrayType& r_nodes = rModelPart.Nodes();
         const auto it_node_begin = rModelPart.NodesBegin();
         const IndexType DisplacementPosition = it_node_begin->GetDofPosition(DISPLACEMENT_X);

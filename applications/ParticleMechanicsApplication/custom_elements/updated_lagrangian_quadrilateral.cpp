@@ -1005,17 +1005,20 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
     // Create and initialize element variables:
     GeneralVariables Variables;
     this->InitializeGeneralVariables(Variables, rCurrentProcessInfo);
+    const double& delta_time = rCurrentProcessInfo[DELTA_TIME];
 
     if (mapGridToParticles)
     {
         // Map grid to particle
-        this->UpdateGaussPointExplicit(Variables, rCurrentProcessInfo);
+        bool isCentralDifference = rCurrentProcessInfo.Has(MIDDLE_VELOCITY);
+        
+        MPMExplicitUtilities::UpdateGaussPointExplicit(rGeom, delta_time,isCentralDifference,*this, mN);
 
-        //PJW CALCULATE NODAL VELOCITIES HERE!!!!
-        if (rGeom[0].Has(MUSL_VELOCITY_FIELD_COMPUTED))
+        // If we are doing MUSL, map updated particle velocities back to the grid
+        if (rGeom[0].Has(MUSL_VELOCITY_FIELD_IS_COMPUTED))
         {
-            this->CalculateMUSLGridVelocity(rCurrentProcessInfo);
-            rGeom[0].SetValue(MUSL_VELOCITY_FIELD_COMPUTED, true);
+            MPMExplicitUtilities::CalculateMUSLGridVelocity(rGeom, *this, mN);
+            rGeom[0].SetValue(MUSL_VELOCITY_FIELD_IS_COMPUTED, true);
         }
     }
 
@@ -1032,8 +1035,13 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
         ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR);
         ConstitutiveLawOptions.Set(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN, true);
 
-        // Compute explicit element kinematics
-        this->CalculateExplicitKinematics(Variables, rCurrentProcessInfo);
+        // Compute explicit element kinematics, strain is incremented here.
+        bool isCompressible = false; // TODO update
+        Vector& rMPStrain = this->GetValue(MP_ALMANSI_STRAIN_VECTOR);
+        Matrix& rDeformationGradient = Variables.F;
+        MPMExplicitUtilities::CalculateExplicitKinematics(rGeom, mDN_DX, delta_time, rMPStrain, rDeformationGradient, isCompressible);
+        Variables.StrainVector = rMPStrain;
+        Variables.F = rDeformationGradient;
 
         // Set general variables to constitutivelaw parameters
         this->SetGeneralVariables(Variables, Values);
@@ -1084,8 +1092,10 @@ void UpdatedLagrangianQuadrilateral::FinalizeStepVariables( GeneralVariables & r
     double accumulated_plastic_deviatoric_strain = mConstitutiveLawVector->GetValue(MP_ACCUMULATED_PLASTIC_DEVIATORIC_STRAIN, accumulated_plastic_deviatoric_strain);
     this->SetValue(MP_ACCUMULATED_PLASTIC_DEVIATORIC_STRAIN, accumulated_plastic_deviatoric_strain);
 
-    this->UpdateGaussPoint(rVariables, rCurrentProcessInfo);
-
+    if (!rCurrentProcessInfo.Has(IS_EXPLICIT))
+    {
+        this->UpdateGaussPoint(rVariables, rCurrentProcessInfo);
+    }
 }
 
 //************************************************************************************

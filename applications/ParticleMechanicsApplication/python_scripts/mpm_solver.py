@@ -58,6 +58,7 @@ class MPMSolver(PythonSolver):
             "residual_absolute_tolerance"        : 1.0E-9,
             "max_iteration"                      : 20,
             "pressure_dofs"                      : false,
+            "compressible"                       : true,
             "axis_symmetric_flag"                : false,
             "block_builder"                      : true,
             "move_mesh_flag"                     : false,

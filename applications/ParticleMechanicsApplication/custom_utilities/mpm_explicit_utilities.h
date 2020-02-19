@@ -52,19 +52,20 @@ namespace MPMExplicitUtilities
     // Reference https://github.com/KratosMultiphysics/Kratos/blob/MPM/explicit_time_int2/applications/ParticleMechanicsApplication/custom_elements/updated_lagrangian_quadrilateral.cpp
 
 
-    // CalcuateExplicitInternalForce
     void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalcuateExplicitInternalForce(GeometryType& rGeom, 
         const Matrix& rDN_DX, const Vector& rMPStress, const double& rMPVolume);
     
-    // UpdateGaussPointExplicit
+
     void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) UpdateGaussPointExplicit(GeometryType& rGeom,
         const double& rDeltaTime, const bool& isCentralDifference, Element& rElement, Vector& rN);
 
-    // FinalizeSolutionStepExplicit
 
-    // CalculateExplicitKinematics
-    //void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalculateExplicitKinematics(const GeometryType& rGeom, 
-    //    const double rDeltaTime, Vector& rMPStrain, Matrix& rDeformationGradient, const bool& isCompressible);
+    void CalculateMUSLGridVelocity(GeometryType& rGeom, Element& rElement, Vector& rN);
+
+
+    void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalculateExplicitKinematics(GeometryType& rGeom,
+        const Matrix& rDN_DX,const double rDeltaTime,Vector& rMPStrain,Matrix& rDeformationGradient,
+        const bool& isCompressible);
 
 
 }; // namespace ExplicitIntegrationUtilities

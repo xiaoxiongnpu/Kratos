@@ -524,7 +524,7 @@ protected:
     /**
      * Boolean for explicit time integration
      */
-    bool mIsExplicit = False;
+    bool mIsExplicit = false;
 
 
 
