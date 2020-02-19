@@ -19,29 +19,14 @@
 
 // Project includes
 #include "includes/model_part.h"
-#include "includes/ublas_interface.h"
 #include "includes/element.h"
 #include "includes/variables.h"
-#include "utilities/math_utils.h"
+
+
+#include "particle_mechanics_application_variables.h"
 
 namespace Kratos
 {
-///@name Kratos Globals
-///@{
-
-///@}
-///@name Type Definitions
-///@{
-
-///@}
-///@name  Enum's
-///@{
-
-///@}
-///@name  Functions
-///@{
-
-///@}
 ///@name Kratos Classes
 ///@{
 /**
@@ -99,7 +84,7 @@ namespace MPMExplicitUtilities
 
 
     // CalcuateExplicitInternalForce
-    void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalcuateExplicitInternalForce(const GeometryType& rGeom, 
+    void KRATOS_API(PARTICLE_MECHANICS_APPLICATION) CalcuateExplicitInternalForce(GeometryType& rGeom, 
         const Matrix& rDN_DX, const Vector& rMPStress, const double& rMPVolume);
     
     // UpdateGaussPointExplicit

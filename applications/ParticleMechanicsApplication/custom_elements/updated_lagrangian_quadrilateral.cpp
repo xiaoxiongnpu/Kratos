@@ -24,6 +24,7 @@
 #include "includes/constitutive_law.h"
 #include "particle_mechanics_application_variables.h"
 #include "includes/checks.h"
+#include "custom_utilities/mpm_explicit_utilities.h"
 
 namespace Kratos
 {
@@ -471,11 +472,20 @@ void UpdatedLagrangianQuadrilateral::CalculateAndAddRHS(LocalSystemComponents& r
                 calculated = true;
             }
 
-            if( rRightHandSideVariables[i] == INTERNAL_FORCES_VECTOR )
+            if( rRightHandSideVariables[i] == INTERNAL_FORCES_VECTOR)
             {
-                // Operation performed: rRightHandSideVector -= IntForce*IntToReferenceWeight
-                this->CalculateAndAddInternalForces( rRightHandSideVectors[i], rVariables, rIntegrationWeight );
-                calculated = true;
+                if (mIsExplicit)
+                {
+                    // Operation performed: rRightHandSideVector -= IntForce*IntToReferenceWeight
+                    this->CalculateAndAddExplicitInternalForces(rRightHandSideVectors[i], rVariables, rIntegrationWeight);
+                    calculated = true;
+                }
+                else
+                {
+                    // Operation performed: rRightHandSideVector -= IntForce*IntToReferenceWeight
+                    this->CalculateAndAddInternalForces(rRightHandSideVectors[i], rVariables, rIntegrationWeight);
+                    calculated = true;
+                }
             }
 
             KRATOS_ERROR_IF(calculated == false) << "ELEMENT can not supply the required local system variable: " << rRightHandSideVariables[i] << std::endl;
@@ -534,6 +544,46 @@ void UpdatedLagrangianQuadrilateral::CalculateAndAddInternalForces(VectorType& r
 
     KRATOS_CATCH( "" )
 }
+
+//************************************************************************************
+//************************************************************************************
+
+void UpdatedLagrangianQuadrilateral::CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector,
+    GeneralVariables& rVariables,
+    const double& rIntegrationWeight)
+{
+    KRATOS_TRY
+        // TODO FINISH OFF
+
+
+    //VectorType internal_forces = rIntegrationWeight * prod(trans(rVariables.B), rVariables.StressVector);
+    //noalias(rRightHandSideVector) -= internal_forces;
+
+
+    GeometryType& r_geometry = GetGeometry();
+    const unsigned int dimension = r_geometry.WorkingSpaceDimension();
+    const unsigned int number_of_nodes = r_geometry.PointsNumber();
+    const array_1d<double, 3>& xg = this->GetValue(MP_COORD);
+
+    // Calculate shape function gradients
+    Matrix Jacobian;
+    Jacobian = this->MPMJacobian(Jacobian, xg);
+    Matrix InvJ;
+    double detJ;
+    MathUtils<double>::InvertMatrix(Jacobian, InvJ, detJ);
+    Matrix DN_De = this->MPMShapeFunctionsLocalGradients(DN_De, xg); // parametric gradients
+    mDN_DX = prod(DN_De, InvJ); // cartesian gradients
+
+    const Vector& MP_Stress = this->GetValue(MP_CAUCHY_STRESS_VECTOR);
+    const double& MP_Volume = this->GetValue(MP_VOLUME);
+
+    MPMExplicitUtilities::CalcuateExplicitInternalForce(r_geometry,
+        mDN_DX, MP_Stress, MP_Volume);
+
+
+    KRATOS_CATCH("")
+}
+
 //************************************************************************************
 //************************************************************************************
 
@@ -818,6 +868,7 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
     Variables.N = this->MPMShapeFunctionPointValues(Variables.N, xg);
 
     mFinalizedStep = false;
+    mIsExplicit = rCurrentProcessInfo.Has(IS_EXPLICIT);
 
     const array_1d<double,3>& MP_velocity = this->GetValue(MP_VELOCITY);
     const array_1d<double,3>& MP_acceleration = this->GetValue(MP_ACCELERATION);
@@ -828,21 +879,25 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
     array_1d<double,3> nodal_momentum = ZeroVector(3);
     array_1d<double,3> nodal_inertia  = ZeroVector(3);
 
-    for (unsigned int j=0; j<number_of_nodes; j++)
+    // Only retrieve previous nodal velocity if implicit
+    if (!mIsExplicit)
     {
-        // These are the values of nodal velocity and nodal acceleration evaluated in the initialize solution step
-        array_1d<double, 3 > nodal_acceleration = ZeroVector(3);
-        if (r_geometry[j].SolutionStepsDataHas(ACCELERATION))
-            nodal_acceleration = r_geometry[j].FastGetSolutionStepValue(ACCELERATION,1);
-
-        array_1d<double, 3 > nodal_velocity = ZeroVector(3);
-        if (r_geometry[j].SolutionStepsDataHas(VELOCITY))
-            nodal_velocity = r_geometry[j].FastGetSolutionStepValue(VELOCITY,1);
-
-        for (unsigned int k = 0; k < dimension; k++)
+        for (unsigned int j = 0; j < number_of_nodes; j++)
         {
-            aux_MP_velocity[k]     += Variables.N[j] * nodal_velocity[k];
-            aux_MP_acceleration[k] += Variables.N[j] * nodal_acceleration[k];
+            // These are the values of nodal velocity and nodal acceleration evaluated in the initialize solution step
+            array_1d<double, 3 > nodal_acceleration = ZeroVector(3);
+            if (r_geometry[j].SolutionStepsDataHas(ACCELERATION))
+                nodal_acceleration = r_geometry[j].FastGetSolutionStepValue(ACCELERATION, 1);
+
+            array_1d<double, 3 > nodal_velocity = ZeroVector(3);
+            if (r_geometry[j].SolutionStepsDataHas(VELOCITY))
+                nodal_velocity = r_geometry[j].FastGetSolutionStepValue(VELOCITY, 1);
+
+            for (unsigned int k = 0; k < dimension; k++)
+            {
+                aux_MP_velocity[k] += Variables.N[j] * nodal_velocity[k];
+                aux_MP_acceleration[k] += Variables.N[j] * nodal_acceleration[k];
+            }
         }
     }
 
@@ -861,8 +916,9 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
 
         r_geometry[i].FastGetSolutionStepValue(NODAL_MASS, 0) += Variables.N[i] * MP_mass;
         r_geometry[i].UnSetLock();
-
     }
+    // TODO maybe update this
+    // Explicit internal force contribution is added through 'addexplicitcontribution', called from mpm explicit strategy.
 }
 
 
@@ -1290,6 +1346,141 @@ void UpdatedLagrangianQuadrilateral::CalculateDampingMatrix( MatrixType& rDampin
     rDampingMatrix += beta  * StiffnessMatrix;
 
     KRATOS_CATCH( "" )
+}
+
+// TODO confirm this is still needed
+void UpdatedLagrangianQuadrilateral::AddExplicitContribution(const VectorType& rRHSVector, 
+    const Variable<VectorType>& rRHSVariable, 
+    Variable<array_1d<double, 3>>& rDestinationVariable, 
+    const ProcessInfo& rCurrentProcessInfo)
+{
+    KRATOS_TRY;
+
+    if (rRHSVariable == RESIDUAL_VECTOR &&
+        rDestinationVariable == FORCE_RESIDUAL) 
+    {
+        GeometryType& r_geometry = GetGeometry();
+        const unsigned int dimension = r_geometry.WorkingSpaceDimension();
+        const unsigned int number_of_nodes = r_geometry.PointsNumber();
+        const array_1d<double, 3>& xg = this->GetValue(MP_COORD);
+
+        // Calculate shape function gradients
+        Matrix Jacobian;
+        Jacobian = this->MPMJacobian(Jacobian, xg);
+        Matrix InvJ;
+        double detJ;
+        MathUtils<double>::InvertMatrix(Jacobian, InvJ, detJ);
+        Matrix DN_De = this->MPMShapeFunctionsLocalGradients(DN_De, xg); // parametric gradients
+        mDN_DX = prod(DN_De, InvJ); // cartesian gradients
+
+        const Vector& MP_Stress = this->GetValue(MP_CAUCHY_STRESS_VECTOR);
+        const double& MP_Volume = this->GetValue(MP_VOLUME);
+
+        MPMExplicitUtilities::CalcuateExplicitInternalForce(r_geometry,
+            mDN_DX, MP_Stress, MP_Volume);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
+    // calculate damping contribution to residual -->
+    if ((GetProperties().Has(RAYLEIGH_ALPHA) ||
+        GetProperties().Has(RAYLEIGH_BETA)) &&
+        (rDestinationVariable != NODAL_INERTIA)) {
+        Vector current_nodal_velocities = ZeroVector(msElementSize);
+        GetFirstDerivativesVector(current_nodal_velocities);
+        Matrix damping_matrix = ZeroMatrix(msElementSize, msElementSize);
+        ProcessInfo temp_process_information; // cant pass const ProcessInfo
+        CalculateDampingMatrix(damping_matrix, temp_process_information);
+        // current residual contribution due to damping
+        noalias(damping_residual_contribution) =
+            prod(damping_matrix, current_nodal_velocities);
+    }
+    
+
+    if (rRHSVariable == RESIDUAL_VECTOR &&
+        rDestinationVariable == FORCE_RESIDUAL) {
+
+        for (SizeType i = 0; i < msNumberOfNodes; ++i) {
+            SizeType index = msLocalSize * i;
+
+            GetGeometry()[i].SetLock();
+
+            array_1d<double, 3>& r_force_residual =
+                GetGeometry()[i].FastGetSolutionStepValue(FORCE_RESIDUAL);
+
+            for (SizeType j = 0; j < msDimension; ++j) {
+                r_force_residual[j] +=
+                    rRHSVector[index + j] - damping_residual_contribution[index + j];
+            }
+
+            r_force_residual[msDimension] = 0.00;
+            GetGeometry()[i].UnSetLock();
+        }
+    }
+
+    if (rRHSVariable == RESIDUAL_VECTOR &&
+        rDestinationVariable == MOMENT_RESIDUAL) {
+
+        for (SizeType i = 0; i < msNumberOfNodes; ++i) {
+            SizeType index = (msLocalSize * i) + msDimension;
+
+            GetGeometry()[i].SetLock();
+
+            array_1d<double, 3>& r_moment_residual =
+                GetGeometry()[i].FastGetSolutionStepValue(MOMENT_RESIDUAL);
+
+            for (SizeType j = 0; j < msDimension; ++j) {
+                r_moment_residual[j] = 0.00;
+            }
+            r_moment_residual[msDimension] +=
+                rRHSVector[index] - damping_residual_contribution[index];
+            GetGeometry()[i].UnSetLock();
+        }
+    }
+
+    if (rDestinationVariable == NODAL_INERTIA) {
+        Matrix element_mass_matrix = ZeroMatrix(msElementSize, msElementSize);
+        ProcessInfo temp_info; // Dummy
+        CalculateMassMatrix(element_mass_matrix, temp_info);
+
+        for (IndexType i = 0; i < msNumberOfNodes; ++i) {
+            double aux_nodal_mass = 0.0;
+            double aux_nodal_inertia = 0.0;
+
+            const SizeType index = i * msLocalSize;
+
+            for (IndexType j = 0; j < msElementSize; ++j) {
+                aux_nodal_mass += element_mass_matrix(index, j);
+                aux_nodal_inertia += element_mass_matrix(index + msDimension, j);
+            }
+
+            #pragma omp atomic
+            GetGeometry()[i].GetValue(NODAL_MASS) += aux_nodal_mass;
+
+            array_1d<double, 3>& r_nodal_inertia = GetGeometry()[i].GetValue(NODAL_INERTIA);
+            #pragma omp atomic
+            r_nodal_inertia[msDimension] += std::abs(aux_nodal_inertia);
+        }
+    }
+    */
+
+    KRATOS_CATCH("")
 }
 //************************************************************************************
 //****************MASS MATRIX*********************************************************

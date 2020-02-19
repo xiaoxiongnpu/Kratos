@@ -423,6 +423,12 @@ public:
                                 ProcessInfo& rCurrentProcessInfo) override;
 
 
+    void AddExplicitContribution(const VectorType& rRHSVector,
+        const Variable<VectorType>& rRHSVariable,
+        Variable<array_1d<double, 3> >& rDestinationVariable,
+        const ProcessInfo& rCurrentProcessInfo) override;
+
+
     //************************************************************************************
     //************************************************************************************
     /**
@@ -495,6 +501,22 @@ protected:
      */
     bool mFinalizedStep;
 
+    /**
+     * Container to store shape functions over whole timestep
+     */
+    Vector mN;
+
+    /**
+     * Container to store shape function gradients over whole timestep
+     */
+    Matrix mDN_DX;
+
+    /**
+     * Boolean for explicit time integration
+     */
+    bool mIsExplicit;
+
+
 
     ///@}
     ///@name Protected Operators
@@ -561,6 +583,11 @@ protected:
     virtual void CalculateAndAddInternalForces(VectorType& rRightHandSideVector,
             GeneralVariables & rVariables,
             const double& rIntegrationWeight);
+
+    /**
+      * Calculation of the Explicit Internal Forces Vector. Fi = div. sigma
+      */
+    void CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector, GeneralVariables& rVariables, const double& rIntegrationWeight);
 
 
     /**

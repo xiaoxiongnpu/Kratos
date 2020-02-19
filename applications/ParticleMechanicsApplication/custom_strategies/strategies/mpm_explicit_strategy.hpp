@@ -269,7 +269,7 @@ namespace Kratos
             KRATOS_TRY
 
 
-                std::cout << "\n\n STRATEGY INITIALIZE SS \n\n" << std::endl;
+                std::cout << "\n\n EXPLICIT STRATEGY INITIALIZE SOLUTION STEP \n\n" << std::endl;
 
                 // Initialize solution step
                 if (mSolutionStepIsInitialized == false)
@@ -278,7 +278,7 @@ namespace Kratos
 
                     ModelPart& r_model_part = BaseType::GetModelPart();
 
-                    TSystemMatrixType matrix_a_dummy = TSystemMatrixType();
+                    Vector dummy_vector;
                     TSystemVectorType rDx = TSystemVectorType();
                     TSystemVectorType rb = TSystemVectorType();
 
@@ -289,6 +289,21 @@ namespace Kratos
 
                     // Initial operations ... things that are constant over the Solution Step
                     pScheme->InitializeSolutionStep(BaseType::GetModelPart(), mA, mDx, mb);
+
+                    // TODO check if this is actually needed
+                    /*
+                    //#pragma omp parallel for firstprivate(dummy_vector), schedule(guided,512)
+                    for (int i = 0; i < static_cast<int>(r_elements.size()); ++i) {
+                        // Getting nodal mass and inertia from element
+                        // this function needs to be implemented in the respective
+                        // element to provide nodal masses
+                        auto it_elem = it_elem_begin + i;
+                        it_elem->AddExplicitContribution(dummy_vector, RESIDUAL_VECTOR, FORCE_RESIDUAL, r_current_process_info);
+                    }
+                    */
+
+
+
 
 
                     if (BaseType::mRebuildLevel > 0)

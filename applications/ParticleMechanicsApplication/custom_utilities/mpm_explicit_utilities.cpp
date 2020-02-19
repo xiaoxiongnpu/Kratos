@@ -11,29 +11,22 @@
 //
 
 // System includes
-#include "includes/ublas_interface.h"
-#include "includes/element.h"
-#include "includes/variables.h"
-#include "utilities/math_utils.h"
+
 // External includes
 
 // Project includes
-#include "geometries/point.h"
-#include "custom_utilities/mpm_explicit_integration_utilities.h"
-#include "utilities/math_utils.h"
-#include "includes/element.h"
-#include "particle_mechanics_application_variables.h"
-#include "includes/ublas_interface.h"
-#include "boost/numeric/ublas/vector.hpp"
+#include "custom_utilities/mpm_explicit_utilities.h"
+
 
 
 
 namespace Kratos
 {
-namespace ExplicitIntegrationUtilities
-{
-    void CalcuateExplicitInternalForce(const GeometryType& rGeom, const Matrix& rDN_DX, 
-        const Vector& rMPStress, const double& rMPVolume)
+    void MPMExplicitUtilities::CalcuateExplicitInternalForce(
+        GeometryType& rGeom,
+        const Matrix& rDN_DX,
+        const Vector& rMPStress,
+        const double& rMPVolume)
     {     
         KRATOS_TRY
 
@@ -56,32 +49,35 @@ namespace ExplicitIntegrationUtilities
                     rMPStress[2] * rDN_DX(i, 0));
 
             rGeom[i].SetLock();
-            rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL, 0) -= nodal_force_internal_normal; //PJW, minus sign, internal forces
+            rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL, 0) -= nodal_force_internal_normal; //minus sign, internal forces
             rGeom[i].UnSetLock();
 
-            KRATOS_CATCH("")
         }
+            KRATOS_CATCH("")
     }
 
-
-    void CalculateExplicitKinematics(const GeometryType& rGeom, const double rDeltaTime, Vector& rMPStrain, 
-        Matrix& rDeformationGradient, const bool& isCompressible)
+    /*
+    void MPMExplicitUtilities::CalculateExplicitKinematics(
+        const GeometryType& rGeom,
+        const double rDeltaTime,
+        Vector& rMPStrain,
+        Matrix& rDeformationGradient,
+        const bool& isCompressible)
     {
         KRATOS_TRY
 
-        GeometryType& rGeom = GetGeometry();
-        const unsigned int dimension = rGeom.WorkingSpaceDimension();
-        const unsigned int number_of_nodes = rGeom.PointsNumber();
+        const SizeType dimension = rGeom.WorkingSpaceDimension();
+        const SizeType number_of_nodes = rGeom.PointsNumber();
 
         //Calculate velocity gradients
         Matrix velocityGradient = Matrix(dimension, dimension, 0.0);
-        for (unsigned int nodeIndex = 0; nodeIndex < number_of_nodes; nodeIndex++)
+        for (IndexType nodeIndex = 0; nodeIndex < number_of_nodes; nodeIndex++)
         {
             const array_1d<double, 3 >& nodal_velocity = rGeom[nodeIndex].FastGetSolutionStepValue(VELOCITY);
 
-            for (unsigned int i = 0; i < dimension; i++)
+            for (IndexType i = 0; i < dimension; i++)
             {
-                for (unsigned int j = 0; j < dimension; j++)
+                for (IndexType j = 0; j < dimension; j++)
                 {
                     velocityGradient(i, j) += nodal_velocity[i] * mDN_DX(nodeIndex, j);
                 }
@@ -124,7 +120,7 @@ namespace ExplicitIntegrationUtilities
 
         KRATOS_CATCH("")
     }
-
+    */
 
 
 
@@ -323,5 +319,4 @@ double InnerCalculateDeltaTime(
 }
 */
 
-} // namespace MPMExplicitUtilities
 } // namespace Kratos

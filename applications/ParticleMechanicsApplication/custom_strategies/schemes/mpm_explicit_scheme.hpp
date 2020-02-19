@@ -464,7 +464,7 @@ public:
     {
         KRATOS_TRY
 
-            std::cout << "\n\n SCHEME INITIALIZE SS \n\n" << std::endl;
+            std::cout << "\n\n MPM EXPLICIT SCHEME INITIALIZE SS \n\n" << std::endl;
 
         ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
         BaseType::InitializeSolutionStep(r_model_part, A, Dx, b);
@@ -478,10 +478,10 @@ public:
             double& nodal_mass = (i)->FastGetSolutionStepValue(NODAL_MASS);
             array_1d<double, 3 >& nodal_momentum = (i)->FastGetSolutionStepValue(NODAL_MOMENTUM);
             array_1d<double, 3 >& nodal_inertia = (i)->FastGetSolutionStepValue(NODAL_INERTIA);
-            array_1d<double, 3 >& nodal_force = (i)->FastGetSolutionStepValue(FORCE_RESIDUAL); //PJW
+            array_1d<double, 3 >& nodal_force = (i)->FastGetSolutionStepValue(FORCE_RESIDUAL);
             array_1d<double, 3 >& nodal_displacement = (i)->FastGetSolutionStepValue(DISPLACEMENT);
             array_1d<double, 3 >& nodal_velocity = (i)->FastGetSolutionStepValue(VELOCITY);
-            array_1d<double, 3 >& nodal_acceleration = (i)->FastGetSolutionStepValue(ACCELERATION); //PJW
+            array_1d<double, 3 >& nodal_acceleration = (i)->FastGetSolutionStepValue(ACCELERATION);
 
 
             double& nodal_old_pressure = (i)->FastGetSolutionStepValue(PRESSURE, 1);
