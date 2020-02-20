@@ -280,7 +280,7 @@ void RansEvmKEpsilonEpsilonWall<TDim, TNumNodes>::AddLocalVelocityContribution(
             r_geometry, TURBULENT_KINETIC_ENERGY, gauss_shape_functions);
         const double u_tau = c_mu_25 * std::sqrt(std::max(tke, 0.0));
 
-        if (u_tau > eps)
+        if (y_plus > eps)
         {
             const double value =
                 weight * (nu + nu_t / epsilon_sigma) * u_tau / (y_plus * nu);
