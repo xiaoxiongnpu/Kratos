@@ -478,6 +478,98 @@ public:
         }
     }
 
+    void Calculate(const Variable<Matrix>& rVariable,
+                   Matrix& rOutput,
+                   const ProcessInfo& rCurrentProcessInfo) override
+    {
+        if (rVariable == PSEUDO_TIME_MASS_MATRIX)
+        {
+            constexpr std::size_t block_size = TDim + 1;
+            constexpr std::size_t local_size = TNumNodes * block_size;
+            if (rOutput.size1() != local_size || rOutput.size2() != local_size)
+            {
+                rOutput.resize(local_size, local_size, false);
+            }
+            double mass_matrix_coefficient = 0.0;
+            rOutput = IdentityMatrix(local_size);
+
+            // Get the element's geometric parameters
+            double gauss_weight;
+            array_1d<double, TNumNodes> shape_functions;
+            BoundedMatrix<double, TNumNodes, TDim> shape_derivatives;
+            GeometryUtils::CalculateGeometryData(this->GetGeometry(), shape_derivatives,
+                                                 shape_functions, gauss_weight);
+
+            array_1d<double, 3> velocity = ZeroVector(3);
+            this->EvaluateInPoint(velocity, VELOCITY, shape_functions);
+            const double velocity_magnitude = norm_2(velocity);
+
+            if (velocity_magnitude > 0.0)
+            {
+                double density;
+                this->EvaluateInPoint(density, DENSITY, shape_functions);
+
+                array_1d<double, 3> body_force = ZeroVector(3);
+                this->EvaluateInPoint(body_force, BODY_FORCE, shape_functions);
+                body_force *= density;
+
+                BoundedMatrix<double, TDim, TDim> velocity_gradient;
+                this->CalculateGradient(velocity_gradient, this->GetGeometry(),
+                                        VELOCITY, shape_derivatives);
+
+                double pressure;
+                this->EvaluateInPoint(pressure, PRESSURE, shape_functions);
+
+                array_1d<double, 3> pressure_gradient;
+                this->CalculateGradient(pressure_gradient, this->GetGeometry(),
+                                        PRESSURE, shape_derivatives);
+
+                const double length = this->GetGeometry().Length();
+
+                double viscosity;
+                this->EvaluateInPoint(viscosity, VISCOSITY, shape_functions);
+
+                double tau_one, tau_two;
+                this->CalculateTau(tau_one, tau_two, velocity, length, density,
+                                   viscosity, rCurrentProcessInfo);
+
+                double momentum_residual = 0.0;
+                for (unsigned int d = 0; d < TDim; ++d)
+                {
+                    double current_momentum_residual = 0.0;
+                    current_momentum_residual +=
+                        density * inner_prod(row(velocity_gradient, d), velocity);
+                    current_momentum_residual += pressure_gradient[d];
+                    current_momentum_residual -= body_force[d];
+                    momentum_residual += std::abs(current_momentum_residual);
+                }
+                double residual_scalar =
+                    momentum_residual * tau_one / (6.0 * velocity_magnitude);
+
+                double velocity_divergence = 0;
+                for (unsigned int d = 0; d < TDim; ++d)
+                    velocity_divergence += velocity_gradient(d, d);
+                residual_scalar += std::abs(velocity_divergence) * tau_one * density * 0.5;
+
+
+                const double delta_time = length / velocity_magnitude;
+                const double lumped_mass = density * gauss_weight / static_cast<double>(TNumNodes);
+                mass_matrix_coefficient = lumped_mass * residual_scalar / delta_time;
+
+                const double pressure_scalar = std::pow(length / (density * viscosity), 2);
+
+                for (std::size_t i = 0; i < TNumNodes; ++i)
+                {
+                    rOutput(block_size * i + TDim, block_size * i + TDim) = pressure_scalar;
+                }
+            }
+
+            const double pseudo_time_multiplier = rCurrentProcessInfo[PSEUDO_TIME_MULTIPLIER];
+            noalias(rOutput) = rOutput * (mass_matrix_coefficient / pseudo_time_multiplier);
+            this->SetValue(ERROR_OVERALL, mass_matrix_coefficient);
+        }
+    }
+
     /// Implementation of Calculate to compute the local OSS projections.
     /**
      * If rVariable == ADVPROJ, This function computes the OSS projection
@@ -1201,45 +1293,6 @@ protected:
         array_1d<double,3> BodyForce = ZeroVector(3);
         this->EvaluateInPoint(BodyForce,BODY_FORCE,rShapeFunc);
         BodyForce *= Density;
-
-        BoundedMatrix<double, TDim, TDim> velocity_gradient;
-        this->CalculateGradient(velocity_gradient, this->GetGeometry(), VELOCITY, rShapeDeriv);
-
-        double pressure;
-        this->EvaluateInPoint(pressure, PRESSURE, rShapeFunc);
-
-        array_1d<double, 3> pressure_gradient;
-        this->CalculateGradient(pressure_gradient, this->GetGeometry(), PRESSURE, rShapeDeriv);
-
-        double momentum_residual = 0.0;
-        for (unsigned int d = 0; d < TDim; ++d)
-        {
-            double current_momentum_residual = 0.0;
-            current_momentum_residual +=
-                Density * inner_prod(row(velocity_gradient, d), rAdvVel);
-            current_momentum_residual += pressure_gradient[d];
-            current_momentum_residual -= BodyForce[d];
-            momentum_residual += std::abs(current_momentum_residual);
-        }
-
-        double momentum_scalar_value = 0.0;
-        momentum_scalar_value += Density * norm_2(rAdvVel) * this->GetGeometry().Length();
-        momentum_scalar_value += Density * std::abs(pressure) * TauOne;
-
-        double residual_scalar = 0.0;
-        if (momentum_scalar_value > 0.0)
-        {
-            residual_scalar += momentum_residual * TauOne * Density *
-                               this->GetGeometry().Length() / momentum_scalar_value;
-        }
-
-        double velocity_divergence = 0;
-        for (unsigned int d = 0; d < TDim; ++d)
-            velocity_divergence += velocity_gradient(d, d);
-
-        residual_scalar += std::abs(velocity_divergence) * TauOne * Density;
-
-        this->SetValue(ERROR_OVERALL, residual_scalar);
 
         for (unsigned int i = 0; i < TNumNodes; ++i) // iterate over rows
         {
