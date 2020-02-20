@@ -329,7 +329,9 @@ namespace Kratos {
         double share_of_max_contact_stress = 1.0;
         double critical_contact_force = element->GetParticleCohesion() * contact_area;
 
-        /* if (normal_contact_force > critical_contact_force)*/ share_of_max_contact_stress = pow((normal_contact_force / critical_contact_force), element->GetProperties()[CONICAL_DAMAGE_GAMMA]);
+        if (normal_contact_force > critical_contact_force) {
+            share_of_max_contact_stress = pow((normal_contact_force / critical_contact_force), element->GetProperties()[CONICAL_DAMAGE_GAMMA]);
+        }
 
         LocalElasticContactForce[0] = OldLocalElasticContactForce[0] - mKt * LocalDeltDisp[0];
         LocalElasticContactForce[1] = OldLocalElasticContactForce[1] - mKt * LocalDeltDisp[1];
