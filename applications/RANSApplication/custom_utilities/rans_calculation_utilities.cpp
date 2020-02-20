@@ -383,7 +383,7 @@ void CalculateYPlusAndUtau(double& rYPlus,
 
 bool IsWall(const ConditionType& rCondition)
 {
-    if (rCondition.Is(SLIP))
+    if (rCondition.Is(SLIP) && rCondition.Is(STRUCTURE))
     {
         return true;
     }
@@ -393,7 +393,7 @@ bool IsWall(const ConditionType& rCondition)
         {
             const ConditionType& r_parent_condition =
                 *(rCondition.GetValue(PARENT_CONDITION_POINTER));
-            if (r_parent_condition.Is(SLIP))
+            if (r_parent_condition.Is(SLIP) && rCondition.Is(STRUCTURE))
             {
                 return true;
             }
