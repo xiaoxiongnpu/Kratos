@@ -393,7 +393,7 @@ bool IsWall(const ConditionType& rCondition)
         {
             const ConditionType& r_parent_condition =
                 *(rCondition.GetValue(PARENT_CONDITION_POINTER));
-            if (r_parent_condition.Is(SLIP) && rCondition.Is(STRUCTURE))
+            if (r_parent_condition.Is(SLIP) && r_parent_condition.Is(STRUCTURE))
             {
                 return true;
             }
