@@ -46,7 +46,8 @@ class StabilizedFormulation(object):
         default_settings = KratosMultiphysics.Parameters(r"""{
             "element_type": "vms",
             "use_orthogonal_subscales": false,
-            "dynamic_tau": 0.01
+            "dynamic_tau": 0.01,
+            "pseudo_time_multiplier" : 1.0
         }""")
 
         default_non_newtonian_settings = KratosMultiphysics.Parameters(r"""{
@@ -79,6 +80,7 @@ class StabilizedFormulation(object):
             self.process_data[KratosCFD.REGULARIZATION_COEFFICIENT] = settings["non_newtonian_fluid_parameters"]["regularization_coefficient"].GetDouble()
 
         self.process_data[KratosMultiphysics.DYNAMIC_TAU] = settings["dynamic_tau"].GetDouble()
+        self.process_data[KratosCFD.PSEUDO_TIME_MULTIPLIER] = settings["pseudo_time_multiplier"].GetDouble()
         use_oss = settings["use_orthogonal_subscales"].GetBool()
         self.process_data[KratosMultiphysics.OSS_SWITCH] = int(use_oss)
 
@@ -307,7 +309,6 @@ class NavierStokesSolverMonolithic(FluidSolver):
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.EXTERNAL_PRESSURE)
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.NORMAL)
         self.main_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.Y_WALL)
-        self.main_model_part.AddNodalSolutionStepVariable(KratosCFD.CHARACTERISTIC_LENGTH)
         self.main_model_part.AddNodalSolutionStepVariable(KratosCFD.Q_VALUE)
 
         # Adding variables required for the turbulence modelling
