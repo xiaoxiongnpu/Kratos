@@ -23,11 +23,11 @@ class DEMCoupledFluidDynamicsAnalysis(FluidDynamicsAnalysis):
 
     def _CreateSolver(self):
         if (self.project_parameters["solver_settings"]["solver_type"].GetString() == "MonolithicDEM"):
-            import python_solvers_wrapper_fluidDEM
-            return python_solvers_wrapper_fluidDEM.CreateSolver(self.model, self.project_parameters)
+            from KratosMultiphysics.SwimmingDEMApplication.python_solvers_wrapper_fluidDEM import CreateSolver
+            return CreateSolver(self.model, self.project_parameters)
         else:
-            from KratosMultiphysics.FluidDynamicsApplication import python_solvers_wrapper_fluid
-            return python_solvers_wrapper_fluid.CreateSolver(self.model, self.project_parameters)
+            from KratosMultiphysics.FluidDynamicsApplication.python_solvers_wrapper_fluid import CreateSolver
+            return CreateSolver(self.model, self.project_parameters)
 
 if __name__ == '__main__':
     from sys import argv

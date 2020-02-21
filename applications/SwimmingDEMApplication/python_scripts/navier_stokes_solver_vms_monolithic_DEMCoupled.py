@@ -9,7 +9,7 @@ from KratosMultiphysics.FluidDynamicsApplication import navier_stokes_solver_vms
 import KratosMultiphysics.SwimmingDEMApplication as KratosSDEM
 
 # Import base class file
-from fluid_DEM_coupling_solver import FluidDEMSolver
+from KratosMultiphysics.SwimmingDEMApplication.fluid_DEM_coupling_solver import FluidDEMSolver
 
 class StabilizedFormulationDEMCoupled(NavierMonolithic.StabilizedFormulation):
     """Helper class to define stabilization-dependent parameters."""
@@ -32,7 +32,8 @@ class StabilizedFormulationDEMCoupled(NavierMonolithic.StabilizedFormulation):
         settings.ValidateAndAssignDefaults(default_settings)
 
         self.element_name = settings["element_name"].GetString()
-
+        self.element_has_nodal_properties = True
+        
         self.process_data[KratosMultiphysics.DYNAMIC_TAU] = settings["dynamic_tau"].GetDouble()
         use_oss = settings["use_orthogonal_subscales"].GetBool()
         self.process_data[KratosMultiphysics.OSS_SWITCH] = int(use_oss)
@@ -47,6 +48,7 @@ class StabilizedFormulationDEMCoupled(NavierMonolithic.StabilizedFormulation):
         settings.ValidateAndAssignDefaults(default_settings)
 
         self.element_name = settings["element_name"].GetString()
+        self.element_has_nodal_properties = True
 
         self.process_data[KratosMultiphysics.DYNAMIC_TAU] = settings["dynamic_tau"].GetDouble()
         use_oss = settings["use_orthogonal_subscales"].GetBool()
@@ -91,6 +93,7 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
             },
             "volume_model_part_name" : "volume_model_part",
             "skin_parts": [""],
+            "assign_neighbour_elements_to_conditions": false,
             "no_skin_parts":[""],
             "time_stepping"                : {
                 "automatic_time_step" : false,
@@ -158,6 +161,7 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
         self.element_name = self.formulation.element_name
         self.condition_name = self.formulation.condition_name
         self.element_integrates_in_time = self.formulation.element_integrates_in_time
+        self.element_has_nodal_properties = self.formulation.element_has_nodal_properties
 
         scheme_type = self.settings["time_scheme"].GetString()
         if scheme_type == "bossak":
@@ -207,6 +211,8 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
 
         KratosMultiphysics.Logger.PrintInfo("NavierStokesSolverMonolithicDEM", "Fluid solver variables added correctly.")
 
+    def AddDofs(self):
+        super(NavierStokesSolverMonolithicDEM, self).AddDofs()
 
     def PrepareModelPart(self):
         if not self.main_model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED]:
@@ -223,9 +229,9 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
 
         # Creating the solution strategy
         self.conv_criteria = KratosCFD.VelPrCriteria(self.settings["relative_velocity_tolerance"].GetDouble(),
-                                                     self.settings["absolute_velocity_tolerance"].GetDouble(),
-                                                     self.settings["relative_pressure_tolerance"].GetDouble(),
-                                                     self.settings["absolute_pressure_tolerance"].GetDouble())
+                                                    self.settings["absolute_velocity_tolerance"].GetDouble(),
+                                                    self.settings["relative_pressure_tolerance"].GetDouble(),
+                                                    self.settings["absolute_pressure_tolerance"].GetDouble())
 
         (self.conv_criteria).SetEchoLevel(self.settings["echo_level"].GetInt())
 
@@ -245,7 +251,7 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
                 err_msg += "Available options are: \"bdf2\""
                 raise Exception(err_msg)
         else:
-            if (self.settings["turbulence_model"].GetString() == "None"):
+            if self.settings["turbulence_model"].GetString() == "None":
                 # Bossak time integration scheme
                 if self.settings["time_scheme"].GetString() == "bossak":
                     if self.settings["consider_periodic_conditions"].GetBool() == True:
@@ -310,11 +316,15 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
     def _set_physical_properties(self):
         # Check if fluid properties are provided using a .json file
         materials_filename = self.settings["material_import_settings"]["materials_filename"].GetString()
-        if (materials_filename != "unknown_materials.json"):
+        if (materials_filename != ""):
             # Add constitutive laws and material properties from .json file to model parts
             material_settings = KratosMultiphysics.Parameters("""{"Parameters": {"materials_filename": ""}} """)
             material_settings["Parameters"]["materials_filename"].SetString(materials_filename)
             KratosMultiphysics.ReadMaterialsUtility(material_settings, self.model)
+
+            if self.element_has_nodal_properties:
+                self._SetNodalProperties()
+        
         else:
             # Get density and dynamic viscostity from the properties and transfer them to the nodes
             for el in self.main_model_part.Elements:
@@ -331,6 +341,21 @@ class NavierStokesSolverMonolithicDEM(FluidDEMSolver):
 
             KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.DENSITY, rho, self.main_model_part.Nodes)
             KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.VISCOSITY, kin_viscosity, self.main_model_part.Nodes)
+
+    def _SetNodalProperties(self):
+        for el in self.main_model_part.Elements:
+            rho = el.Properties.GetValue(KratosMultiphysics.DENSITY)
+            if rho <= 0.0:
+                raise Exception("DENSITY set to {0} in Properties {1}, positive number expected.".format(rho,el.Properties.Id))
+            dyn_viscosity = el.Properties.GetValue(KratosMultiphysics.DYNAMIC_VISCOSITY)
+            if dyn_viscosity <= 0.0:
+                raise Exception("DYNAMIC_VISCOSITY set to {0} in Properties {1}, positive number expected.".format(dyn_viscosity,el.Properties.Id))
+            break
+        else:
+            raise Exception("No fluid elements found in the main model part.")
+        # Transfer the obtained properties to the nodes
+        KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.DENSITY, rho, self.main_model_part.Nodes)
+        KratosMultiphysics.VariableUtils().SetScalarVar(KratosMultiphysics.DYNAMIC_VISCOSITY, dyn_viscosity, self.main_model_part.Nodes)
 
     def _SetUpSteadySimulation(self):
         '''Overwrite time stepping parameters so that they do not interfere with steady state simulations.'''

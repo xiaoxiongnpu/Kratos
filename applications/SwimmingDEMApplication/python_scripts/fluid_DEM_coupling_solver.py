@@ -15,14 +15,16 @@ class FluidDEMSolver(FluidSolver):
 
     def PrepareModelPart(self):
         if not self.main_model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED]:
+            ## Set fluid properties from materials json file
+            materials_imported = self._SetPhysicalProperties()
             ## Replace default elements and conditions
             self._ReplaceElementsAndConditions()
             ## Executes the check and prepare model process
             self._ExecuteCheckAndPrepare()
             ## Set buffer size
-            self.main_model_part.SetBufferSize(self.min_buffer_size)
+            #self.main_model_part.SetBufferSize(self.min_buffer_size)
 
-        KratosMultiphysics.Logger.PrintInfo("FluidSolver", "Model reading finished.")
+        KratosMultiphysics.Logger.PrintInfo("FluidDEMSolver", "Model reading finished.")
 
     ## FluidDEMSolver specific methods.
 
@@ -59,56 +61,3 @@ class FluidDEMSolver(FluidSolver):
 
         ## Call the replace elements and conditions process
         KratosMultiphysics.ReplaceElementsAndConditionsProcess(self.main_model_part, self.settings["element_replace_settings"]).Execute()
-
-    # def _GetElementNumNodes(self):
-    #     if self.main_model_part.NumberOfElements() != 0:
-    #         if sys.version_info[0] >= 3: # python3 syntax
-    #             element_num_nodes = len(self.main_model_part.Elements.__iter__().__next__().GetNodes())
-    #         else: # python2 syntax
-    #             element_num_nodes = len(self.main_model_part.Elements.__iter__().next().GetNodes())
-    #     else:
-    #         element_num_nodes = 0
-
-    #     element_num_nodes = self.main_model_part.GetCommunicator().GetDataCommunicator().MaxAll(element_num_nodes)
-    #     return element_num_nodes
-
-    # def _GetConditionNumNodes(self):
-    #     if self.main_model_part.NumberOfConditions() != 0:
-    #         if sys.version_info[0] >= 3: # python3 syntax
-    #             condition_num_nodes = len(self.main_model_part.Conditions.__iter__().__next__().GetNodes())
-    #         else: # python2 syntax
-    #             condition_num_nodes = len(self.main_model_part.Conditions.__iter__().next().GetNodes())
-    #     else:
-    #         condition_num_nodes = 0
-
-    #     condition_num_nodes = self.main_model_part.GetCommunicator().GetDataCommunicator().MaxAll(condition_num_nodes)
-    #     return condition_num_nodes
-
-    # def _ExecuteCheckAndPrepare(self):
-    #     ## Check that the input read has the shape we like
-    #     prepare_model_part_settings = KratosMultiphysics.Parameters("{}")
-    #     prepare_model_part_settings.AddValue("volume_model_part_name",self.settings["volume_model_part_name"])
-    #     prepare_model_part_settings.AddValue("skin_parts",self.settings["skin_parts"])
-
-    #     import check_and_prepare_model_process_fluid
-    #     check_and_prepare_model_process_fluid.CheckAndPrepareModelProcess(self.main_model_part, prepare_model_part_settings).Execute()
-
-    # def _ComputeDeltaTime(self):
-    #     # Automatic time step computation according to user defined CFL number
-    #     if (self.settings["time_stepping"]["automatic_time_step"].GetBool()):
-    #         delta_time = self.EstimateDeltaTimeUtility.EstimateDt()
-    #     # User-defined delta time
-    #     else:
-    #         delta_time = self.settings["time_stepping"]["time_step"].GetDouble()
-
-    #     return delta_time
-
-    # def _GetAutomaticTimeSteppingUtility(self):
-    #     if (self.GetComputingModelPart().ProcessInfo[KratosMultiphysics.DOMAIN_SIZE] == 2):
-    #         EstimateDeltaTimeUtility = KratosCFD.EstimateDtUtility2D(self.GetComputingModelPart(),
-    #                                                                  self.settings["time_stepping"])
-    #     else:
-    #         EstimateDeltaTimeUtility = KratosCFD.EstimateDtUtility3D(self.GetComputingModelPart(),
-    #                                                                  self.settings["time_stepping"])
-
-    #     return EstimateDeltaTimeUtility

@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import, division #makes KratosMultiphysics backward compatible with python 2.6 and 2.7
 
 import KratosMultiphysics
+from importlib import import_module
 
 def CreateSolverByParameters(model, solver_settings, parallelism):
 
@@ -10,17 +11,14 @@ def CreateSolverByParameters(model, solver_settings, parallelism):
         import navier_stokes_ale_fluid_solver
         return navier_stokes_ale_fluid_solver.CreateSolver(model, solver_settings, parallelism)
 
-    # Solvers for OpenMP parallelism
-    if (parallelism == "OpenMP"):
-        solver_module_name = "navier_stokes_solver_vms_monolithic_DEMCoupled"
-    # Solvers for MPI parallelism
-    elif (parallelism == "MPI"):
+    # Solvers for OpenMP or MPI parallelism
+    if (parallelism == "OpenMP" or parallelism == "MPI"):
         solver_module_name = "navier_stokes_solver_vms_monolithic_DEMCoupled"
     else:
         raise Exception("parallelism is neither OpenMP nor MPI")
-
-    solver_module = __import__(solver_module_name)
-    solver = solver_module.CreateSolver(model, solver_settings)
+    
+    module_full = 'KratosMultiphysics.SwimmingDEMApplication.' + solver_module_name
+    solver = import_module(module_full).CreateSolver(model, solver_settings)
 
     return solver
 
