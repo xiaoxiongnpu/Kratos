@@ -1,17 +1,25 @@
 from KratosMultiphysics import Model, Parameters, Logger, Vector
+
 import KratosMultiphysics
 import KratosMultiphysics.SwimmingDEMApplication
+from KratosMultiphysics.SwimmingDEMApplication import hdf5_script
+
 import os
 import sys
+
 file_path = os.path.abspath(__file__)
 dir_path = os.path.dirname(file_path)
 sys.path.insert(0, dir_path)
-import swimming_DEM_procedures as SDP
+
 from swimming_DEM_analysis import SwimmingDEMAnalysis
 from swimming_DEM_analysis import Say
+
+import swimming_DEM_procedures as SDP
 import L2_error_projection_utility as error_projector
 import fluid_fraction_test_solver as sdem_solver
 import numpy as np
+
+
 class FluidFractionTestAnalysis(SwimmingDEMAnalysis):
     def __init__(self, model, iteration, varying_parameters = Parameters("{}")):
 
@@ -42,9 +50,20 @@ class FluidFractionTestAnalysis(SwimmingDEMAnalysis):
         self._GetSolver().SetUpResultsDatabase()
 
     def FinalizeSolutionStep(self):
-        super(FluidFractionTestAnalysis, self).FinalizeSolutionStep()
+        # printing if required
+        if self._GetSolver().CannotIgnoreFluidNow():
+            self._GetFluidAnalysis().FinalizeSolutionStep()
+
+        self._GetDEMAnalysis().FinalizeSolutionStep()
+
+        # coupling checks (debugging)
+        if self.debug_info_counter.Tick():
+            self.dem_volume_tool.UpdateDataAndPrint(
+                self.project_parameters["fluid_domain_volume"].GetDouble())
+
+        super(SwimmingDEMAnalysis, self).FinalizeSolutionStep()
+        
         self.velocity_error_projected, self.pressure_error_projected, self.error_model_part = self._GetSolver().ProjectL2Error()
-        from KratosMultiphysics.SwimmingDEMApplication import hdf5_script
         self.projector_post_process.WriteData(self.error_model_part, self.velocity_error_projected, self.pressure_error_projected)
 
     def TransferBodyForceFromDisperseToFluid(self):
