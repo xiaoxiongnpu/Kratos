@@ -731,7 +731,7 @@ protected:
     /**
      * Calculation of the Volume Force of the Element
      */
-    virtual Vector& CalculateVolumeForce(Vector& rVolumeForce, GeneralVariables& rVariables);
+    virtual void CalculateVolumeForce(Vector& rVolumeForce, const GeneralVariables& rVariables);
 
 
     ///@}

@@ -40,8 +40,9 @@ class MPMExplicitSolver(MPMSolver):
         grid_model_part.AddNodalSolutionStepVariable(KratosMultiphysics.RESIDUAL_VECTOR)
 
         scheme_type = self.settings["scheme_type"].GetString()
-        if(scheme_type == "central_differences"):
-            grid_model_part.AddNodalSolutionStepVariable(ParticleMechanicsApplication.MIDDLE_VELOCITY)
+        grid_model_part.AddNodalSolutionStepVariable(KratosParticle.MIDDLE_VELOCITY)
+        #if(scheme_type == "central_differences"):
+        #    grid_model_part.AddNodalSolutionStepVariable(ParticleMechanicsApplication.MIDDLE_VELOCITY)
         KratosMultiphysics.Logger.PrintInfo("::[MPMExplicitSolver]:: ", "Variables are all added.")
 
     ### Protected functions ###
@@ -85,7 +86,8 @@ class MPMExplicitSolver(MPMSolver):
     def _CreateSolutionStrategy(self):
         analysis_type = self.settings["analysis_type"].GetString()
         if analysis_type == "linear":
-                self.material_point_model_part.ProcessInfo.SetValue(KratosParticle.IS_EXPLICIT, True)
+                grid_model_part = self.GetGridModelPart();
+                grid_model_part.ProcessInfo.SetValue(KratosParticle.IS_EXPLICIT, True)
                 solution_strategy = self._CreateLinearStrategy()
         else:
             err_msg =  "The requested explicit analysis type \"" + analysis_type + "\" is not available!\n"

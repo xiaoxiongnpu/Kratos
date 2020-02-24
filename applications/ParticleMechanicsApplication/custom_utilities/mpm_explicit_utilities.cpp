@@ -19,11 +19,12 @@
 
 namespace Kratos
 {
-    void MPMExplicitUtilities::CalcuateExplicitInternalForce(
+    void MPMExplicitUtilities::CalcuateAndAddExplicitInternalForce(
         GeometryType& rGeom,
         const Matrix& rDN_DX,
         const Vector& rMPStress,
-        const double& rMPVolume)
+        const double& rMPVolume,
+        Vector& rRightHandSideVector)
     {     
         KRATOS_TRY
 
@@ -45,10 +46,15 @@ namespace Kratos
                 (rMPStress[1] * rDN_DX(i, 1) +
                     rMPStress[2] * rDN_DX(i, 0));
 
-            rGeom[i].SetLock();
-            rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL, 0) -= nodal_force_internal_normal; //minus sign, internal forces
-            rGeom[i].UnSetLock();
 
+            rRightHandSideVector[dimension*i] -= nodal_force_internal_normal[0]; //minus sign, internal forces
+            rRightHandSideVector[dimension * i + 1] -= nodal_force_internal_normal[1]; //minus sign, internal forces
+
+            if (dimension > 2)
+            {
+                // TODO add in third dimension here
+                rRightHandSideVector[dimension * i + 2] -= nodal_force_internal_normal[2]; //minus sign, internal forces
+            }
         }
             KRATOS_CATCH("")
     }

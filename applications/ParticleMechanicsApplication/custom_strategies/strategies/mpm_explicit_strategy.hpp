@@ -268,9 +268,6 @@ namespace Kratos
         {
             KRATOS_TRY
 
-
-                std::cout << "\n\n EXPLICIT STRATEGY INITIALIZE SOLUTION STEP \n\n" << std::endl;
-
                 // Initialize solution step
                 if (mSolutionStepIsInitialized == false)
                 {
@@ -329,7 +326,6 @@ namespace Kratos
          //**********************************************************************
         bool SolveSolutionStep() override
         {
-            std::cout << "\n\n EXPLICIT STRATEGY SOLVE SOLUTION STEP \n\n" << std::endl;
             typename TSchemeType::Pointer pScheme = GetScheme();
             DofsArrayType dof_set_dummy;
             TSystemMatrixType mA = TSystemMatrixType();
@@ -348,7 +344,7 @@ namespace Kratos
 
             pScheme->Update(BaseType::GetModelPart(), dof_set_dummy, mA, mDx, mb);
 
-            pScheme->FinalizeNonLinIteration(BaseType::GetModelPart(), mA, mDx, mb);
+            //pScheme->FinalizeNonLinIteration(BaseType::GetModelPart(), mA, mDx, mb); // TODO check if we need this
 
             // Calculate reactions if required
             if (mCalculateReactionsFlag) {
@@ -551,20 +547,20 @@ namespace Kratos
         {
             KRATOS_TRY
 
-                ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
+            ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
             ConditionsArrayType& r_conditions = rModelPart.Conditions();
             ElementsArrayType& r_elements = rModelPart.Elements();
 
             LocalSystemVectorType RHS_Contribution = LocalSystemVectorType(0);
             Element::EquationIdVectorType equation_id_vector_dummy; // Dummy
-
-#pragma omp parallel for firstprivate(RHS_Contribution, equation_id_vector_dummy), schedule(guided,512)
+            // TODO re-enable parallel
+            //#pragma omp parallel for firstprivate(RHS_Contribution, equation_id_vector_dummy), schedule(guided,512)
             for (int i = 0; i < static_cast<int>(r_conditions.size()); ++i) {
                 auto it_cond = r_conditions.begin() + i;
                 pScheme->Condition_Calculate_RHS_Contribution((*it_cond.base()), RHS_Contribution, equation_id_vector_dummy, r_current_process_info);
             }
 
-#pragma omp parallel for firstprivate(RHS_Contribution, equation_id_vector_dummy), schedule(guided,512)
+            //#pragma omp parallel for firstprivate(RHS_Contribution, equation_id_vector_dummy), schedule(guided,512)
             for (int i = 0; i < static_cast<int>(r_elements.size()); ++i) {
                 auto it_elem = r_elements.begin() + i;
                 pScheme->Calculate_RHS_Contribution((*it_elem.base()), RHS_Contribution, equation_id_vector_dummy, r_current_process_info);

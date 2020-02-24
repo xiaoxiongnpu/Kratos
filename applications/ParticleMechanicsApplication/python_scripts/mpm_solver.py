@@ -157,9 +157,7 @@ class MPMSolver(PythonSolver):
         self._GetSolutionStrategy().Predict()
 
     def SolveSolutionStep(self):
-        print("py_5")
         is_converged = self._GetSolutionStrategy().SolveSolutionStep()
-        print("py_6")
         return is_converged
 
     def FinalizeSolutionStep(self):

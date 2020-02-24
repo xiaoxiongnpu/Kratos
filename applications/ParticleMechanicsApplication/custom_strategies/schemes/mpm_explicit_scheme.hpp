@@ -264,7 +264,8 @@ public:
         // Getting dof position
         const IndexType disppos = it_node_begin->GetDofPosition(DISPLACEMENT_X);
 
-        #pragma omp parallel for schedule(guided,512)
+        // TODO enable parallel again
+        //#pragma omp parallel for schedule(guided,512)
         for (int i = 0; i < static_cast<int>(r_nodes.size()); ++i) {
             // Current step information "N+1" (before step update).
             this->UpdateTranslationalDegreesOfFreedom(it_node_begin + i, disppos, dim);
@@ -347,12 +348,7 @@ public:
         array_1d<double, 3>& r_nodal_momenta = itCurrentNode->FastGetSolutionStepValue(NODAL_MOMENTUM);
         array_1d<double, 3>& r_current_residual = itCurrentNode->FastGetSolutionStepValue(FORCE_RESIDUAL);
 
-        //PJW, simple coefficient for central difference stepping
-        double alpha = 1.0;
-        if (mTime.Previous == 0.0)
-        {
-            alpha = 0.5;
-        }
+        std::cout << "momenta residual = " << r_current_residual << std::endl;
 
         // Advance momenta
         for (IndexType j = 0; j < DomainSize; j++) {
@@ -360,7 +356,11 @@ public:
                 r_nodal_momenta[j] = 0.0;
                 r_current_residual[j] = 0.0;
             }
-            r_nodal_momenta[j] += alpha * mTime.Delta * r_current_residual[j];
+            else
+            {
+                r_nodal_momenta[j] += mTime.Delta * r_current_residual[j];
+            }
+            
 
         } // for DomainSize
 
@@ -464,8 +464,6 @@ public:
     {
         KRATOS_TRY
 
-            std::cout << "\n\n MPM EXPLICIT SCHEME INITIALIZE SS \n\n" << std::endl;
-
         ProcessInfo CurrentProcessInfo = r_model_part.GetProcessInfo();
         BaseType::InitializeSolutionStep(r_model_part, A, Dx, b);
         // LOOP OVER THE GRID NODES PERFORMED FOR CLEAR ALL NODAL INFORMATION
@@ -511,7 +509,7 @@ public:
     }
 
 
-    //***************************************************************************
+    //*******************************************************FinalizeNonLinIteration********************
     //***************************************************************************
     /**
     Function called once at the end of a solution step, after convergence is reached if
@@ -525,6 +523,39 @@ public:
     {
         KRATOS_TRY
 
+        ElementsArrayType& rElements = rModelPart.Elements();
+        const ProcessInfo& rCurrentProcessInfo = rModelPart.GetProcessInfo();
+
+        if (mStressUpdateOption == 2)
+        {
+            // TODO maybe move to strategy so we can use the base scheme function
+            PerformModifiedUpdateStressLastMapping(rCurrentProcessInfo, rModelPart, rElements);
+        }
+
+        // Definition of the first element iterator
+        const auto it_elem_begin = rModelPart.ElementsBegin();
+
+        // Finalizes solution step for all of the elements
+        #pragma omp parallel for
+        for (int i = 0; i < static_cast<int>(rElements.size()); ++i) {
+            auto it_elem = it_elem_begin + i;
+            it_elem->FinalizeSolutionStep(rCurrentProcessInfo);
+        }
+
+        // Definition of the first condition iterator
+        const auto it_cond_begin = rModelPart.ConditionsBegin();
+
+        // Finalizes solution step for all of the conditions
+        #pragma omp parallel for
+        for (int i = 0; i < static_cast<int>(rModelPart.Conditions().size()); ++i) {
+            auto it_cond = it_cond_begin + i;
+            it_cond->FinalizeSolutionStep(rCurrentProcessInfo);
+        }
+
+
+
+
+        /*
         ElementsArrayType& rElements = rModelPart.Elements();
         const ProcessInfo& rCurrentProcessInfo = rModelPart.GetProcessInfo();
 
@@ -567,6 +598,7 @@ public:
                 itCond->FinalizeSolutionStep(rCurrentProcessInfo);
             }
         }
+        */
         KRATOS_CATCH("")
     }
 
@@ -821,7 +853,7 @@ public:
     {
         KRATOS_TRY
 
-            this->TCalculate_RHS_Contribution(pCurrentElement, RHS_Contribution, rCurrentProcessInfo);
+        this->TCalculate_RHS_Contribution(pCurrentElement, RHS_Contribution, rCurrentProcessInfo);
         KRATOS_CATCH("")
     }
 
@@ -855,12 +887,14 @@ public:
     {
         KRATOS_TRY
 
-            //PJW
-            pCurrentEntity->CalculateRightHandSide(RHS_Contribution, rCurrentProcessInfo);
+            std::cout << "RHS 1 = " << RHS_Contribution << std::endl;
 
+        //PJW
+        pCurrentEntity->CalculateRightHandSide(RHS_Contribution, rCurrentProcessInfo);
+        std::cout << "RHS 2 = " <<  RHS_Contribution << std::endl;
         pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
-
-        pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
+        std::cout << "RHS 3 = " <<  RHS_Contribution << std::endl;
+        //pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
 
         KRATOS_CATCH("")
     }
