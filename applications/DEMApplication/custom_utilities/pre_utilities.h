@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string>
+#include <cmath>
 
 /* External includes */
 #ifdef _OPENMP
@@ -365,7 +366,29 @@ class PreUtilities
             noalias(vector_distance_to_center) = coords - center;
             const double distance_to_center = MathUtils<double>::Norm3(vector_distance_to_center);
             const double radius = it->FastGetSolutionStepValue(RADIUS);
-            if(distance_to_center + radius > max_radius + tolerance_for_erasing) {
+            if (distance_to_center + radius > max_radius + tolerance_for_erasing) {
+                it->Set(TO_ERASE, true);
+            }
+        }
+    }
+
+    void MarkToEraseParticlesOutsideDomain(ModelPart& r_model_part, const array_1d<double, 3>& center, const double tolerance_for_erasing) {
+
+        auto& pNodes = r_model_part.GetCommunicator().LocalMesh().Nodes();
+
+        #pragma omp parallel for
+        for (int k = 0; k < (int)pNodes.size(); k++) {
+            auto it = pNodes.begin() + k;
+            const array_1d<double, 3>& coords = it->Coordinates();
+            array_1d<double, 3> vector_distance_to_center;
+            noalias(vector_distance_to_center) = coords - center;
+            const double radius = it->FastGetSolutionStepValue(RADIUS);
+            const double square_semiside = 0.1524; // in IU
+            const double total_x_distance = fabs(vector_distance_to_center[0]);
+            const double total_y_distance = fabs(vector_distance_to_center[1]);
+            const double reference_distance = square_semiside + 0.5 * radius;
+
+            if ((total_x_distance > reference_distance) || (total_y_distance > reference_distance)) {
                 it->Set(TO_ERASE, true);
             }
         }
@@ -408,7 +431,7 @@ class PreUtilities
             auto it = pNodes.begin() + k;
             const array_1d<double, 3>& coords = it->Coordinates();
             array_1d<double, 3> vector_distance_to_center;
-            noalias(vector_distance_to_center) = coords;
+            noalias(vector_distance_to_center) = coords; // TODO: Substract center coordinates
             const double distance_to_center = MathUtils<double>::Norm3(vector_distance_to_center);
             if(distance_to_center < inner_radius + detection_radius) {
                 it->FastGetSolutionStepValue(SKIN_SPHERE) = 1.0;
@@ -424,10 +447,30 @@ class PreUtilities
             auto it = pNodes.begin() + k;
             const array_1d<double, 3>& coords = it->Coordinates();
             array_1d<double, 3> vector_distance_to_center;
-            noalias(vector_distance_to_center) = coords;
+            noalias(vector_distance_to_center) = coords; // TODO: Substract center coordinates
             const double distance_to_center = MathUtils<double>::Norm3(vector_distance_to_center);
             const double radius = it->FastGetSolutionStepValue(RADIUS);
             if(distance_to_center + radius > outer_radius - detection_radius) {
+                it->FastGetSolutionStepValue(SKIN_SPHERE) = 1.0;
+            }
+        }
+    }
+
+    void SetSkinParticlesOuterBoundaryBlind(ModelPart& r_model_part, const double outer_radius) {//, const double detection_radius) {
+        auto& pNodes = r_model_part.GetCommunicator().LocalMesh().Nodes();
+
+        #pragma omp parallel for
+        for (int k = 0; k < (int)pNodes.size(); k++) {
+            auto it = pNodes.begin() + k;
+            const array_1d<double, 3>& coords = it->Coordinates();
+            array_1d<double, 3> vector_distance_to_center;
+            noalias(vector_distance_to_center) = coords; // TODO: Substract center coordinates
+            const double total_x_distance = fabs(vector_distance_to_center[0]);
+            const double total_y_distance = fabs(vector_distance_to_center[1]);
+            const double radius = it->FastGetSolutionStepValue(RADIUS);
+            const double reference_distance = outer_radius - 1.5 * radius;
+
+            if ((total_x_distance > reference_distance) || (total_y_distance > reference_distance)) {
                 it->FastGetSolutionStepValue(SKIN_SPHERE) = 1.0;
             }
         }

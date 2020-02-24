@@ -291,10 +291,12 @@ void AddCustomUtilitiesToPython(pybind11::module& m) {
         .def("BreakBondUtility", &PreUtilities::BreakBondUtility)
         .def("FillAnalyticSubModelPartUtility", &PreUtilities::FillAnalyticSubModelPartUtility)
         .def("MarkToEraseParticlesOutsideRadius", &PreUtilities::MarkToEraseParticlesOutsideRadius)
+        .def("MarkToEraseParticlesOutsideDomain", &PreUtilities::MarkToEraseParticlesOutsideDomain)
         .def("ApplyConcentricForceOnParticles", &PreUtilities::ApplyConcentricForceOnParticles)
         .def("ResetSkinParticles", &PreUtilities::ResetSkinParticles)
         .def("SetSkinParticlesInnerBoundary", &PreUtilities::SetSkinParticlesInnerBoundary)
         .def("SetSkinParticlesOuterBoundary", &PreUtilities::SetSkinParticlesOuterBoundary)
+        .def("SetSkinParticlesOuterBoundaryBlind", &PreUtilities::SetSkinParticlesOuterBoundaryBlind)
         ;
 
     py::class_<PostUtilities, PostUtilities::Pointer>(m, "PostUtilities")
