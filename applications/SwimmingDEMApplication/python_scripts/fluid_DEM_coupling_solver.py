@@ -13,19 +13,6 @@ def CreateSolver(model, custom_settings):
 
 class FluidDEMSolver(FluidSolver):
 
-    def PrepareModelPart(self):
-        if not self.main_model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED]:
-            ## Set fluid properties from materials json file
-            materials_imported = self._SetPhysicalProperties()
-            ## Replace default elements and conditions
-            self._ReplaceElementsAndConditions()
-            ## Executes the check and prepare model process
-            self._ExecuteCheckAndPrepare()
-            ## Set buffer size
-            #self.main_model_part.SetBufferSize(self.min_buffer_size)
-
-        KratosMultiphysics.Logger.PrintInfo("FluidDEMSolver", "Model reading finished.")
-
     ## FluidDEMSolver specific methods.
 
     def _ReplaceElementsAndConditions(self):
