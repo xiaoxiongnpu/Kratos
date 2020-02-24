@@ -156,7 +156,7 @@ class ElementSizeModifier(DEMAnalysisStage):
                 if self.specimen_type <= 2:
                     self.PreUtilities.MarkToEraseParticlesOutsideRadius(self.spheres_model_part, max_radius, center, tolerance)
                 else:
-                    self.PreUtilities.MarkToEraseParticlesOutsideDomain(self.spheres_model_part, center, tolerance)
+                    self.PreUtilities.MarkToEraseParticlesOutsideDomain(self.spheres_model_part, max_radius, center, tolerance)
                 inner_radius = self.size_modifier_parameters["geometry_settings"]["inner_radius"].GetDouble()
                 radius_at_inner_boundary = mean_diameter_of_particles/2.0
                 self.PreUtilities.SetSkinParticlesInnerBoundary(self.spheres_model_part, inner_radius, 2.0 * radius_at_inner_boundary)

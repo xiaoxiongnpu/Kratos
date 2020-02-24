@@ -372,7 +372,7 @@ class PreUtilities
         }
     }
 
-    void MarkToEraseParticlesOutsideDomain(ModelPart& r_model_part, const array_1d<double, 3>& center, const double tolerance_for_erasing) {
+    void MarkToEraseParticlesOutsideDomain(ModelPart& r_model_part, const double max_radius, const array_1d<double, 3>& center, const double tolerance_for_erasing) {
 
         auto& pNodes = r_model_part.GetCommunicator().LocalMesh().Nodes();
 
@@ -383,10 +383,9 @@ class PreUtilities
             array_1d<double, 3> vector_distance_to_center;
             noalias(vector_distance_to_center) = coords - center;
             const double radius = it->FastGetSolutionStepValue(RADIUS);
-            const double square_semiside = 0.1524; // in IU
             const double total_x_distance = fabs(vector_distance_to_center[0]);
             const double total_y_distance = fabs(vector_distance_to_center[1]);
-            const double reference_distance = square_semiside + 0.5 * radius;
+            const double reference_distance = max_radius + 0.5 * radius;
 
             if ((total_x_distance > reference_distance) || (total_y_distance > reference_distance)) {
                 it->Set(TO_ERASE, true);
