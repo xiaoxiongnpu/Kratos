@@ -36,7 +36,7 @@ class DEMAnalysisStage2DSpRigidFem(DEMAnalysisStage):
             x = node.X
             y = node.Y
 
-            if (x * x + y * y) < zone_radius_to_measure_2d_sp * zone_radius_to_measure_2d_sp:
+            if (x * x + y * y) < self.zone_radius_to_measure_2d_sp * self.zone_radius_to_measure_2d_sp:
                 nodes_in_zone_radius_list.append(node.Id)
                 elements_in_zone_radius_list.append(element.Id)
 
