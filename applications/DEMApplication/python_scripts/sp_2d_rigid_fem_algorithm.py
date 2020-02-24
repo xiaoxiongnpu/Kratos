@@ -7,6 +7,8 @@ class DEMAnalysisStage2DSpRigidFem(DEMAnalysisStage):
 
     def __init__(self, model, project_parameters):
         super(DEMAnalysisStage2DSpRigidFem, self).__init__(model, project_parameters)
+        # TEST NUMBER: 1: CTW16, 2: CTW10, 3: BLIND
+        self.test_number = 2
 
     def Initialize(self):
         super(DEMAnalysisStage2DSpRigidFem, self).Initialize()
@@ -19,7 +21,13 @@ class DEMAnalysisStage2DSpRigidFem(DEMAnalysisStage):
             self.spheres_model_part.CreateSubModelPart('RingSubmodelPart')
         self.ring_submodelpart = self.spheres_model_part.GetSubModelPart('RingSubmodelPart')
 
-        zone_radius_to_measure_2d_sp = 0.02 # In meters. This is a little bit less than half the CTW16 radius
+        if self.test_number == 1:
+            self.zone_radius_to_measure_2d_sp = 0.02 # In meters.
+        elif self.test_number == 2:
+            self.zone_radius_to_measure_2d_sp = 0.03
+        else: #self.test_number == 3:
+            self.zone_radius_to_measure_2d_sp = 0.06
+
         nodes_in_zone_radius_list = []
         elements_in_zone_radius_list = []
 
@@ -58,8 +66,7 @@ class DEMAnalysisStage2DSpRigidFem(DEMAnalysisStage):
         self.axis[1] = 0; # self.sp_parameters["problem_data"]["axis"][1].GetDouble()
         self.axis[2] = 1; # self.sp_parameters["problem_data"]["axis"][2].GetDouble()
 
-        self.radius = 0
-        self.test_number = 1
+        self.radius = 0.0
         if self.test_number == 1:
             self.radius = 0.0036195; #0.01; #0.0036195; #95% of the real hole. CTW16 specimen
         elif self.test_number == 2:
