@@ -43,7 +43,7 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
 
         self.center_x = self.settings["benchmark_parameters"]["center_x1"].GetDouble()
         self.center_y = self.settings["benchmark_parameters"]["center_x2"].GetDouble()
-        self.radius = np.array([np.sqrt((x - self.center_x)**2 + (y - self.center_y)**2) for x, y in zip(self.x, self.y, self.z)])
+        self.radius   = np.array([np.sqrt((x - self.center_x)**2 + (y - self.center_y)**2) for x, y, z in zip(self.x, self.y, self.z)])
 
     def ExecuteBeforeSolutionLoop(self):
         current_time = 0.0
@@ -55,7 +55,7 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
         iterator = 0
         for node in self.model_part.Nodes:
             vel_value = Vector(list(value_v[iterator]))
-            b_value = Vector(list(bf_value[iterator]))
+            b_value   = Vector(list(bf_value[iterator]))
             press_value = p_value[iterator]
             node.SetSolutionStepValue(KratosMultiphysics.VELOCITY, vel_value)
             node.SetSolutionStepValue(KratosMultiphysics.BODY_FORCE, b_value)
@@ -74,8 +74,8 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
         current_time = self.model_part.ProcessInfo[KratosMultiphysics.TIME]
 
         self.bf_value = np.array([self.benchmark.BodyForce(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
-        self.value_v = np.array([self.benchmark.Velocity(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
-        self.value_p = np.array([self.benchmark.Pressure(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
+        self.value_v  = np.array([self.benchmark.Velocity(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
+        self.value_p  = np.array([self.benchmark.Pressure(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
 
         self.fluid_fraction_list = np.array([self.benchmark.alpha(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
         self.fluid_fraction_rate_list = np.array([self.benchmark.dalphat(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
@@ -84,10 +84,10 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
         for node in self.model_part.Nodes:
             #Set BodyForce field
             bodf_value = Vector(list(self.bf_value[iterator]))
-            vel_value = Vector(list(self.value_v[iterator]))
+            vel_value  = Vector(list(self.value_v[iterator]))
             press_value = self.value_p[iterator]
             node.SetSolutionStepValue(self.variable, bodf_value)
-            #Update BC's
+            #Update BCs
             if node.X == 1.0 and node.Y == 0.0:
                 node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
                 node.Fix(KratosMultiphysics.PRESSURE)
@@ -105,7 +105,7 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
 
     def _ComputeErrors(self):
         epsilon = 1e-16
-        #Compute the errors of the DOF's
+        #Compute the errors of the DOFs
         iterator = 0
         for node in self.model_part.Nodes:
             #Compute velocity error
