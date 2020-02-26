@@ -216,9 +216,7 @@ public:
                                                           BaseType::mpA,
                                                           BaseType::mpDx,
                                                           BaseType::mpb,
-                                                          r_model_part.Elements(),
-                                                          r_model_part.Conditions(),
-                                                          r_model_part.GetProcessInfo()
+                                                          r_model_part
                                                           );
             TSystemMatrixType& mA = *BaseType::mpA;
             TSystemVectorType& mDx = *BaseType::mpDx;
