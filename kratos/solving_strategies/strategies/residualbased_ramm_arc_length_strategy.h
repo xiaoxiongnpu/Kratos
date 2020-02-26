@@ -575,21 +575,21 @@ protected:
     ///@name Protected member Variables
     ///@{
 
-    Parameters& mParameters; /// The configuration parameters
-    ModelPart mExternalForcesModelPart; /// This model part contains the conditions where to compute the external forces
+    Parameters mParameters;                    /// The configuration parameters
+    ModelPart mExternalForcesModelPart;        /// This model part contains the conditions where to compute the external forces
     std::vector<ModelPart*> mSubModelPartList; /// List of every SubModelPart associated to an external load
-    std::vector<std::string> mVariableNames; /// Name of the nodal variable associated to every SubModelPart
+    std::vector<std::string> mVariableNames;   /// Name of the nodal variable associated to every SubModelPart
 
-    TSystemVectorPointerType mpf; /// Vector of reference external forces
-    TSystemVectorPointerType mpDxf; /// Delta x of A*Dxf=f
-    TSystemVectorPointerType mpDxb; /// Delta x of A*Dxb=b
+    TSystemVectorPointerType mpf;      /// Vector of reference external forces
+    TSystemVectorPointerType mpDxf;    /// Delta x of A*Dxf=f
+    TSystemVectorPointerType mpDxb;    /// Delta x of A*Dxb=b
     TSystemVectorPointerType mpDxPred; /// Delta x of prediction phase
     TSystemVectorPointerType mpDxStep; /// Delta x of the current step
 
-    double mRadius, mRadius0; /// Radius of the arc length strategy
+    double mRadius, mRadius0;   /// Radius of the arc length strategy
     double mLambda, mLambdaOld; /// Loading factor
-    double mNormxEquilibrium; /// Norm of the solution vector in equilibrium
-    double mDeltaLamdaStep; /// Delta lambda of the current step
+    double mNormxEquilibrium;   /// Norm of the solution vector in equilibrium
+    double mDeltaLamdaStep;     /// Delta lambda of the current step
 
     ///@}
     ///@name Protected Operators
