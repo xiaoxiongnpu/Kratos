@@ -34,7 +34,7 @@
 #include "solving_strategies/strategies/residualbased_ramm_arc_length_strategy.h"
 #include "solving_strategies/strategies/line_search_strategy.h"
 #include "solving_strategies/strategies/explicit_strategy.h"
-//#include "solving_strategies/strategies/residualbased_arc_lenght_strategy.h"
+#include "solving_strategies/strategies/residualbased_ramm_arc_length_strategy.h"
 
 // Schemes
 #include "solving_strategies/schemes/scheme.h"
@@ -208,7 +208,7 @@ namespace Kratos
             return *dummy;
         }
 
-        template< typename TSpaceType > 
+        template< typename TSpaceType >
         py::class_< TSpaceType > CreateSpaceInterface(pybind11::module& m, std::string Name)
         {
             py::class_< TSpaceType > binder(m,Name.c_str());
@@ -547,8 +547,7 @@ namespace Kratos
                 typename AdaptiveResidualBasedNewtonRaphsonStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::Pointer,
                 BaseSolvingStrategyType >
                 (m,"AdaptiveResidualBasedNewtonRaphsonStrategy")
-                .def(py::init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, ConvergenceCriteriaType::Pointer, int, int, bool, bool, bool, double, double, int
-                >())
+                .def(py::init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, ConvergenceCriteriaType::Pointer, int, int, bool, bool, bool, double, double, int>())
                 ;
 
             py::class_< LineSearchStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >,
@@ -574,6 +573,14 @@ namespace Kratos
                 //initialize and finalize.
                 .def("InitializeSolutionStep",&ExplicitStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::InitializeSolutionStep)
                 .def("FinalizeSolutionStep",&ExplicitStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::FinalizeSolutionStep)
+                ;
+
+            py::class_< ResidualBasedRammArcLengthStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >,
+                typename ResidualBasedRammArcLengthStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::Pointer,
+                BaseSolvingStrategyType >
+                (m,"ResidualBasedRammArcLengthStrategy")
+                .def(py::init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, ConvergenceCriteriaType::Pointer, BuilderAndSolverType::Pointer, Parameters, int, bool, bool, bool>())
+                .def(py::init < ModelPart&, BaseSchemeType::Pointer, LinearSolverType::Pointer, ConvergenceCriteriaType::Pointer, Parameters, int, bool, bool, bool>())
                 ;
 
         }
