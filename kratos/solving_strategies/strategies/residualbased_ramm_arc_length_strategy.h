@@ -235,8 +235,10 @@ public:
             TSystemVectorType& mf = *mpf;
             TSparseSpace::SetToZero(mf);
 
+            ModelPart& r_external_forces_model_part = r_model_part.GetSubModelPart("EXTERNAL_FORCES_SUBMODELPART");
+            
 //             pBuilderAndSolver->BuildRHS(pScheme, StrategyBaseType::GetModelPart(), mf);
-            pBuilderAndSolver->BuildRHS(pScheme, mExternalForcesModelPart, mf);
+            pBuilderAndSolver->BuildRHS(pScheme, r_external_forces_model_part, mf);
 
             // Initialize the loading factor Lambda
             mLambda = 0.0;
@@ -576,7 +578,6 @@ protected:
     ///@{
 
     Parameters mParameters;                    /// The configuration parameters
-    ModelPart mExternalForcesModelPart;        /// This model part contains the conditions where to compute the external forces
     std::vector<ModelPart*> mSubModelPartList; /// List of every SubModelPart associated to an external load
     std::vector<std::string> mVariableNames;   /// Name of the nodal variable associated to every SubModelPart
 
@@ -746,53 +747,53 @@ protected:
         const double lambda_ratio = mLambda/mLambdaOld;
 
         // Update External Loads
-        for(unsigned int i = 0; i < mVariableNames.size(); i++) {
-            ModelPart& rsub_model_part = *(mSubModelPartList[i]);
-            const std::string& VariableName = mVariableNames[i];
+        for(unsigned int i = 0; i < mVariableNames.size(); ++i) {
+            ModelPart& r_sub_model_part = *(mSubModelPartList[i]);
+            const std::string& r_variable_name = mVariableNames[i];
 
-            auto& nodes_array = rsub_model_part.Nodes();
-            auto& conditions_array = rsub_model_part.Conditions();
+            auto& nodes_array = r_sub_model_part.Nodes();
+            auto& conditions_array = r_sub_model_part.Conditions();
 
-            if( KratosComponents< Variable<double> >::Has( VariableName ) ) {
-                Variable<double> var = KratosComponents< Variable<double> >::Get( VariableName );
+            if( KratosComponents< Variable<double> >::Has( r_variable_name ) ) {
+                const Variable<double>& r_variable = KratosComponents<Variable<double>>::Get(r_variable_name);
 
                 // Nodes
                 #pragma omp parallel for
-                for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) {
+                for (int i = 0; i < static_cast<int>(nodes_array.size()); ++i) {
                     auto it_node = nodes_array.begin() + i;
-                    double& rvalue = it_node->FastGetSolutionStepValue(var);
+                    double& rvalue = it_node->FastGetSolutionStepValue(r_variable);
                     rvalue *= lambda_ratio;
                 }
                 // Conditions
                 #pragma omp parallel for
-                for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) {
+                for (int i = 0; i < static_cast<int>(conditions_array.size()); ++i) {
                     auto it_cond = conditions_array.begin() + i;
-                    if (it_cond->Has(var)) {
-                        double& rvalue = it_cond->GetValue(var);
+                    if (it_cond->Has(r_variable)) {
+                        double& rvalue = it_cond->GetValue(r_variable);
                         rvalue *= lambda_ratio;
                     }
                 }
-            } else if( KratosComponents< Variable<array_1d<double,3> > >::Has(VariableName) ) {
-                Variable<array_1d<double,3>> var = KratosComponents< Variable<array_1d<double,3>> >::Get( VariableName );
+            } else if( KratosComponents< Variable<array_1d<double,3> > >::Has(r_variable_name) ) {
+                const Variable<array_1d<double,3>>& r_variable = KratosComponents<Variable<array_1d<double,3>>>::Get(r_variable_name);
 
                 // Nodes
                 #pragma omp parallel for
-                for (int i = 0; i < static_cast<int>(nodes_array.size()); i++) {
+                for (int i = 0; i < static_cast<int>(nodes_array.size()); ++i) {
                     auto it_node = nodes_array.begin() + i;
-                    array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(var);
+                    array_1d<double, 3>& rvalue = it_node->FastGetSolutionStepValue(r_variable);
                     rvalue *= lambda_ratio;
                 }
                 // Conditions
                 #pragma omp parallel for
-                for (int i = 0; i < static_cast<int>(conditions_array.size()); i++) {
+                for (int i = 0; i < static_cast<int>(conditions_array.size()); ++i) {
                     auto it_cond = conditions_array.begin() + i;
-                    if (it_cond->Has(var)) {
-                        array_1d<double, 3>& rvalue = it_cond->GetValue(var);
+                    if (it_cond->Has(r_variable)) {
+                        array_1d<double, 3>& rvalue = it_cond->GetValue(r_variable);
                         rvalue *= lambda_ratio;
                     }
                 }
             } else {
-                KRATOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << VariableName << std::endl;
+                KRATOS_ERROR << "One variable of the applied loads has a non supported type. Variable: " << r_variable_name << std::endl;
             }
         }
 
@@ -811,7 +812,7 @@ protected:
         double reference_dofs_norm = 0.0;
 
         #pragma omp parallel for reduction(+:reference_dofs_norm)
-        for (int i = 0; i < static_cast<int>(rDofSet.size()); i++) {
+        for (int i = 0; i < static_cast<int>(rDofSet.size()); ++i) {
             auto it_dof = rDofSet.begin() + i;
             if (it_dof->IsFree()) {
                 const double temp = it_dof->GetSolutionStepValue();
@@ -874,6 +875,7 @@ private:
     void GenerateSubmodelpartList()
     {
         ModelPart& r_model_part = BaseType::GetModelPart();
+        ModelPart& r_external_forces_model_part = r_model_part.HasSubModelPart("EXTERNAL_FORCES_SUBMODELPART") ?  r_model_part.GetSubModelPart("EXTERNAL_FORCES_SUBMODELPART") : r_model_part.CreateSubModelPart("EXTERNAL_FORCES_SUBMODELPART");
 
         // Set Load SubModelParts and Variable names
         if(mParameters["loads_sub_model_part_list"].size() > 0) {
@@ -882,14 +884,14 @@ private:
 
             KRATOS_ERROR_IF(mSubModelPartList.size() != mVariableNames.size()) << "For each SubModelPart there must be a corresponding nodal or conditional Variable" << std::endl;
 
-            for(unsigned int i = 0; i < mVariableNames.size(); i++) {
+            for(unsigned int i = 0; i < mVariableNames.size(); ++i) {
                 ModelPart& sub_model_part = r_model_part.GetSubModelPart(mParameters["loads_sub_model_part_list"][i].GetString());
                 mSubModelPartList[i] = &sub_model_part;
                 mVariableNames[i] = mParameters["loads_variable_list"][i].GetString();
 
                 // We add the conditions to our external forces model part
                 auto& conditions_array = sub_model_part.Conditions();
-                mExternalForcesModelPart.AddConditions(conditions_array.begin(), conditions_array.end());
+                r_external_forces_model_part.AddConditions(conditions_array.begin(), conditions_array.end());
             }
         } else {
             KRATOS_ERROR << "Not submodelparts defined for apply the arc length" << std::endl;
