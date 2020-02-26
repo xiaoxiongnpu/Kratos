@@ -537,8 +537,10 @@ public:
                 for (unsigned int d = 0; d < TDim; ++d)
                 {
                     double current_momentum_residual = 0.0;
-                    current_momentum_residual +=
-                        density * inner_prod(row(velocity_gradient, d), velocity);
+
+                    for (unsigned int j = 0; j < TDim; ++j)
+                        current_momentum_residual += density * (velocity_gradient(d, j) * velocity[j]);
+
                     current_momentum_residual += pressure_gradient[d];
                     current_momentum_residual -= body_force[d];
                     momentum_residual += std::abs(current_momentum_residual);
