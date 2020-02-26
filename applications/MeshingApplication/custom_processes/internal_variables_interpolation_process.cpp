@@ -7,7 +7,7 @@
 //  License:		 BSD License
 //                       license: MeshingApplication/license.txt
 //
-//  Main authors:    Vicente Mataix Ferrándiz
+//  Main authors:    Vicente Mataix Ferrandiz
 //
 
 // System includes
@@ -21,23 +21,23 @@
 namespace Kratos
 {
 InternalVariablesInterpolationProcess::InternalVariablesInterpolationProcess(
-        ModelPart& rOriginMainModelPart,
-        ModelPart& rDestinationMainModelPart,
-        Parameters ThisParameters
-        ):mrOriginMainModelPart(rOriginMainModelPart),
-        mrDestinationMainModelPart(rDestinationMainModelPart),
-        mDimension(rDestinationMainModelPart.GetProcessInfo()[DOMAIN_SIZE])
+    ModelPart& rOriginMainModelPart,
+    ModelPart& rDestinationMainModelPart,
+    Parameters ThisParameters
+    ):mrOriginMainModelPart(rOriginMainModelPart),
+    mrDestinationMainModelPart(rDestinationMainModelPart),
+    mDimension(rDestinationMainModelPart.GetProcessInfo()[DOMAIN_SIZE])
 {
-    Parameters DefaultParameters = Parameters(R"(
-        {
-            "allocation_size"                      : 1000,
-            "bucket_size"                          : 4,
-            "search_factor"                        : 2,
-            "interpolation_type"                   : "LST",
-            "internal_variable_interpolation_list" :[]
-        })" );
+    Parameters default_parameters = Parameters(R"(
+    {
+        "allocation_size"                      : 1000,
+        "bucket_size"                          : 4,
+        "search_factor"                        : 2,
+        "interpolation_type"                   : "LST",
+        "internal_variable_interpolation_list" :[]
+    })" );
 
-    ThisParameters.ValidateAndAssignDefaults(DefaultParameters);
+    ThisParameters.ValidateAndAssignDefaults(default_parameters);
 
     mAllocationSize = ThisParameters["allocation_size"].GetInt();
     mBucketSize = ThisParameters["bucket_size"].GetInt();
@@ -47,10 +47,12 @@ InternalVariablesInterpolationProcess::InternalVariablesInterpolationProcess(
     if (ThisParameters["internal_variable_interpolation_list"].IsArray() == true) {
         auto variable_array_list = ThisParameters["internal_variable_interpolation_list"];
 
-        for (unsigned int i_var = 0; i_var < variable_array_list.size(); ++i_var)
-            mInternalVariableList.push_back(KratosComponents<Variable<double>>::Get(variable_array_list[i_var].GetString()));
+        for (IndexType i_var = 0; i_var < variable_array_list.size(); ++i_var) {
+            const std::string& r_variable_name = variable_array_list[i_var].GetString();
+            mInternalVariableList.push_back(r_variable_name);
+        }
     } else {
-        std::cout << "WARNING:: No variables to interpolate, look that internal_variable_interpolation_list is correctly defined in your parameters" << std::endl;
+        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: No variables to interpolate, look that internal_variable_interpolation_list is correctly defined in your parameters" << std::endl;
         mInternalVariableList.clear();
     }
 }
@@ -60,20 +62,15 @@ InternalVariablesInterpolationProcess::InternalVariablesInterpolationProcess(
 
 void InternalVariablesInterpolationProcess::Execute()
 {
-    /** NOTE: There are mainly two ways to interpolate the internal variables (there are three, but just two are behave correctly)
-    * CPT: Closest point transfer. It transfer the values from the closest GP
-    * LST: Least-square projection transfer. It transfers from the closest GP from the old mesh
-    * SFT: It transfer GP values to the nodes in the old mesh and then interpolate to the new mesh using the sahpe functions all the time (NOTE: THIS DOESN"T WORK, AND REQUIRES EXTRA STORE)
-    */
-
-    if (mThisInterpolationType == CPT && mInternalVariableList.size() > 0)
-        InterpolateGaussPointsCPT();
-    else if (mThisInterpolationType == LST && mInternalVariableList.size() > 0)
-        InterpolateGaussPointsLST();
-    else if (mThisInterpolationType == SFT && mInternalVariableList.size() > 0)
-        InterpolateGaussPointsSFT();
-    else
-        std::cout << "WARNING:: INTERPOLATION TYPE NOT AVALAIBLE OR EMPTY LIST" << std::endl;
+    if (mThisInterpolationType == InterpolationTypes::CLOSEST_POINT_TRANSFER && ComputeTotalNumberOfVariables() > 0) {
+        InterpolateGaussPointsClosestPointTransfer();
+    } else if (mThisInterpolationType == InterpolationTypes::LEAST_SQUARE_TRANSFER && ComputeTotalNumberOfVariables() > 0) {
+        InterpolateGaussPointsLeastSquareTransfer();
+    } else if (mThisInterpolationType == InterpolationTypes::SHAPE_FUNCTION_TRANSFER && ComputeTotalNumberOfVariables() > 0) {
+//         InterpolateGaussPointsShapeFunctionTransfer();
+        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: SHAPE FUNCTION TRANSFER THIS DOESN'T WORK, AND REQUIRES EXTRA STORE. PLEASE COOSE ANY OTHER ALTERNATIVE" << std::endl;
+    } else
+        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: INTERPOLATION TYPE NOT AVALAIBLE OR EMPTY LIST" << std::endl;
 }
 
 /***********************************************************************************/
@@ -83,63 +80,93 @@ PointVector InternalVariablesInterpolationProcess::CreateGaussPointList(ModelPar
 {
     PointVector this_point_vector;
 
-    GeometryData::IntegrationMethod this_integration_method;
+    GeometryData::IntegrationMethod this_integration_method = GeometryData::GI_GAUSS_1;
 
     // Iterate in the elements
-    ElementsArrayType& elements_array = ThisModelPart.Elements();
-    int num_elements = ThisModelPart.NumberOfElements();
+    ElementsArrayType& r_elements_array = ThisModelPart.Elements();
+    const int num_elements = static_cast<int>(r_elements_array.size());
 
-    const ProcessInfo& current_process_info = ThisModelPart.GetProcessInfo();
-
-    // Creating a buffer for parallel vector fill
-    const int num_threads = OpenMPUtils::GetNumThreads();
-    std::vector<PointVector> points_buffer(num_threads);
+    const ProcessInfo& r_current_process_info = ThisModelPart.GetProcessInfo();
+    const auto it_elem_begin = r_elements_array.begin();
 
     #pragma omp parallel
     {
-        const int id = OpenMPUtils::ThisThread();
+        // Creating a buffer for parallel vector fill
+        PointVector points_buffer;
 
-        #pragma omp for
+        #pragma omp for firstprivate(this_integration_method)
         for(int i = 0; i < num_elements; ++i) {
-            auto it_elem = elements_array.begin() + i;
+            auto it_elem = it_elem_begin + i;
 
-            // Getting the geometry
-            Element::GeometryType& r_this_geometry = it_elem->GetGeometry();
+            const bool old_entity = it_elem->IsDefined(OLD_ENTITY) ? it_elem->Is(OLD_ENTITY) : false;
+            if (!old_entity) { // We don't interpolate from preserved meshes
+                // Getting the geometry
+                GeometryType& r_this_geometry = it_elem->GetGeometry();
 
-            // Getting the integration points
-            this_integration_method = it_elem->GetIntegrationMethod();
-            const Element::GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
-            const unsigned int integration_points_number = integration_points.size();
+                // Getting the integration points
+                this_integration_method = it_elem->GetIntegrationMethod();
+                const GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
+                const std::size_t integration_points_number = integration_points.size();
 
-            // Computing the Jacobian
-            Vector vector_det_j(integration_points_number);
-            r_this_geometry.DeterminantOfJacobian(vector_det_j,this_integration_method);
+                // Computing the Jacobian
+                Vector vector_det_j(integration_points_number);
+                r_this_geometry.DeterminantOfJacobian(vector_det_j,this_integration_method);
 
-            // Getting the CL
-            std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
-            it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,current_process_info);
+                // Getting the CL
+                std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
+                it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,r_current_process_info);
 
-            for (unsigned int i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
-                const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
+                for (IndexType i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
+                    const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
 
-                // We compute the corresponding weight
-                const double weight = vector_det_j[i_gauss_point] * integration_points[i_gauss_point].Weight();
+                    // We compute the corresponding weight
+                    const double weight = vector_det_j[i_gauss_point] * integration_points[i_gauss_point].Weight();
 
-                // We compute the global coordinates
-                array_1d<double, 3> global_coordinates;
-                global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
+                    // We compute the global coordinates
+                    array_1d<double, 3> global_coordinates;
+                    global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
 
-                // We create the respective GP
-                PointTypePointer p_point = PointTypePointer(new PointType(global_coordinates, constitutive_law_vector[i_gauss_point], weight));
-                (points_buffer[id]).push_back(p_point);
+                    // We create the respective GP
+                    ConstitutiveLaw::Pointer p_origin_cl = constitutive_law_vector[i_gauss_point];
+                    PointTypePointer p_point = PointTypePointer(new PointType(global_coordinates, p_origin_cl, weight));
+
+                    // We save the values not accesible from the CL (it consummes memory, so preferably use variable from the CL)
+                    for (auto& variable_name : mInternalVariableList) {
+                        if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                            const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                            if (!p_origin_cl->Has(r_variable)) {
+                                SaveValuesOnGaussPoint(r_variable, p_point, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                            const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                            if (!p_origin_cl->Has(r_variable)) {
+                                SaveValuesOnGaussPoint(r_variable, p_point, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                            const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                            if (!p_origin_cl->Has(r_variable)) {
+                                SaveValuesOnGaussPoint(r_variable, p_point, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                            const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                            if (!p_origin_cl->Has(r_variable)) {
+                                SaveValuesOnGaussPoint(r_variable, p_point, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else {
+                            KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                        }
+                    }
+
+                    // Finally we push over the the buffer vector
+                    points_buffer.push_back(p_point);
+                }
             }
         }
 
         // Combine buffers together
-        #pragma omp single
+        #pragma omp critical
         {
-            for( auto& point_buffer : points_buffer)
-                std::move(point_buffer.begin(),point_buffer.end(),back_inserter(this_point_vector));
+            std::move(points_buffer.begin(),points_buffer.end(),back_inserter(this_point_vector));
         }
     }
 
@@ -149,10 +176,10 @@ PointVector InternalVariablesInterpolationProcess::CreateGaussPointList(ModelPar
 /***********************************************************************************/
 /***********************************************************************************/
 
-void InternalVariablesInterpolationProcess::InterpolateGaussPointsCPT()
+void InternalVariablesInterpolationProcess::InterpolateGaussPointsClosestPointTransfer()
 {
     // We Initialize the process info
-    const ProcessInfo& current_process_info = mrDestinationMainModelPart.GetProcessInfo();
+    const ProcessInfo& r_current_process_info = mrDestinationMainModelPart.GetProcessInfo();
 
     // We update the list of points
     mPointListOrigin.clear();
@@ -169,38 +196,73 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsCPT()
         KDTree tree_points(mPointListOrigin.begin(), mPointListOrigin.end(), mBucketSize);
 
         // Iterate over the destination elements
-        ElementsArrayType& elements_array = mrDestinationMainModelPart.Elements();
-        auto num_elements = elements_array.end() - elements_array.begin();
+        ElementsArrayType& r_elements_array = mrDestinationMainModelPart.Elements();
+        const auto it_elem_begin = r_elements_array.begin();
+        const int num_elements = static_cast<int>(r_elements_array.size());
 
-        //#pragma omp for
+//         #pragma omp for
         for(int i = 0; i < num_elements; ++i) {
-            auto it_elem = elements_array.begin() + i;
+            auto it_elem = it_elem_begin + i;
 
-            // Getting the geometry
-            Element::GeometryType& r_this_geometry = it_elem->GetGeometry();
+            const bool old_entity = it_elem->IsDefined(OLD_ENTITY) ? it_elem->Is(OLD_ENTITY) : false;
+            if (!old_entity) { // We don't interpolate from preserved meshes
+                // Getting the geometry
+                GeometryType& r_this_geometry = it_elem->GetGeometry();
 
-            // Getting the integration points
-            this_integration_method = it_elem->GetIntegrationMethod();
-            const Element::GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
-            const unsigned int integration_points_number = integration_points.size();
+                // Getting the integration points
+                this_integration_method = it_elem->GetIntegrationMethod();
+                const GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
+                const std::size_t integration_points_number = integration_points.size();
 
-            // Getting the CL
-            std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
-            it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,current_process_info);
+                // Getting the CL
+                std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
+                it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,r_current_process_info);
 
-            for (unsigned int i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
-                // We compute the global coordinates
-                const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
-                array_1d<double, 3> global_coordinates;
-                global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
+                for (IndexType i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
+                    // We compute the global coordinates
+                    const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
+                    array_1d<double, 3> global_coordinates;
+                    global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
 
-                PointTypePointer p_gp_origin = tree_points.SearchNearestPoint(global_coordinates);
+                    PointTypePointer p_gp_origin = tree_points.SearchNearestPoint(global_coordinates);
 
-                for (auto this_var : mInternalVariableList) {
-                    double origin_value;
-                    origin_value = (p_gp_origin->GetConstitutiveLaw())->GetValue(this_var, origin_value);
+                    ConstitutiveLaw::Pointer p_origin_cl = p_gp_origin->GetConstitutiveLaw();
+                    ConstitutiveLaw::Pointer p_destination_cl = constitutive_law_vector[i_gauss_point];
 
-                    (constitutive_law_vector[i_gauss_point])->SetValue(this_var, origin_value, current_process_info);
+                    // Get and set variable
+                    for (auto& variable_name : mInternalVariableList) {
+                        if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                            const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                            if (p_destination_cl->Has(r_variable)) {
+                                GetAndSetDirectVariableOnConstitutiveLaw(r_variable, p_origin_cl, p_destination_cl, r_current_process_info);
+                            } else {
+                                GetAndSetDirectVariableOnElements(r_variable, p_gp_origin, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                            const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                            if (p_destination_cl->Has(r_variable)) {
+                                GetAndSetDirectVariableOnConstitutiveLaw(r_variable, p_origin_cl, p_destination_cl, r_current_process_info);
+                            } else {
+                                GetAndSetDirectVariableOnElements(r_variable, p_gp_origin, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                            const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                            if (p_destination_cl->Has(r_variable)) {
+                                GetAndSetDirectVariableOnConstitutiveLaw(r_variable, p_origin_cl, p_destination_cl, r_current_process_info);
+                            } else {
+                                GetAndSetDirectVariableOnElements(r_variable, p_gp_origin, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                            const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                            if (p_destination_cl->Has(r_variable)) {
+                                GetAndSetDirectVariableOnConstitutiveLaw(r_variable, p_origin_cl, p_destination_cl, r_current_process_info);
+                            } else {
+                                GetAndSetDirectVariableOnElements(r_variable, p_gp_origin, it_elem, i_gauss_point, r_current_process_info);
+                            }
+                        } else {
+                            KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                        }
+                    }
                 }
             }
         }
@@ -210,19 +272,20 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsCPT()
 /***********************************************************************************/
 /***********************************************************************************/
 
-void InternalVariablesInterpolationProcess::InterpolateGaussPointsLST()
+void InternalVariablesInterpolationProcess::InterpolateGaussPointsLeastSquareTransfer()
 {
     // We Initialize the process info
-    const ProcessInfo& current_process_info = mrDestinationMainModelPart.GetProcessInfo();
+    const ProcessInfo& r_current_process_info = mrDestinationMainModelPart.GetProcessInfo();
 
     // We update the list of points
     mPointListOrigin.clear();
     mPointListOrigin = CreateGaussPointList(mrOriginMainModelPart);
 
     // Check the NODAL_H
-    NodesArrayType& nodes_array = mrDestinationMainModelPart.Nodes();
-    VariableUtils().CheckVariableExists(NODAL_H, nodes_array);
-    
+    NodesArrayType& r_nodes_array = mrDestinationMainModelPart.Nodes();
+    for (auto& i_node : r_nodes_array)
+        KRATOS_ERROR_IF_NOT(i_node.Has(NODAL_H)) << "NODAL_H must be computed" << std::endl;
+
     //#pragma omp parallel firstprivate(mPointListOrigin)
     //{
         // We initialize the intergration method
@@ -230,8 +293,8 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsLST()
 
         // Initialize values
         PointVector points_found(mAllocationSize);
-        std::vector<double> point_distnaces(mAllocationSize);
-        unsigned int number_points_found = 0;
+        std::vector<double> point_distances(mAllocationSize);
+        std::size_t number_points_found = 0;
 
         // Create a tree
         // It will use a copy of mNodeList (a std::vector which contains pointers)
@@ -239,72 +302,90 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsLST()
         KDTree tree_points(mPointListOrigin.begin(), mPointListOrigin.end(), mBucketSize);
 
         // Iterate over the destination elements
-        ElementsArrayType& elements_array = mrDestinationMainModelPart.Elements();
-        auto num_elements = elements_array.end() - elements_array.begin();
+        ElementsArrayType& r_elements_array = mrDestinationMainModelPart.Elements();
+        const auto it_elem_begin = r_elements_array.begin();
+        const int num_elements = static_cast<int>(r_elements_array.size());
 
-        //#pragma omp for
-        for(int i = 0; i < num_elements; ++i)
-        {
-            auto it_elem = elements_array.begin() + i;
+//         #pragma omp for firstprivate(this_integration_method)
+        for(int i = 0; i < num_elements; ++i) {
+            auto it_elem = it_elem_begin + i;
 
-            // Getting the geometry
-            Element::GeometryType& r_this_geometry = it_elem->GetGeometry();
+            const bool old_entity = it_elem->IsDefined(OLD_ENTITY) ? it_elem->Is(OLD_ENTITY) : false;
+            if (!old_entity) { // We don't interpolate from preserved meshes
+                // Getting the geometry
+                GeometryType& r_this_geometry = it_elem->GetGeometry();
 
-            // Getting the integration points
-            this_integration_method = it_elem->GetIntegrationMethod();
-            const Element::GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
-            const unsigned int integration_points_number = integration_points.size();
+                // Getting the integration points
+                this_integration_method = it_elem->GetIntegrationMethod();
+                const GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
+                const std::size_t integration_points_number = integration_points.size();
 
-            // Getting the CL
-            std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
-            it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,current_process_info);
+                // Getting the CL
+                std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
+                it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,r_current_process_info);
 
-            // Computing the radius
-            const double radius = mSearchFactor *  (mDimension == 2 ? std::sqrt(r_this_geometry.Area()) : std::cbrt(r_this_geometry.Volume()));
-            
-            // We get the NODAL_H vector
-            Vector nodal_h_vector(r_this_geometry.size());
-            for (unsigned int i_node = 0; i_node < r_this_geometry.size(); ++i_node)
-                nodal_h_vector[i_node] = r_this_geometry[i_node].FastGetSolutionStepValue(NODAL_H);
+                // Computing the radius
+                const double radius = mSearchFactor *  (mDimension == 2 ? std::sqrt(r_this_geometry.Area()) : std::cbrt(r_this_geometry.Volume()));
 
-            for (unsigned int i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
-                // We compute the global coordinates
-                const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
-                array_1d<double, 3> global_coordinates;
-                global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
+                // We get the NODAL_H vector
+                Vector nodal_h_vector(r_this_geometry.size());
+                for (std::size_t i_node = 0; i_node < r_this_geometry.size(); ++i_node)
+                    nodal_h_vector[i_node] = r_this_geometry[i_node].GetValue(NODAL_H);
 
-                // We compute the pondered characteristic length
-                Vector N( r_this_geometry.size() );
-                r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
-                const double characteristic_length = inner_prod(N, nodal_h_vector);
+                for (std::size_t i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
+                    // We compute the global coordinates
+                    const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
+                    array_1d<double, 3> global_coordinates;
+                    global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
 
-                number_points_found = tree_points.SearchInRadius(global_coordinates, radius, points_found.begin(), point_distnaces.begin(), mAllocationSize);
+                    // We compute the pondered characteristic length
+                    Vector N( r_this_geometry.size() );
+                    r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
+                    const double characteristic_length = inner_prod(N, nodal_h_vector);
 
-                if (number_points_found > 0) {
-                    for (auto this_var : mInternalVariableList) {
-                        double weighting_function_numerator   = 0.0;
-                        double weighting_function_denominator = 0.0;
-                        double origin_value;
+                    number_points_found = tree_points.SearchInRadius(global_coordinates, radius, points_found.begin(), point_distances.begin(), mAllocationSize);
 
-                        for (unsigned int i_point_found = 0; i_point_found < number_points_found; ++i_point_found) {
-                            PointTypePointer p_gp_origin = points_found[i_point_found];
+                    // The destination CL
+                    ConstitutiveLaw::Pointer p_destination_cl = constitutive_law_vector[i_gauss_point];
 
-                            const double distance = point_distnaces[i_point_found];
-
-                            origin_value = (p_gp_origin->GetConstitutiveLaw())->GetValue(this_var, origin_value);
-
-                            const double ponderated_weight = p_gp_origin->GetWeight() * std::exp( -4.0 * distance * distance /(characteristic_length * characteristic_length));
-
-                            weighting_function_numerator   += ponderated_weight * origin_value;
-                            weighting_function_denominator += ponderated_weight;
+                    if (number_points_found > 0) {
+                        for (auto& variable_name : mInternalVariableList) {
+                            if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                                const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                                if (p_destination_cl->Has(r_variable)) {
+                                    GetAndSetWeightedVariableOnConstitutiveLaw(r_variable, number_points_found, points_found, point_distances, characteristic_length, p_destination_cl, r_current_process_info);
+                                } else {
+                                    GetAndSetWeightedVariableOnElements(r_variable, number_points_found, points_found, point_distances, characteristic_length, it_elem, i_gauss_point, r_current_process_info);
+                                }
+                            } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                                const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                                if (p_destination_cl->Has(r_variable)) {
+                                    GetAndSetWeightedVariableOnConstitutiveLaw(r_variable, number_points_found, points_found, point_distances, characteristic_length, p_destination_cl, r_current_process_info);
+                                } else {
+                                    GetAndSetWeightedVariableOnElements(r_variable, number_points_found, points_found, point_distances, characteristic_length, it_elem, i_gauss_point, r_current_process_info);
+                                }
+                            } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                                const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                                if (p_destination_cl->Has(r_variable)) {
+                                    GetAndSetWeightedVariableOnConstitutiveLaw(r_variable, number_points_found, points_found, point_distances, characteristic_length, p_destination_cl, r_current_process_info);
+                                } else {
+                                    GetAndSetWeightedVariableOnElements(r_variable, number_points_found, points_found, point_distances, characteristic_length, it_elem, i_gauss_point, r_current_process_info);
+                                }
+                            } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                                const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                                if (p_destination_cl->Has(r_variable)) {
+                                    GetAndSetWeightedVariableOnConstitutiveLaw(r_variable, number_points_found, points_found, point_distances, characteristic_length, p_destination_cl, r_current_process_info);
+                                } else {
+                                    GetAndSetWeightedVariableOnElements(r_variable, number_points_found, points_found, point_distances, characteristic_length, it_elem, i_gauss_point, r_current_process_info);
+                                }
+                            } else {
+                                KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                            }
                         }
-
-                        const double destination_value = weighting_function_numerator/weighting_function_denominator;
-                        
-                        (constitutive_law_vector[i_gauss_point])->SetValue(this_var, destination_value, current_process_info);
+                    } else {
+                        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: It wasn't impossible to find any Gauss Point from where interpolate the internal variables" << std::endl;
                     }
-                } else
-                    std::cout << "WARNING:: It wasn't impossible to find any Gauss Point from where interpolate the internal variables" << std::endl;
+                }
             }
         }
     //}
@@ -313,202 +394,222 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsLST()
 /***********************************************************************************/
 /***********************************************************************************/
 
-void InternalVariablesInterpolationProcess::InterpolateGaussPointsSFT()
+void InternalVariablesInterpolationProcess::InterpolateGaussPointsShapeFunctionTransfer()
 {
     // Initialize some values
-    GeometryData::IntegrationMethod this_integration_method;
+    GeometryData::IntegrationMethod this_integration_method = GeometryData::GI_GAUSS_1;
 
     // Iterate in the nodes to initialize the values
-    NodesArrayType& nodes_array = mrOriginMainModelPart.Nodes();
-    auto num_nodes = nodes_array.end() - nodes_array.begin();
+    NodesArrayType& r_nodes_array = mrOriginMainModelPart.Nodes();
 
     /* Nodes */
-    #pragma omp parallel for
-    for(int i = 0; i < num_nodes; ++i) {
-        auto it_node = nodes_array.begin() + i;
-
-        for (auto this_var : mInternalVariableList)
-            it_node->SetValue(this_var, 0.0);
+    for (auto& r_variable_name : mInternalVariableList) {
+        if (KratosComponents<DoubleVarType>::Has(r_variable_name)) {
+            const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(r_variable_name);
+            VariableUtils().SetNonHistoricalVariable(r_variable, r_variable.Zero(), r_nodes_array);
+        } else if (KratosComponents<ArrayVarType>::Has(r_variable_name)) {
+            const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(r_variable_name);
+            VariableUtils().SetNonHistoricalVariable(r_variable, r_variable.Zero(), r_nodes_array);
+        } else if (KratosComponents<VectorVarType>::Has(r_variable_name)) {
+            const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(r_variable_name);
+            VariableUtils().SetNonHistoricalVariable(r_variable, r_variable.Zero(), r_nodes_array);
+        } else if (KratosComponents<MatrixVarType>::Has(r_variable_name)) {
+            const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(r_variable_name);
+            VariableUtils().SetNonHistoricalVariable(r_variable, r_variable.Zero(), r_nodes_array);
+        } else {
+            KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << r_variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+        }
     }
 
     // Iterate in the elements to ponderate the values
-    ElementsArrayType& elements_array = mrOriginMainModelPart.Elements();
-    auto num_elements = elements_array.end() - elements_array.begin();
+    ElementsArrayType& r_elements_array = mrOriginMainModelPart.Elements();
+    const auto it_elem_begin = r_elements_array.begin();
+    int num_elements = static_cast<int>(r_elements_array.size());
 
-    const ProcessInfo& origin_process_info = mrOriginMainModelPart.GetProcessInfo();
+    const ProcessInfo& r_origin_process_info = mrOriginMainModelPart.GetProcessInfo();
 
     /* Elements */
-    #pragma omp parallel for
-    for(int i = 0; i < num_elements; ++i) {
-        auto it_elem = elements_array.begin() + i;
+    #pragma omp parallel for firstprivate(this_integration_method)
+    for (int i = 0; i < num_elements; ++i) {
+        auto it_elem = it_elem_begin + i;
 
-        // Getting the geometry
-        Element::GeometryType& r_this_geometry = it_elem->GetGeometry();
+        const bool old_entity = it_elem->IsDefined(OLD_ENTITY) ? it_elem->Is(OLD_ENTITY) : false;
+        if (!old_entity) { // We don't interpolate from preserved meshes
+            // Getting the geometry
+            GeometryType& r_this_geometry = it_elem->GetGeometry();
 
-        // Getting the integration points
-        this_integration_method = it_elem->GetIntegrationMethod();
-        const Element::GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
-        const unsigned int integration_points_number = integration_points.size();
+            // Getting the integration points
+            this_integration_method = it_elem->GetIntegrationMethod();
+            const GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
+            const std::size_t integration_points_number = integration_points.size();
 
-        // Computing the Jacobian
-        Vector vector_det_j(integration_points_number);
-        r_this_geometry.DeterminantOfJacobian(vector_det_j,this_integration_method);
+            // Computing the Jacobian
+            Vector vector_det_j(integration_points_number);
+            r_this_geometry.DeterminantOfJacobian(vector_det_j,this_integration_method);
 
-        // Getting the CL
-        std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
-        it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,origin_process_info);
+            // Getting the CL
+            std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
+            it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW,constitutive_law_vector,r_origin_process_info);
 
-        // We initialize the total weigth
-        double total_weight = 0.0;
+            // We initialize the total weigth
+            double total_weight = 0.0;
 
-        for (unsigned int i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
-            const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
+            for (IndexType i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
+                const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
 
-            // We compute the corresponding weight
-            const double weight = vector_det_j[i_gauss_point] * integration_points[i_gauss_point].Weight();
-            total_weight += weight;
+                // We compute the corresponding weight
+                const double weight = vector_det_j[i_gauss_point] * integration_points[i_gauss_point].Weight();
+                total_weight += weight;
 
-            // We compute the pondered characteristic length
-            Vector N( r_this_geometry.size() );
-            r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
+                // We compute the pondered characteristic length
+                Vector N( r_this_geometry.size() );
+                r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
 
-            // We compute the global coordinates
-            array_1d<double, 3> global_coordinates;
-            global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
+                // We compute the global coordinates
+                array_1d<double, 3> global_coordinates;
+                global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
 
-            for (auto this_var : mInternalVariableList) {
-                double origin_value;
-                origin_value = constitutive_law_vector[i_gauss_point]->GetValue(this_var, origin_value);
+                // The origin CL
+                ConstitutiveLaw::Pointer p_origin_cl = constitutive_law_vector[i_gauss_point];
 
-                // We sum all the contributions
-                for (unsigned int i_node = 0; i_node < r_this_geometry.size(); ++i_node) {
-                    #pragma omp atomic
-                    r_this_geometry[i_node].GetValue(this_var) += N[i_node] * origin_value * weight;
+                // We interpolate and add the variable
+                for (auto& variable_name : mInternalVariableList) {
+                    if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                        const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                        if (p_origin_cl->Has(r_variable)) {
+                            InterpolateAddVariableOnConstitutiveLaw(r_this_geometry, r_variable, N, p_origin_cl, weight);
+                        } else {
+                            InterpolateAddVariableOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, weight, r_origin_process_info);
+                        }
+                    } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                        const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                        if (p_origin_cl->Has(r_variable)) {
+                            InterpolateAddVariableOnConstitutiveLaw(r_this_geometry, r_variable, N, p_origin_cl, weight);
+                        } else {
+                            InterpolateAddVariableOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, weight, r_origin_process_info);
+                        }
+                    } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                        const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                        if (p_origin_cl->Has(r_variable)) {
+                            InterpolateAddVariableOnConstitutiveLaw(r_this_geometry, r_variable, N, p_origin_cl, weight);
+                        } else {
+                            InterpolateAddVariableOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, weight, r_origin_process_info);
+                        }
+                    } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                        const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                        if (p_origin_cl->Has(r_variable)) {
+                            InterpolateAddVariableOnConstitutiveLaw(r_this_geometry, r_variable, N, p_origin_cl, weight);
+                        } else {
+                            InterpolateAddVariableOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, weight, r_origin_process_info);
+                        }
+                    } else {
+                        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                    }
                 }
             }
-        }
 
-        // We divide by the total weight
-        for (auto this_var : mInternalVariableList) {
-            for (unsigned int i_node = 0; i_node < r_this_geometry.size(); ++i_node) {
-                #pragma omp critical
-                r_this_geometry[i_node].GetValue(this_var) /= total_weight;
+            // We divide by the total weight
+            for (auto& variable_name : mInternalVariableList) {
+                if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                    const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                    PonderateVariable(r_this_geometry, r_variable, total_weight);
+                } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                    const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                    PonderateVariable(r_this_geometry, r_variable, total_weight);
+                } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                    const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                    PonderateVariable(r_this_geometry, r_variable, total_weight);
+                } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                    const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                    PonderateVariable(r_this_geometry, r_variable, total_weight);
+                } else {
+                    KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                }
             }
         }
     }
 
     // We interpolate to the new nodes
     if (mDimension == 2) {
-        // We create the locator
-        BinBasedFastPointLocator<2> point_locator = BinBasedFastPointLocator<2>(mrOriginMainModelPart);
-        point_locator.UpdateSearchDatabase();
-
-        // Iterate in the nodes
-        NodesArrayType& nodes_array = mrDestinationMainModelPart.Nodes();
-        auto num_nodes = nodes_array.end() - nodes_array.begin();
-
-        /* Nodes */
-        #pragma omp parallel for
-        for(int i = 0; i < num_nodes; ++i) {
-            auto it_node = nodes_array.begin() + i;
-
-            Vector N;
-            Element::Pointer p_element;
-
-            const bool found = point_locator.FindPointOnMeshSimplified(it_node->Coordinates(), N, p_element, mAllocationSize);
-
-            if (found == false) {
-                std::cout << "WARNING: GP not found (interpolation not posible)" << std::endl;
-                std::cout << "\t X:"<< it_node->X() << "\t Y:"<< it_node->Y() << std::endl;
-            } else {
-                for (auto this_var : mInternalVariableList) {
-                    Vector values(p_element->GetGeometry().size());
-
-                    for (unsigned int i_node = 0; i_node < p_element->GetGeometry().size(); ++i_node)
-                        values[i_node] = p_element->GetGeometry()[i_node].GetValue(this_var);
-
-                    it_node->GetValue(this_var) = inner_prod(values, N);
-                }
-            }
-        }
+        InterpolateToNodes<2>();
     } else {
-        // We create the locator
-        BinBasedFastPointLocator<3> point_locator = BinBasedFastPointLocator<3>(mrOriginMainModelPart);
-        point_locator.UpdateSearchDatabase();
-
-        // Iterate in the nodes
-        NodesArrayType& nodes_array = mrDestinationMainModelPart.Nodes();
-        auto num_nodes = nodes_array.end() - nodes_array.begin();
-
-        /* Nodes */
-        #pragma omp parallel for
-        for(int i = 0; i < num_nodes; ++i)
-        {
-            auto it_node = nodes_array.begin() + i;
-
-            Vector N;
-            Element::Pointer p_element;
-
-            const bool found = point_locator.FindPointOnMeshSimplified(it_node->Coordinates(), N, p_element, mAllocationSize);
-
-            if (found == false) {
-                std::cout << "WARNING: Node "<< it_node->Id() << " not found (interpolation not posible)" << std::endl;
-                std::cout << "\t X:"<< it_node->X() << "\t Y:"<< it_node->Y() << "\t Z:"<< it_node->Z() << std::endl;
-            } else {
-                for (auto this_var : mInternalVariableList) {
-                    Vector values(p_element->GetGeometry().size());
-
-                    for (unsigned int i_node = 0; i_node < p_element->GetGeometry().size(); ++i_node)
-                        values[i_node] = p_element->GetGeometry()[i_node].GetValue(this_var);
-
-                    it_node->GetValue(this_var) = inner_prod(values, N);
-                }
-            }
-        }
+        InterpolateToNodes<3>();
     }
 
     // Finally we interpolate to the new GP
-    ElementsArrayType& elements_array_destination = mrDestinationMainModelPart.Elements();
-    num_elements = elements_array_destination.end() - elements_array_destination.begin();
+    ElementsArrayType& r_elements_array_destination = mrDestinationMainModelPart.Elements();
+    num_elements = static_cast<int>(r_elements_array_destination.size());
 
-    const ProcessInfo& destination_process_info = mrOriginMainModelPart.GetProcessInfo();
+    const ProcessInfo& r_destination_process_info = mrOriginMainModelPart.GetProcessInfo();
 
     /* Elements */
-    #pragma omp parallel for
+    #pragma omp parallel for firstprivate(this_integration_method)
     for(int i = 0; i < num_elements; ++i) {
-        auto it_elem = elements_array_destination.begin() + i;
+        auto it_elem = r_elements_array_destination.begin() + i;
 
-        // Getting the geometry
-        Element::GeometryType& r_this_geometry = it_elem->GetGeometry();
+        const bool old_entity = it_elem->IsDefined(OLD_ENTITY) ? it_elem->Is(OLD_ENTITY) : false;
+        if (!old_entity) { // We don't interpolate from preserved meshes
+            // Getting the geometry
+            GeometryType& r_this_geometry = it_elem->GetGeometry();
 
-        // Getting the integration points
-        this_integration_method = it_elem->GetIntegrationMethod();
-        const Element::GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
-        const unsigned int integration_points_number = integration_points.size();
+            // Getting the integration points
+            this_integration_method = it_elem->GetIntegrationMethod();
+            const GeometryType::IntegrationPointsArrayType& integration_points = r_this_geometry.IntegrationPoints(this_integration_method);
+            const std::size_t integration_points_number = integration_points.size();
 
-        // Getting the CL
-        std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
-        it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW, constitutive_law_vector,destination_process_info);
+            // Getting the CL
+            std::vector<ConstitutiveLaw::Pointer> constitutive_law_vector(integration_points_number);
+            it_elem->GetValueOnIntegrationPoints(CONSTITUTIVE_LAW, constitutive_law_vector,r_destination_process_info);
 
-        for (unsigned int i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
-            const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
+            for (IndexType i_gauss_point = 0; i_gauss_point < integration_points_number; ++i_gauss_point ) {
+                const array_1d<double, 3>& local_coordinates = integration_points[i_gauss_point].Coordinates();
 
-            // We compute the pondered characteristic length
-            Vector N( r_this_geometry.size() );
-            r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
+                // We compute the pondered characteristic length
+                Vector N( r_this_geometry.size() );
+                r_this_geometry.ShapeFunctionsValues( N, local_coordinates );
 
-            // We compute the global coordinates
-            array_1d<double, 3> global_coordinates;
-            global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
+                // We compute the global coordinates
+                array_1d<double, 3> global_coordinates;
+                global_coordinates = r_this_geometry.GlobalCoordinates( global_coordinates, local_coordinates );
 
-            Vector values(r_this_geometry.size() );
+                Vector values(r_this_geometry.size() );
 
-            for (auto this_var : mInternalVariableList) {
-                for (unsigned int i_node = 0; i_node < r_this_geometry.size(); ++i_node)
-                    values[i_node] = r_this_geometry[i_node].GetValue(this_var);
+                // The destination CL
+                ConstitutiveLaw::Pointer p_destination_cl = constitutive_law_vector[i_gauss_point];
 
-                const double destination_value = inner_prod(values, N);
-                constitutive_law_vector[i_gauss_point]->SetValue(this_var, destination_value, destination_process_info);
+                for (auto& variable_name : mInternalVariableList) {
+                    if (KratosComponents<DoubleVarType>::Has(variable_name)) {
+                        const DoubleVarType& r_variable = KratosComponents<DoubleVarType>::Get(variable_name);
+                        if (p_destination_cl->Has(r_variable)) {
+                            SetInterpolatedValueOnConstitutiveLaw(r_this_geometry, r_variable, N, p_destination_cl, r_destination_process_info);
+                        } else {
+                            SetInterpolatedValueOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, r_destination_process_info);
+                        }
+                    } else if (KratosComponents<ArrayVarType>::Has(variable_name)) {
+                        const ArrayVarType& r_variable = KratosComponents<ArrayVarType>::Get(variable_name);
+                        if (p_destination_cl->Has(r_variable)) {
+                            SetInterpolatedValueOnConstitutiveLaw(r_this_geometry, r_variable, N, p_destination_cl, r_destination_process_info);
+                        } else {
+                            SetInterpolatedValueOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, r_destination_process_info);
+                        }
+                    } else if (KratosComponents<VectorVarType>::Has(variable_name)) {
+                        const VectorVarType& r_variable = KratosComponents<VectorVarType>::Get(variable_name);
+                        if (p_destination_cl->Has(r_variable)) {
+                            SetInterpolatedValueOnConstitutiveLaw(r_this_geometry, r_variable, N, p_destination_cl, r_destination_process_info);
+                        } else {
+                            SetInterpolatedValueOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, r_destination_process_info);
+                        }
+                    } else if (KratosComponents<MatrixVarType>::Has(variable_name)) {
+                        const MatrixVarType& r_variable = KratosComponents<MatrixVarType>::Get(variable_name);
+                        if (p_destination_cl->Has(r_variable)) {
+                            SetInterpolatedValueOnConstitutiveLaw(r_this_geometry, r_variable, N, p_destination_cl, r_destination_process_info);
+                        } else {
+                            SetInterpolatedValueOnElement(r_this_geometry, r_variable, N, it_elem, i_gauss_point, r_destination_process_info);
+                        }
+                    } else {
+                        KRATOS_WARNING("InternalVariablesInterpolationProcess") << "WARNING:: " << variable_name << " is not registered as any type of compatible variable: DOUBLE or ARRAY_1D or VECTOR or Matrix" << std::endl;
+                    }
+                }
             }
         }
     }
@@ -517,16 +618,24 @@ void InternalVariablesInterpolationProcess::InterpolateGaussPointsSFT()
 /***********************************************************************************/
 /***********************************************************************************/
 
-InterpolationTypes InternalVariablesInterpolationProcess::ConvertInter(const std::string& Str)
+std::size_t InternalVariablesInterpolationProcess::ComputeTotalNumberOfVariables()
 {
-    if(Str == "CPT")
-        return CPT;
-    else if(Str == "LST")
-        return LST;
-    else if(Str == "SFT")
-        return SFT;
+    return mInternalVariableList.size();
+}
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+InternalVariablesInterpolationProcess::InterpolationTypes InternalVariablesInterpolationProcess::ConvertInter(const std::string& Str)
+{
+    if(Str == "CPT" || Str == "CLOSEST_POINT_TRANSFER")
+        return InterpolationTypes::CLOSEST_POINT_TRANSFER;
+    else if(Str == "LST" || Str == "LEAST_SQUARE_TRANSFER")
+        return InterpolationTypes::LEAST_SQUARE_TRANSFER;
+    else if(Str == "SFT" || Str == "SHAPE_FUNCTION_TRANSFER")
+        return InterpolationTypes::SHAPE_FUNCTION_TRANSFER;
     else
-        return LST;
+        return InterpolationTypes::LEAST_SQUARE_TRANSFER;
 }
 
 }  // namespace Kratos.

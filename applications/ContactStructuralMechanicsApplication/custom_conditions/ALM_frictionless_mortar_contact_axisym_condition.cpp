@@ -20,43 +20,65 @@
 
 /* Utilities */
 
-namespace Kratos 
+namespace Kratos
 {
 /************************************* OPERATIONS **********************************/
 /***********************************************************************************/
 
-template< unsigned int TNumNodes, bool TNormalVariation >
-Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create( 
+template< std::size_t TNumNodes, bool TNormalVariation >
+Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create(
     IndexType NewId,
     NodesArrayType const& rThisNodes,
     PropertiesPointerType pProperties ) const
 {
-    return Kratos::make_shared< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, this->GetGeometry().Create( rThisNodes ), pProperties );
+    return Kratos::make_intrusive< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, this->GetParentGeometry().Create( rThisNodes ), pProperties );
 }
 
 /***********************************************************************************/
 /***********************************************************************************/
 
-template< unsigned int TNumNodes, bool TNormalVariation >
+template< std::size_t TNumNodes, bool TNormalVariation >
 Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create(
     IndexType NewId,
     GeometryPointerType pGeom,
     PropertiesPointerType pProperties) const
 {
-    return Kratos::make_shared< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties );
+    return Kratos::make_intrusive< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties );
+}
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< std::size_t TNumNodes, bool TNormalVariation >
+Condition::Pointer AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::Create(
+    IndexType NewId,
+    GeometryPointerType pGeom,
+    PropertiesPointerType pProperties,
+    GeometryType::Pointer pMasterGeometry) const
+{
+    return Kratos::make_intrusive< AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation> >( NewId, pGeom, pProperties, pMasterGeometry);
 }
 
 /************************************* DESTRUCTOR **********************************/
 /***********************************************************************************/
 
-template< unsigned int TNumNodes, bool TNormalVariation >
+template< std::size_t TNumNodes, bool TNormalVariation >
 AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes, TNormalVariation>::~AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition( )
 = default;
 
 /***********************************************************************************/
 /***********************************************************************************/
 
-template< unsigned int TNumNodes, bool TNormalVariation >
+template< std::size_t TNumNodes, bool TNormalVariation >
+bool AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::IsAxisymmetric() const
+{
+    return true;
+}
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+template< std::size_t TNumNodes, bool TNormalVariation >
 double AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::GetAxisymmetricCoefficient(const GeneralVariables& rVariables) const
 {
     const double radius = CalculateRadius(rVariables);
@@ -67,7 +89,7 @@ double AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNod
 /*************************COMPUTE AXYSIMMETRIC RADIUS*******************************/
 /***********************************************************************************/
 
-template< unsigned int TNumNodes, bool TNormalVariation >
+template< std::size_t TNumNodes, bool TNormalVariation >
 double AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNodes,TNormalVariation>::CalculateRadius(const GeneralVariables& rVariables) const
 {
     KRATOS_TRY;
@@ -75,20 +97,20 @@ double AugmentedLagrangianMethodFrictionlessMortarContactAxisymCondition<TNumNod
     double current_radius = 0.0;
 //     double reference_radius = 0.0;
 
-    for (unsigned int i_node = 0; i_node < TNumNodes; ++i_node)
+    for (IndexType i_node = 0; i_node < TNumNodes; ++i_node)
     {
         // Displacement from the reference to the current configuration
-//         const array_1d<double, 3 > DeltaDisplacement = this->GetGeometry()[i_node].FastGetSolutionStepValue(DISPLACEMENT) - GetGeometry()[i_node].FastGetSolutionStepValue(DISPLACEMENT,1);  
-	    const array_1d<double, 3 > current_position = this->GetGeometry()[i_node].Coordinates();
+//         const array_1d<double, 3 > DeltaDisplacement = this->GetParentGeometry()[i_node].FastGetSolutionStepValue(DISPLACEMENT) - GetParentGeometry()[i_node].FastGetSolutionStepValue(DISPLACEMENT,1);
+	    const array_1d<double, 3 > current_position = this->GetParentGeometry()[i_node].Coordinates();
 // 	    const array_1d<double, 3 > ReferencePosition = current_position - DeltaDisplacement;
-	    
+
 	    current_radius   += current_position[0] * rVariables.NSlave[i_node];
 // 	    reference_radius += ReferencePosition[0] * rVariables.NSlave[i_node];
     }
-    
+
     return current_radius;
 //     return reference_radius;
-        
+
     KRATOS_CATCH( "" );
 }
 

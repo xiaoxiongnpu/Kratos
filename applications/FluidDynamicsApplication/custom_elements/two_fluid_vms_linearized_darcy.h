@@ -41,7 +41,7 @@ public:
     ///@{
 
     /// Pointer definition of TwoFluidVMS
-    KRATOS_CLASS_POINTER_DEFINITION(TwoFluidVMSLinearizedDarcy);
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION(TwoFluidVMSLinearizedDarcy);
 
     using ElementBaseType = TwoFluidVMS<TDim,TNumNodes>;
 
@@ -118,7 +118,7 @@ public:
     Element::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes,
         PropertiesType::Pointer pProperties) const override {
 
-        return Kratos::make_shared<TwoFluidVMSLinearizedDarcy>(
+        return Kratos::make_intrusive<TwoFluidVMSLinearizedDarcy>(
             NewId, (this->GetGeometry()).Create(ThisNodes), pProperties);
     }
 
@@ -133,7 +133,7 @@ public:
     Element::Pointer Create(IndexType NewId, GeometryType::Pointer pGeom,
         PropertiesType::Pointer pProperties) const override {
 
-        return Kratos::make_shared<TwoFluidVMSLinearizedDarcy>(
+        return Kratos::make_intrusive<TwoFluidVMSLinearizedDarcy>(
             NewId, pGeom, pProperties);
     }
 
@@ -145,6 +145,8 @@ protected:
     ///@{
 
     double CalculateDarcyTerm(
+        const double Density,
+        const double DynamicViscosity,
         const double LinearCoefficient,
         const double NonlinearCoefficient,
         const array_1d<double, TNumNodes>& rShapefunctions) override {
@@ -153,7 +155,7 @@ protected:
         this->GetAdvectiveVel(old_velocity, rShapefunctions,1);
         const double old_velocity_norm = MathUtils<double>::Norm3(old_velocity);
 
-        return LinearCoefficient + NonlinearCoefficient*old_velocity_norm;
+        return DynamicViscosity * LinearCoefficient + Density * NonlinearCoefficient*old_velocity_norm;
     }
     ///@}
 

@@ -17,7 +17,7 @@
 // External includes
 
 // Project includes
-#include "custom_conditions/ALM_mortar_contact_condition.h"
+#include "custom_conditions/mortar_contact_condition.h"
 
 namespace Kratos
 {
@@ -29,12 +29,8 @@ namespace Kratos
 ///@name Type Definitions
 ///@{
 
-    typedef Point                                     PointType;
-    typedef Node<3>                                    NodeType;
-    typedef Geometry<NodeType>                     GeometryType;
-    typedef Geometry<PointType>               GeometryPointType;
-    ///Type definition for integration methods
-    typedef GeometryData::IntegrationMethod   IntegrationMethod;
+    /// The definition of the size type
+    typedef std::size_t SizeType;
 
 ///@}
 ///@name  Enum's
@@ -56,55 +52,71 @@ namespace Kratos
  * The method has been taken from the Alexander Popps thesis:
  * Popp, Alexander: Mortar Methods for Computational Contact Mechanics and General Interface Problems, Technische Universität München, jul 2012
  * @author Vicente Mataix Ferrandiz
+ * @tparam TDim The dimension of work
+ * @tparam TNumNodes The number of nodes of the slave
+ * @tparam TNormalVariation If we are consider normal variation
+ * @tparam TNumNodesMaster The number of nodes of the master
  */
-template< unsigned int TDim, unsigned int TNumNodes, bool TNormalVariation >
+template< SizeType TDim, SizeType TNumNodes, bool TNormalVariation, const SizeType TNumNodesMaster = TNumNodes >
 class KRATOS_API(CONTACT_STRUCTURAL_MECHANICS_APPLICATION) AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition
-    : public AugmentedLagrangianMethodMortarContactCondition<TDim, TNumNodes, FrictionalCase::FRICTIONLESS_COMPONENTS, TNormalVariation>
+    : public MortarContactCondition<TDim, TNumNodes, FrictionalCase::FRICTIONLESS_COMPONENTS, TNormalVariation, TNumNodesMaster>
 {
 public:
     ///@name Type Definitions
     ///@{
 
     /// Counted pointer of AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition
-    KRATOS_CLASS_POINTER_DEFINITION( AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition );
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION( AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition );
 
-    typedef AugmentedLagrangianMethodMortarContactCondition<TDim, TNumNodes, FrictionalCase::FRICTIONLESS_COMPONENTS, TNormalVariation> BaseType;
+    typedef MortarContactCondition<TDim, TNumNodes, FrictionalCase::FRICTIONLESS_COMPONENTS, TNormalVariation, TNumNodesMaster> BaseType;
 
-    typedef typename BaseType::MortarConditionMatrices                                                                   MortarConditionMatrices;
+    typedef typename BaseType::MortarConditionMatrices                    MortarConditionMatrices;
 
-    typedef Condition                                                                                                          ConditionBaseType;
+    typedef Condition                                                           ConditionBaseType;
 
-    typedef PairedCondition                                                                                              PairedConditionBaseType;
+    typedef PairedCondition                                               PairedConditionBaseType;
 
-    typedef typename ConditionBaseType::VectorType                                                                                    VectorType;
+    typedef typename ConditionBaseType::VectorType                                     VectorType;
 
-    typedef typename ConditionBaseType::MatrixType                                                                                    MatrixType;
+    typedef typename ConditionBaseType::MatrixType                                     MatrixType;
 
-    typedef typename ConditionBaseType::IndexType                                                                                      IndexType;
+    typedef typename ConditionBaseType::IndexType                                       IndexType;
 
-    typedef typename ConditionBaseType::GeometryType::Pointer                                                                GeometryPointerType;
+    typedef typename ConditionBaseType::GeometryType::Pointer                 GeometryPointerType;
 
-    typedef typename ConditionBaseType::NodesArrayType                                                                            NodesArrayType;
+    typedef typename ConditionBaseType::NodesArrayType                             NodesArrayType;
 
-    typedef typename ConditionBaseType::PropertiesType                                                                            PropertiesType;
+    typedef typename ConditionBaseType::PropertiesType                             PropertiesType;
 
-    typedef typename ConditionBaseType::PropertiesType::Pointer                                                            PropertiesPointerType;
+    typedef typename ConditionBaseType::PropertiesType::Pointer             PropertiesPointerType;
 
-    typedef typename ConditionBaseType::EquationIdVectorType                                                                EquationIdVectorType;
+    typedef typename ConditionBaseType::EquationIdVectorType                 EquationIdVectorType;
 
-    typedef typename ConditionBaseType::DofsVectorType                                                                            DofsVectorType;
+    typedef typename ConditionBaseType::DofsVectorType                             DofsVectorType;
 
-    typedef typename std::vector<array_1d<PointType,TDim>>                                                                ConditionArrayListType;
+    /// Point definition
+    typedef Point                                                                       PointType;
 
-    typedef Line2D2<Point>                                                                                                              LineType;
+    /// Node type definition
+    typedef Node<3>                                                                      NodeType;
 
-    typedef Triangle3D3<Point>                                                                                                      TriangleType;
+    /// Geoemtry type definition
+    typedef Geometry<NodeType>                                                       GeometryType;
 
-    typedef typename std::conditional<TDim == 2, LineType, TriangleType >::type                                                DecompositionType;
+    // Type definition for integration methods
+    typedef GeometryType::IntegrationPointsArrayType                        IntegrationPointsType;
 
-    typedef DerivativeData<TDim, TNumNodes, TNormalVariation>                                                                 DerivativeDataType;
+    typedef typename std::vector<array_1d<PointType,TDim>>                 ConditionArrayListType;
 
-    static constexpr unsigned int MatrixSize = TDim * (TNumNodes + TNumNodes + TNumNodes);
+    typedef Line2D2<Point>                                                               LineType;
+
+    typedef Triangle3D3<Point>                                                       TriangleType;
+
+    typedef typename std::conditional<TDim == 2, LineType, TriangleType >::type DecompositionType;
+
+    typedef DerivativeData<TDim, TNumNodes, TNormalVariation, TNumNodesMaster> DerivativeDataType;
+
+    static constexpr IndexType MatrixSize = TDim * (TNumNodesMaster + TNumNodes + TNumNodes);
 
     ///@}
     ///@name Life Cycle
@@ -161,13 +173,12 @@ public:
     ///@{
 
     /**
-     * Creates a new element pointer from an arry of nodes
+     * @brief Creates a new element pointer from an arry of nodes
      * @param NewId the ID of the new element
      * @param rThisNodes the nodes of the new element
      * @param pProperties the properties assigned to the new element
      * @return a Pointer to the new element
      */
-
     Condition::Pointer Create(
         IndexType NewId,
         NodesArrayType const& rThisNodes,
@@ -175,13 +186,12 @@ public:
         ) const override;
 
     /**
-     * Creates a new element pointer from an existing geometry
+     * @brief Creates a new element pointer from an existing geometry
      * @param NewId the ID of the new element
      * @param pGeom the  geometry taken to create the condition
      * @param pProperties the properties assigned to the new element
      * @return a Pointer to the new element
      */
-
     Condition::Pointer Create(
         IndexType NewId,
         GeometryPointerType pGeom,
@@ -189,14 +199,13 @@ public:
         ) const override;
 
     /**
-     * Creates a new element pointer from an existing geometry
+     * @brief Creates a new element pointer from an existing geometry
      * @param NewId the ID of the new element
      * @param pGeom the  geometry taken to create the condition
      * @param pProperties the properties assigned to the new element
      * @param pMasterGeom the paired geometry
      * @return a Pointer to the new element
      */
-
     Condition::Pointer Create(
         IndexType NewId,
         GeometryPointerType pGeom,
@@ -209,30 +218,28 @@ public:
     /******************************************************************/
 
     /**
-     * Sets on rResult the ID's of the element degrees of freedom
+     * @brief Sets on rResult the ID's of the element degrees of freedom
      * @param rResult The result vector with the ID's of the DOF
      * @param rCurrentProcessInfo the current process info instance
      */
-
     void EquationIdVector(
         EquationIdVectorType& rResult,
         ProcessInfo& rCurrentProcessInfo
         ) override;
 
     /**
-     * Sets on ConditionalDofList the degrees of freedom of the considered element geometry
+     * @brief Sets on ConditionalDofList the degrees of freedom of the considered element geometry
      * @param rConditionalDofList The list of DOFs
      * @param rCurrentProcessInfo The current process info instance
      */
-
     void GetDofList(
         DofsVectorType& rConditionalDofList,
         ProcessInfo& rCurrentProcessInfo
         ) override;
 
     /**
-     * This function provides the place to perform checks on the completeness of the input.
-     * It is designed to be called only once (or anyway, not often) typically at the beginning
+     * @brief This function provides the place to perform checks on the completeness of the input.
+     * @details It is designed to be called only once (or anyway, not often) typically at the beginning
      * of the calculations, so to verify that nothing is missing from the input
      * or that no common error is found.
      * @param rCurrentProcessInfo The current process information
@@ -250,6 +257,28 @@ public:
     ///@}
     ///@name Input and output
     ///@{
+
+    /// Turn back information as a string.
+    std::string Info() const override
+    {
+        std::stringstream buffer;
+        buffer << "AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition #" << this->Id();
+        return buffer.str();
+    }
+
+    /// Print information about this object.
+    void PrintInfo(std::ostream& rOStream) const override
+    {
+        rOStream << "AugmentedLagrangianMethodFrictionlessComponentsMortarContactCondition #" << this->Id();
+    }
+
+    /// Print object's data.
+    void PrintData(std::ostream& rOStream) const override
+    {
+        PrintInfo(rOStream);
+        this->GetParentGeometry().PrintData(rOStream);
+        this->GetPairedGeometry().PrintData(rOStream);
+    }
 
     ///@}
     ///@name Friends
@@ -278,33 +307,33 @@ protected:
     /********************************************************************************/
 
     /**
-     * Calculates the local contibution of the LHS
+     * @brief Calculates the local contibution of the LHS
      * @param rLocalLHS The local LHS to compute
      * @param rMortarConditionMatrices The mortar operators to be considered
      * @param rDerivativeData The class containing all the derivatives uses to compute the jacobian
      * @param rActiveInactive The integer that is used to identify which case is the currectly computed
      */
-
     void CalculateLocalLHS(
         Matrix& rLocalLHS,
         const MortarConditionMatrices& rMortarConditionMatrices,
         const DerivativeDataType& rDerivativeData,
-        const unsigned int rActiveInactive
+        const IndexType rActiveInactive,
+        const ProcessInfo& rCurrentProcessInfo
         ) override;
 
     /**
-     * Calculates the local contibution of the RHS
+     * @brief Calculates the local contibution of the RHS
      * @param rLocalRHS The local RHS to compute
      * @param rMortarConditionMatrices The mortar operators to be considered
      * @param rDerivativeData The class containing all the derivatives uses to compute the jacobian
      * @param rActiveInactive The integer that is used to identify which case is the currectly computed
      */
-
     void CalculateLocalRHS(
         Vector& rLocalRHS,
         const MortarConditionMatrices& rMortarConditionMatrices,
         const DerivativeDataType& rDerivativeData,
-        const unsigned int rActiveInactive
+        const IndexType rActiveInactive,
+        const ProcessInfo& rCurrentProcessInfo
         ) override;
 
     /******************************************************************/
@@ -312,15 +341,14 @@ protected:
     /******************************************************************/
 
     /**
-     * Returns a value depending of the active/inactive set
+     * @brief Returns a value depending of the active/inactive set
      * @param CurrentGeometry The geometry containing the nodes that are needed to be checked as active or inactive
      * @return The integer that can be used to identify the case to compute
      */
-
-    unsigned int GetActiveInactiveValue(GeometryType& CurrentGeometry) const override
+    IndexType GetActiveInactiveValue(const GeometryType& CurrentGeometry) const override
     {
-        unsigned int value = 0;
-        for (unsigned int i_node = 0; i_node < TNumNodes; ++i_node)
+        IndexType value = 0;
+        for (IndexType i_node = 0; i_node < TNumNodes; ++i_node)
             if (CurrentGeometry[i_node].Is(ACTIVE) == true)
                 value += 1 << i_node;
 

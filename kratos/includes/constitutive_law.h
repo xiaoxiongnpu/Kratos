@@ -20,7 +20,6 @@
 /* System includes */
 
 /* External includes */
-#include "boost/smart_ptr.hpp"
 
 /* Project includes */
 #include "includes/define.h"
@@ -32,6 +31,7 @@
 #include "utilities/math_utils.h"
 #include "includes/process_info.h"
 #include "includes/ublas_interface.h"
+#include "includes/kratos_parameters.h"
 #include "containers/data_value_container.h"
 #include "containers/flags.h"
 
@@ -58,9 +58,10 @@ public:
         StrainMeasure_Hencky_Spatial,  //strain measure current   configuration
 
         // Deformation measures:
-        StrainMeasure_Deformation_Gradient, //deformation gradient as a strain measure
+        StrainMeasure_Deformation_Gradient, //material deformation gradient as a strain measure
         StrainMeasure_Right_CauchyGreen,    //right cauchy-green tensor as a strain measure
-        StrainMeasure_Left_CauchyGreen      //left  cauchy-green tensor as a strain measure
+        StrainMeasure_Left_CauchyGreen,     //left  cauchy-green tensor as a strain measure
+        StrainMeasure_Velocity_Gradient     //spatial velocity gradient as a strain measure
     };
 
     enum StressMeasure
@@ -500,129 +501,164 @@ public:
     ~ConstitutiveLaw() override{};
 
     /**
-     * Clone function (has to be implemented by any derived class)
+     * @brief Clone function (has to be implemented by any derived class)
      * @return a pointer to a new instance of this constitutive law
-     * NOTE: implementation scheme:
+     * @note implementation scheme:
      *      ConstitutiveLaw::Pointer p_clone(new ConstitutiveLaw());
      *      return p_clone;
      */
     virtual ConstitutiveLaw::Pointer Clone() const;
 
     /**
-     * @return the working space dimension of the current constitutive law
-     * NOTE: this function HAS TO BE IMPLEMENTED by any derived class
+     * @brief It creates a new constitutive law pointer
+     * @param NewParameters The configuration parameters of the new constitutive law
+     * @return a Pointer to the new constitutive law
+     */
+    virtual Pointer Create(Kratos::Parameters NewParameters) const;
+
+    /**
+     * @brief It creates a new constitutive law pointer (version with properties)
+     * @param NewParameters The configuration parameters of the new constitutive law
+     * @param rProperties The properties of the material
+     * @return a Pointer to the new constitutive law
+     */
+    virtual Pointer Create(
+        Kratos::Parameters NewParameters, 
+        const Properties& rProperties
+        ) const;
+    
+    /**
+     * @return The working space dimension of the current constitutive law
+     * @note This function HAS TO BE IMPLEMENTED by any derived class
      */
     virtual SizeType WorkingSpaceDimension();
 
     /**
-     * returns the size of the strain vector of the current constitutive law
-     * NOTE: this function HAS TO BE IMPLEMENTED by any derived class
+     * @return The size of the strain vector of the current constitutive law
+     * @note This function HAS TO BE IMPLEMENTED by any derived class
      */
     virtual SizeType GetStrainSize();
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (boolean)
+     * @param rThisVariable the variable to be checked for
+     * @return true if the variable is defined in the constitutive law
+     */
+    virtual bool Has(const Variable<bool>& rThisVariable);
+
+    /**
+     * @brief Returns whether this constitutive Law has specified variable (integer)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
      */
     virtual bool Has(const Variable<int>& rThisVariable);
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (double)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
      */
     virtual bool Has(const Variable<double>& rThisVariable);
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (Vector)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
      */
     virtual bool Has(const Variable<Vector>& rThisVariable);
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (Matrix)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
      */
     virtual bool Has(const Variable<Matrix>& rThisVariable);
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (array of 3 components)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
-     * NOTE: fixed size array of 3 doubles (e.g. for 2D stresses, plastic strains, ...)
+     * @note Fixed size array of 3 doubles (e.g. for 2D stresses, plastic strains, ...)
      */
     virtual bool Has(const Variable<array_1d<double, 3 > >& rThisVariable);
 
     /**
-     * returns whether this constitutive Law has specified variable
+     * @brief Returns whether this constitutive Law has specified variable (array of 6 components)
      * @param rThisVariable the variable to be checked for
      * @return true if the variable is defined in the constitutive law
-     * NOTE: fixed size array of 6 doubles (e.g. for stresses, plastic strains, ...)
+     * @note Fixed size array of 6 doubles (e.g. for stresses, plastic strains, ...)
      */
     virtual bool Has(const Variable<array_1d<double, 6 > >& rThisVariable);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (boolean)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
-     * @param rValue output: the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
     virtual bool& GetValue(const Variable<bool>& rThisVariable, bool& rValue);
 
     /**
-     * returns the value of a specified variable
+     * Returns the value of a specified variable (integer)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
-     * @param rValue output: the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
     virtual int& GetValue(const Variable<int>& rThisVariable, int& rValue);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (double)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
-     * @param rValue output: the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
     virtual double& GetValue(const Variable<double>& rThisVariable, double& rValue);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (Vector)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
-     * @return the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
     virtual Vector& GetValue(const Variable<Vector>& rThisVariable, Vector& rValue);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (Matrix)
      * @param rThisVariable the variable to be returned
-     * @return the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
     virtual Matrix& GetValue(const Variable<Matrix>& rThisVariable, Matrix& rValue);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (array of 3 components)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
-     * @return the value of the specified variable
+     * @return rValue output: the value of the specified variable
      */
-    virtual array_1d<double, 3 > & GetValue(const Variable<array_1d<double, 3 > >& rVariable,
+    virtual array_1d<double, 3 > & GetValue(const Variable<array_1d<double, 3 > >& rThisVariable,
                                             array_1d<double, 3 > & rValue);
 
     /**
-     * returns the value of a specified variable
+     * @brief Returns the value of a specified variable (array of 6 components)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
      * @return the value of the specified variable
      */
-    virtual array_1d<double, 6 > & GetValue(const Variable<array_1d<double, 6 > >& rVariable,
+    virtual array_1d<double, 6 > & GetValue(const Variable<array_1d<double, 6 > >& rThisVariable,
                                             array_1d<double, 6 > & rValue);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (boolean)
+     * @param rVariable the variable to be returned
+     * @param Value new value of the specified variable
+     * @param rCurrentProcessInfo the process info
+     */
+    virtual void SetValue(const Variable<bool>& rVariable,
+                          const bool& Value,
+                          const ProcessInfo& rCurrentProcessInfo);
+
+    /**
+     * @brief Sets the value of a specified variable (integer)
      * @param rVariable the variable to be returned
      * @param Value new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -632,7 +668,7 @@ public:
                           const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (double)
      * @param rVariable the variable to be returned
      * @param rValue new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -642,7 +678,7 @@ public:
                           const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (Vector)
      * @param rVariable the variable to be returned
      * @param rValue new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -652,7 +688,7 @@ public:
 			  const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (Matrix)
      * @param rVariable the variable to be returned
      * @param rValue new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -662,7 +698,7 @@ public:
 			  const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (array of 3 components)
      * @param rVariable the variable to be returned
      * @param rValue new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -672,7 +708,7 @@ public:
                           const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * sets the value of a specified variable
+     * @brief Sets the value of a specified variable (array of 6 components)
      * @param rVariable the variable to be returned
      * @param rValue new value of the specified variable
      * @param rCurrentProcessInfo the process info
@@ -682,7 +718,16 @@ public:
                           const ProcessInfo& rCurrentProcessInfo);
 
     /**
-     * calculates the value of a specified variable
+     * @brief Calculates the value of a specified variable (bool)
+     * @param rParameterValues the needed parameters for the CL calculation
+     * @param rThisVariable the variable to be returned
+     * @param rValue a reference to the returned value
+     * @param rValue output: the value of the specified variable
+     */
+    virtual bool& CalculateValue(Parameters& rParameterValues, const Variable<bool>& rThisVariable, bool& rValue);
+
+    /**
+     * @brief Calculates the value of a specified variable (int)
      * @param rParameterValues the needed parameters for the CL calculation
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
@@ -691,7 +736,7 @@ public:
     virtual int& CalculateValue(Parameters& rParameterValues, const Variable<int>& rThisVariable, int& rValue);
 
     /**
-     * calculates the value of a specified variable
+     * @brief Calculates the value of a specified variable (double)
      * @param rParameterValues the needed parameters for the CL calculation
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
@@ -700,7 +745,7 @@ public:
     virtual double& CalculateValue(Parameters& rParameterValues, const Variable<double>& rThisVariable, double& rValue);
 
     /**
-     * calculates the value of a specified variable
+     * @brief Calculates the value of a specified variable (Vector)
      * @param rParameterValues the needed parameters for the CL calculation
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
@@ -709,7 +754,7 @@ public:
     virtual Vector& CalculateValue(Parameters& rParameterValues, const Variable<Vector>& rThisVariable, Vector& rValue);
 
     /**
-     * calculates the value of a specified variable
+     * @brief Calculates the value of a specified variable (Matrix)
      * @param rParameterValues the needed parameters for the CL calculation
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
@@ -718,7 +763,7 @@ public:
     virtual Matrix& CalculateValue(Parameters& rParameterValues, const Variable<Matrix>& rThisVariable, Matrix& rValue);
 
     /**
-     * calculates the value of a specified variable
+     * @brief Calculates the value of a specified variable (array of 3 components)
      * @param rParameterValues the needed parameters for the CL calculation
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
@@ -728,7 +773,7 @@ public:
 						  array_1d<double, 3 > & rValue);
 
     /**
-     * returns the value of a specified variable
+     * returns the value of a specified variable (array of 6 components)
      * @param rThisVariable the variable to be returned
      * @param rValue a reference to the returned value
      * @return the value of the specified variable
@@ -787,6 +832,7 @@ public:
      * @param rShapeFunctionsValues the shape functions values in the current integration point
      * @param the current ProcessInfo instance
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - Use InitializeMaterialResponse instead\"")
     virtual void InitializeSolutionStep(const Properties& rMaterialProperties,
                                         const GeometryType& rElementGeometry, //this is just to give the array of nodes
                                         const Vector& rShapeFunctionsValues,
@@ -800,6 +846,7 @@ public:
      * @param rShapeFunctionsValues the shape functions values in the current integration point
      * @param the current ProcessInfo instance
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - Use FinalizeMaterialResponse instead\"")
     virtual void FinalizeSolutionStep(const Properties& rMaterialProperties,
                                       const GeometryType& rElementGeometry,
                                       const Vector& rShapeFunctionsValues,
@@ -815,6 +862,7 @@ public:
      * @param rShapeFunctionsValues the shape functions values in the current integration point
      * @param the current ProcessInfo instance
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - There is no equivalent for this\"")
     virtual void InitializeNonLinearIteration(const Properties& rMaterialProperties,
 					      const GeometryType& rElementGeometry,
 					      const Vector& rShapeFunctionsValues,
@@ -830,6 +878,7 @@ public:
      * @param rShapeFunctionsValues the shape functions values in the current integration point
      * @param the current ProcessInfo instance
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - There is no equivalent for this\"")
     virtual void FinalizeNonLinearIteration(const Properties& rMaterialProperties,
 					    const GeometryType& rElementGeometry,
 					    const Vector& rShapeFunctionsValues,
@@ -873,15 +922,26 @@ public:
      */
     virtual void CalculateMaterialResponseCauchy (Parameters& rValues);
 
-
+    /**
+     * @brief If the CL requires to initialize the material response, called by the element in InitializeSolutionStep.
+     */
+    virtual bool RequiresInitializeMaterialResponse()
+    {
+        return true;
+    }
 
     /**
-     * Initialize the material response,  called by the element in FinalizeSolutionStep.
+     * Computes the material response in terms of Cauchy stresses and constitutive tensor, returns internal variables.
+     * @see Parameters
+     */
+    virtual void CalculateStressResponse (Parameters& rValues, Vector& rInternalVariables);
+
+    /**
+     * @brief Initialize the material response,  called by the element in InitializeSolutionStep.
      * @see Parameters
      * @see StressMeasures
      */
     void InitializeMaterialResponse (Parameters& rValues,const StressMeasure& rStressMeasure);
-
 
     /**
      * Initialize the material response in terms of 1st Piola-Kirchhoff stresses
@@ -911,10 +971,16 @@ public:
 
     virtual void InitializeMaterialResponseCauchy (Parameters& rValues);
 
-
+    /**
+     * @brief If the CL requires to finalize the material response, called by the element in FinalizeSolutionStep.
+     */
+    virtual bool RequiresFinalizeMaterialResponse()
+    {
+        return true;
+    }
 
     /**
-     * Finalize the material response,  called by the element in FinalizeSolutionStep.
+     * @brief Finalize the material response,  called by the element in FinalizeSolutionStep.
      * @see Parameters
      * @see StressMeasures
      */
@@ -973,7 +1039,7 @@ public:
      * @param rStrainInitial the measure of stress of the given  rStrainVector
      * @param rStrainFinal the measure of stress of the returned rStrainVector
      */
-    Vector& TransformStrains        (Vector& rStrainVector,
+    virtual Vector& TransformStrains (Vector& rStrainVector,
 				     const Matrix &rF,
 				     StrainMeasure rStrainInitial,
 				     StrainMeasure rStrainFinal);
@@ -1119,6 +1185,7 @@ public:
      * NOTE: the CalculateTangent flag is defined as int to allow for distinctive variants of the tangent
      * @param SaveInternalVariables flag whether or not to store internal (history) variables
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - Use version with ConstitutiveLaw::Parameters instead \"")
     virtual void CalculateMaterialResponse(const Vector& StrainVector,
                                            const Matrix& DeformationGradient,
                                            Vector& StressVector,
@@ -1147,6 +1214,7 @@ public:
      * NOTE: the CalculateTangent flag is defined as int to allow for distinctive variants of the tangent
      * @param SaveInternalVariables flag whether or not to store internal (history) variables
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method - use CalculateMaterialResponse instead\"")
     virtual void CalculateVolumetricResponse(const double VolumetricStrain,
 					     const Matrix& DeformationGradient,
 					     double& VolumetricStress,
@@ -1177,6 +1245,7 @@ public:
 
      * TODO: add proper definition for algorithmic tangent
      */
+    KRATOS_DEPRECATED_MESSAGE("Please do not use this method\"")
     virtual void CalculateDeviatoricResponse(const Vector& StrainVector,
 					     const Matrix& DeformationGradient,
 					     Vector& StressVector,
@@ -1197,6 +1266,23 @@ public:
                                          const Vector& PK2_StressVector,
                                          const Vector& GreenLagrangeStrainVector);
 
+    /**
+     * @brief This method is used to check that tow Constitutive Laws are the same type (references)
+     * @param rLHS The first argument
+     * @param rRHS The second argument
+     */
+    inline static bool HasSameType(const ConstitutiveLaw& rLHS, const ConstitutiveLaw& rRHS) {
+        return (typeid(rLHS) == typeid(rRHS));
+    }
+
+    /**
+     * @brief This method is used to check that tow Constitutive Laws are the same type (pointers)
+     * @param rLHS The first argument
+     * @param rRHS The second argument
+     */
+    inline static bool HasSameType(const ConstitutiveLaw* rLHS, const ConstitutiveLaw* rRHS) {
+        return ConstitutiveLaw::HasSameType(*rLHS, *rRHS);
+    }
 
     ///@}
     ///@}
@@ -1408,8 +1494,8 @@ inline std::ostream & operator <<(std::ostream& rOStream,
 ///@}
 ///@} addtogroup block
 
-template class KRATOS_API(KRATOS_CORE) KratosComponents<ConstitutiveLaw >;
-template class KRATOS_API(KRATOS_CORE) KratosComponents< Variable<ConstitutiveLaw::Pointer> >;
+KRATOS_API_EXTERN template class KRATOS_API(KRATOS_CORE) KratosComponents<ConstitutiveLaw >;
+KRATOS_API_EXTERN template class KRATOS_API(KRATOS_CORE) KratosComponents< Variable<ConstitutiveLaw::Pointer> >;
 
 void KRATOS_API(KRATOS_CORE) AddKratosComponent(std::string const& Name, ConstitutiveLaw const& ThisComponent);
 void KRATOS_API(KRATOS_CORE) AddKratosComponent(std::string const& Name, Variable<ConstitutiveLaw::Pointer> const& ThisComponent);
@@ -1429,4 +1515,3 @@ KRATOS_DEFINE_VARIABLE(ConstitutiveLaw::Pointer, CONSTITUTIVE_LAW)
 
 } /* namespace Kratos.*/
 #endif /* KRATOS_CONSTITUTIVE_LAW  defined */
-

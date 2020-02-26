@@ -19,8 +19,10 @@
 #endif
 
 /* External includes */
-#include "boost/smart_ptr.hpp"
-
+// #include "boost/smart_ptr.hpp"
+#include <pybind11/pybind11.h>
+#include "includes/define.h"
+#include "includes/define_python.h"
 
 /* Project includes */
 #include "includes/define.h"
@@ -138,7 +140,7 @@ public:
 
     /** Destructor.
     */
-    virtual ~ResidualBasedEliminationQuasiIncompressibleBuilderAndSolver() {}
+    ~ResidualBasedEliminationQuasiIncompressibleBuilderAndSolver() override {}
 
 
     /*@} */
@@ -217,7 +219,7 @@ public:
         BaseType::mDofSet.clear();
         BaseType::mDofSet.reserve(mActiveNodes.size()*TDim );
 
-        for(WeakPointerVector< Node<3> >::iterator iii = mActiveNodes.begin(); iii!=mActiveNodes.end(); iii++)
+        for(GlobalPointersVector< Node<3> >::iterator iii = mActiveNodes.begin(); iii!=mActiveNodes.end(); iii++)
         {
 
 	     BaseType::mDofSet.push_back( iii->pGetDof(DISPLACEMENT_X).get());
@@ -330,9 +332,7 @@ public:
         TSystemVectorType& b,
         TSystemMatrixType& mMconsistent,
         TSystemVectorType& mMdiagInv,
-        ElementsArrayType& rElements,
-        ConditionsArrayType& rConditions,
-        ProcessInfo& CurrentProcessInfo
+        ModelPart& rModelPart
     )
     {
         KRATOS_TRY
@@ -621,7 +621,7 @@ public:
     TSystemVectorType mMdiagInv;
     TSystemVectorType mpreconditioner;
     unsigned int mnumber_of_active_nodes;
-    WeakPointerVector<Node<3> > mActiveNodes;
+    GlobalPointersVector<Node<3> > mActiveNodes;
 
 //private:
     /**@name Static Member Variables */
@@ -631,7 +631,7 @@ public:
     /*@} */
     /**@name Member Variables */
     /*@{ */
-  //  WeakPointerVector<Node<3> > mActiveNodes;
+  //  GlobalPointersVector<Node<3> > mActiveNodes;
 
     /*@} */
     /**@name Private Operations*/
@@ -1024,7 +1024,7 @@ public:
         unsigned int dof_position = r_model_part.NodesBegin()->GetDofPosition(DISPLACEMENT_X);
         for (typename NodesArrayType::iterator it=r_model_part.NodesBegin(); it!=r_model_part.NodesEnd(); ++it)
         {
-            WeakPointerVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
+            GlobalPointersVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
             if( neighb_nodes.size() != 0 )
             {
                 //first row in the block
@@ -1038,7 +1038,7 @@ public:
                 }
 
                 //filling and order the first neighbours list
-                for( WeakPointerVector< Node<3> >::iterator i =	neighb_nodes.begin();
+                for( GlobalPointersVector< Node<3> >::iterator i =	neighb_nodes.begin();
                         i != neighb_nodes.end(); i++)
                 {
                     unsigned int tmp = (i->GetDof(DISPLACEMENT_X,dof_position)).EquationId();
@@ -1097,7 +1097,7 @@ public:
 
         for (typename NodesArrayType::iterator it=r_model_part.NodesBegin(); it!=r_model_part.NodesEnd(); ++it)
         {
-            WeakPointerVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
+            GlobalPointersVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
             if( neighb_nodes.size() != 0 )
             {
                 //first row in the block
@@ -1115,7 +1115,7 @@ public:
                 indices.push_back(row_index/TDim);
 
                 //filling and order the first neighbours list
-                for( WeakPointerVector< Node<3> >::iterator i =	neighb_nodes.begin();
+                for( GlobalPointersVector< Node<3> >::iterator i =	neighb_nodes.begin();
                         i != neighb_nodes.end(); i++)
                 {
                     unsigned int tmp = (i->GetDof(DISPLACEMENT_X,dof_position)).EquationId();
@@ -1169,7 +1169,7 @@ public:
 
         for (typename NodesArrayType::iterator it=r_model_part.NodesBegin(); it!=r_model_part.NodesEnd(); ++it)
         {
-            WeakPointerVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
+            GlobalPointersVector< Node<3> >& neighb_nodes = it->GetValue(NEIGHBOUR_NODES);
             if( neighb_nodes.size() != 0 )
             {
                 //first row in the block
@@ -1183,7 +1183,7 @@ public:
                 }
 
                 //filling and order the first neighbours list
-                for( WeakPointerVector< Node<3> >::iterator i =	neighb_nodes.begin();
+                for( GlobalPointersVector< Node<3> >::iterator i =	neighb_nodes.begin();
                         i != neighb_nodes.end(); i++)
                 {
                     unsigned int tmp = (i->GetDof(DISPLACEMENT_X,dof_position)).EquationId();
@@ -1226,7 +1226,8 @@ public:
         //array_1d<double,TDim+1> rhs_contribution;
 
 #ifndef _OPENMP
-        boost::numeric::ublas::bounded_matrix<double,TDim+1,TDim> DN_DX;
+//         BoundedMatrix::BoundedMatrix<double,TDim+1,TDim> DN_DX;
+        BoundedMatrix<double,TDim+1,TDim> DN_DX;
         array_1d<double,TDim+1> N;
         array_1d<unsigned int ,TDim+1> local_indices;
         double Volume;
@@ -1342,7 +1343,7 @@ public:
         #pragma omp parallel for
         for (int k = 0; k < number_of_threads; k++)
         {
-            boost::numeric::ublas::bounded_matrix<double,TDim+1,TDim> DN_DX;
+            BoundedMatrix<double,TDim+1,TDim> DN_DX;
             array_1d<double,TDim+1> N;
             array_1d<unsigned int ,TDim+1> local_indices;
             //array_1d<double,TDim+1> rhs_contribution;
@@ -1682,7 +1683,7 @@ public:
         //first we assemble the diagonal mass matrix
         KRATOS_TRY
         //KRATOS_WATCH("BUILDING MASS MATRICES ")
-        boost::numeric::ublas::bounded_matrix<double,TDim+1,TDim> DN_DX;
+        BoundedMatrix<double,TDim+1,TDim> DN_DX;
         array_1d<double,TDim+1> N;
         array_1d<unsigned int ,TDim+1> local_indices;
         //array_1d<double,TDim+1> rhs_contribution;
@@ -2125,7 +2126,7 @@ public:
         KRATOS_TRY
 //	double aaa=0.0;
         double dt = model_part.GetProcessInfo()[DELTA_TIME];
-        boost::numeric::ublas::bounded_matrix<double,3,2> DN_DX;
+        BoundedMatrix<double,3,2> DN_DX;
         array_1d<double,3> N;
         array_1d<double,3> aux0, aux1, aux2; //this are sized to 3 even in 2D!!
 
@@ -2164,8 +2165,8 @@ public:
             //pres_inc*=0.5;
 
             //Gradient operator G:
-            boost::numeric::ublas::bounded_matrix<double,6,2> shape_func = ZeroMatrix(6, 2);
-            boost::numeric::ublas::bounded_matrix<double,6,3> G = ZeroMatrix(6,3);
+            BoundedMatrix<double,6,2> shape_func = ZeroMatrix(6, 2);
+            BoundedMatrix<double,6,3> G = ZeroMatrix(6,3);
             for (int ii = 0; ii< 3; ii++)
             {
                 int column = ii*2;

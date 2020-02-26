@@ -20,6 +20,10 @@
 /* Project includes */
 #include "spaces/ublas_space.h"
 #include "utilities/math_utils.h"
+#ifdef KRATOS_USE_AMATRIX   // This macro definition is for the migration period and to be removed afterward please do not use it
+#include "boost/numeric/ublas/matrix.hpp" // for the identity matrix used here.
+#else
+#endif // KRATOS_USE_AMATRIX
 
 // Linear solvers
 #include "linear_solvers/linear_solver.h"
@@ -73,7 +77,7 @@ public:
     typedef std::size_t IndexType;
 
     /// The sparse space considered (the one containing the compressed matrix)
-    typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
+    typedef UblasSpace<double, CompressedMatrix, boost::numeric::ublas::vector<double>> SparseSpaceType;
 
     /// The dense space considered
     typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
@@ -147,26 +151,24 @@ public:
 
     /**
      * @brief This function computes using the inverse power method the minimal eigenvalue
-     * @param InputMatrix The matrix to compute the eigenvalue
+     * @param rInputMatrix The matrix to compute the eigenvalue
      * @return condition_number The condition number
      */
-
-    double GetConditionNumber(SparseMatrixType& InputMatrix)
+    double GetConditionNumber(SparseMatrixType& rInputMatrix)
     {
         KRATOS_ERROR_IF(mpEigenSolverMax == nullptr || mpEigenSolverMin == nullptr) << "ERROR:: PLEASE DEFINE THE EigenSolvers" << std::endl;
-        return GetConditionNumber(InputMatrix, mpEigenSolverMax, mpEigenSolverMin);
+        return GetConditionNumber(rInputMatrix, mpEigenSolverMax, mpEigenSolverMin);
     }
 
     /**
      * @brief This function computes using the inverse power method the minimal eigenvalue
-     * @param InputMatrix The matrix to compute the eigenvalue
+     * @param rInputMatrix The matrix to compute the eigenvalue
      * @param pEigenSolverMax The solver to get the maximal eigen value
      * @param pEigenSolverMin The solver to get the minimal eigen value
      * @return condition_number The condition number
      */
-
     double GetConditionNumber(
-        SparseMatrixType& InputMatrix,
+        SparseMatrixType& rInputMatrix,
         LinearSolverType::Pointer pEigenSolverMax,
         LinearSolverType::Pointer pEigenSolverMin
         )
@@ -175,13 +177,16 @@ public:
         DenseVectorType eigen_values;
         DenseMatrixType eigen_vectors;
 
-        const SizeType size_matrix = InputMatrix.size1();
-        SparseMatrixType identity_matrix = IdentityMatrix(size_matrix, size_matrix);
+        const SizeType size_matrix = rInputMatrix.size1();
 
-        pEigenSolverMax->Solve(InputMatrix, identity_matrix, eigen_values, eigen_vectors);
+        SparseMatrixType identity_matrix(size_matrix, size_matrix);
+        for (IndexType i = 0; i < size_matrix; ++i)
+            identity_matrix.push_back(i, i, 1.0);
+
+        pEigenSolverMax->Solve(rInputMatrix, identity_matrix, eigen_values, eigen_vectors);
         const double max_lambda = eigen_values[0];
 
-        pEigenSolverMin->Solve(InputMatrix, identity_matrix, eigen_values, eigen_vectors);
+        pEigenSolverMin->Solve(rInputMatrix, identity_matrix, eigen_values, eigen_vectors);
         const double min_lambda = eigen_values[0];
 
         KRATOS_ERROR_IF(min_lambda < std::numeric_limits<double>::epsilon()) << "ERROR:: NOT POSSIBLE TO COMPUTE CONDITION NUMBER. ZERO EIGENVALUE" << std::endl;

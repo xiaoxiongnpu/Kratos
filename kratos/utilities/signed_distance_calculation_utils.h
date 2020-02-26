@@ -142,12 +142,12 @@ public:
             it->GetValue(IS_VISITED) = 0;
         }
 
-        boost::numeric::ublas::bounded_matrix<double,TDim+1,TDim> DN_DX;
+        BoundedMatrix<double,TDim+1,TDim> DN_DX;
         array_1d<double,TDim+1> N, distances;
         array_1d<double,TDim> grad_d;
         array_1d<double,3> coord_on_0(3,0.0);
         array_1d<double,3> temp;
-        boost::numeric::ublas::bounded_matrix<double, TDim, TDim> free_surface_points;
+        BoundedMatrix<double, TDim, TDim> free_surface_points;
 
         //fill the list of the first elements to be solved for the "distance"
         for(ElementsArrayType::iterator it =  r_model_part.ElementsBegin(); it !=r_model_part.ElementsEnd(); it++)
@@ -289,7 +289,7 @@ public:
                 //const array_1d<double,3>& center_coords = it->Coordinates();
 
                 //now loop all of its neighbours and calculate the distance value
-//                for (WeakPointerVector< Node<3> >::iterator in = it->GetValue(NEIGHBOUR_NODES).begin();
+//                for (GlobalPointersVector< Node<3> >::iterator in = it->GetValue(NEIGHBOUR_NODES).begin();
 //                        in != it->GetValue(NEIGHBOUR_NODES).end(); in++)
 //                {
 //                    const array_1d<double,3>& coords = in->Coordinates();
@@ -472,7 +472,7 @@ public:
             double zc = in->Z();
 
             double h = 0.0;
-            for (WeakPointerVector< Node < 3 > >::iterator i = in->GetValue(NEIGHBOUR_NODES).begin();
+            for (GlobalPointersVector< Node < 3 > >::iterator i = in->GetValue(NEIGHBOUR_NODES).begin();
                     i != in->GetValue(NEIGHBOUR_NODES).end(); i++)
             {
                 double x = i->X();
@@ -528,7 +528,7 @@ private:
 //                                 Geometry< Node<3> >& geom,
 //                                 double xi, double eta,
 //                                 array_1d<double, 3 > N,
-//                                 const boost::numeric::ublas::bounded_matrix<double, TDim, TDim> free_surface_points,
+//                                 const BoundedMatrix<double, TDim, TDim> free_surface_points,
 //                                 Variable<double>& rDistanceVar )
 //                 {
 //                     Point<3> aux(0.0, 0.0, 0.0);

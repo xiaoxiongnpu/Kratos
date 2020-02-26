@@ -10,57 +10,48 @@
 //  Main authors:    Miguel Maso Sotomayor
 //
 
-// System includes 
+// System includes
 
 
-// External includes 
-#include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-#include <boost/timer.hpp> 
+// External includes
 
 
 // Project includes
-#include "includes/define.h"
-#include "custom_python/add_custom_strategies_to_python.h"
-
+#include "add_custom_strategies_to_python.h"
 #include "spaces/ublas_space.h"
 
-//strategies
-#include "solving_strategies/strategies/solving_strategy.h"
-
-//linear solvers
-#include "linear_solvers/linear_solver.h"
-
+// Schemes
+#include "custom_strategies/schemes/residualbased_incrementalupdate_wetting_scheme.h"
 
 
 namespace Kratos
 {
 
-	namespace Python
-	{		
-		using namespace boost::python;
+namespace Python
+{
 
-		void  AddCustomStrategiesToPython()
-		{
-			typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
-			typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
+  void AddCustomStrategiesToPython(pybind11::module& m)
+  {
+    namespace py = pybind11;
 
-			typedef LinearSolver<SparseSpaceType, LocalSpaceType > LinearSolverType;
-			typedef SolvingStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType > BaseSolvingStrategyType;
-			typedef Scheme< SparseSpaceType, LocalSpaceType > BaseSchemeType;
+    typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
+    typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
 
-			//********************************************************************
-			//********************************************************************
-// 			class_< TestStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >,	
-// 					bases< BaseSolvingStrategyType >,  boost::noncopyable >
-// 				("TestStrategy", 
-// 				init<ModelPart&, LinearSolverType::Pointer, int, int, bool >() )
-// 				.def("MoveNodes",&TestStrategy< SparseSpaceType, LocalSpaceType, LinearSolverType >::MoveNodes)
-// 				;
-		 
-		}
+    // Schemes
+    typedef Scheme<SparseSpaceType, LocalSpaceType> BaseSchemeType;
 
-	}  // namespace Python.
+    typedef ResidualBasedIncrementalUpdateWettingScheme<SparseSpaceType, LocalSpaceType> ResidualBasedIncrementalUpdateWettingScheme;
+    py::class_<
+        ResidualBasedIncrementalUpdateWettingScheme,
+        typename ResidualBasedIncrementalUpdateWettingScheme::Pointer,
+        BaseSchemeType>
+        (m, "ResidualBasedIncrementalUpdateWettingScheme")
+        .def(py::init<>())
+        .def(py::init<Process::Pointer>())
+        ;
+
+  }
+
+}  // namespace Python.
 
 } // Namespace Kratos
-

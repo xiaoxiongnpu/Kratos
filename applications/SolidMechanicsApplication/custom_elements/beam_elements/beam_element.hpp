@@ -5,9 +5,9 @@
 //   Date:                $Date:              August 2017 $
 //   Revision:            $Revision:                  0.0 $
 //
-// 
+//
 
-#if !defined(KRATOS_BEAM_ELEMENT_H_INCLUDED )
+#if !defined(KRATOS_BEAM_ELEMENT_H_INCLUDED)
 #define  KRATOS_BEAM_ELEMENT_H_INCLUDED
 
 // System includes
@@ -18,6 +18,7 @@
 #include "includes/checks.h"
 #include "includes/element.h"
 #include "utilities/beam_math_utilities.hpp"
+#include "custom_utilities/element_utilities.hpp"
 
 namespace Kratos
 {
@@ -38,13 +39,13 @@ namespace Kratos
 
 /// Beam Element for 2D and 3D space dimensions
 
-class BeamElement
+class KRATOS_API(SOLID_MECHANICS_APPLICATION) BeamElement
     :public Element
 {
 public:
 
     ///@name Type Definitions
-    ///@{    
+    ///@{
     ///Reference type definition for constitutive laws
     typedef ConstitutiveLaw                         ConstitutiveLawType;
     ///Pointer type for constitutive laws
@@ -55,11 +56,13 @@ public:
     typedef GeometryData::IntegrationMethod           IntegrationMethod;
     ///Type definition for beam utilities
     typedef BeamMathUtils<double>                     BeamMathUtilsType;
-    ///Type definition for quaternion 
+    ///Type definition for quaternion
     typedef Quaternion<double>                           QuaternionType;
+    ///Type for size
+    typedef GeometryData::SizeType                             SizeType;
 
     /// Counted pointer of BeamElement
-    KRATOS_CLASS_POINTER_DEFINITION( BeamElement );
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION( BeamElement );
 
     ///@}
 
@@ -70,9 +73,7 @@ protected:
      */
     KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_RHS_VECTOR );
     KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_LHS_MATRIX );
-    KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_RHS_VECTOR_WITH_COMPONENTS );
-    KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_LHS_MATRIX_WITH_COMPONENTS );
-
+    KRATOS_DEFINE_LOCAL_FLAG( FINALIZED_STEP );
     /**
      * Parameters to be used to store section properties
      */
@@ -102,14 +103,14 @@ protected:
       //Previous
       std::vector<Vector> Previous;
       std::vector<Vector> PreviousDerivatives;
-    
 
-      //NODAL VARIABLES 
+
+      //NODAL VARIABLES
       std::vector<Matrix> InitialNode;
-      std::vector<Matrix> CurrentNode;       
+      std::vector<Matrix> CurrentNode;
       std::vector<Matrix> PreviousNode;
 
-      std::vector<Matrix> CurrentNodeVelocities;        
+      std::vector<Matrix> CurrentNodeVelocities;
       std::vector<Matrix> PreviousNodeVelocities;
     };
 
@@ -118,7 +119,7 @@ protected:
      * Parameters to be used in the Element as they are. Direct interface to Parameters Struct
      */
 
-    struct ElementVariables
+    struct ElementData
     {
       private:
 
@@ -133,28 +134,31 @@ protected:
 
         //integration point
         unsigned int PointNumber;
- 
+
+        //delta time
+        double DeltaTime;
+
         //element length
         double  Length;
-        double  detJ;           
+        double  detJ;
 
         //equilibrium point
         double Alpha;
 
-        //general variables 
+        //general variables
         Vector  StrainVector;
         Vector  StressVector;
         Vector  N;
-      
+
         Matrix  B;
         Matrix  DN_DX;
         Matrix  ConstitutiveMatrix;
         Matrix  DeltaPosition;
-      
+
         //large displacement
         Vector  CurrentCurvatureVector;
         Vector  PreviousCurvatureVector;
-      
+
         Vector  CurrentStepRotationVector;
 
         Vector  CurrentStrainResultantsVector;
@@ -170,15 +174,15 @@ protected:
 
         Matrix  CurrentRotationMatrix;
         Matrix  PreviousRotationMatrix;
- 
-     
+
+
         //variables including all integration points
         GeometryType::JacobiansType J;
         GeometryType::JacobiansType j;
- 
+
         //section properties
         SectionProperties Section;
-      
+
         /**
          * sets the value of a specified pointer variable
          */
@@ -192,7 +196,7 @@ protected:
             pNcontainer=&rNcontainer;
         };
 
-        
+
         void SetDirectors(DirectorsVariables& rDirectors)
         {
             Directors=&rDirectors;
@@ -216,20 +220,21 @@ protected:
             return *Directors;
         };
 
-        void Initialize( const unsigned int& voigt_size, 
-			 const unsigned int& dimension, 
+        void Initialize( const unsigned int& voigt_size,
+			 const unsigned int& dimension,
 			 const unsigned int& number_of_nodes )
         {
 	  //scalars
 	  PointNumber = 0;
-	  Length = 0;  
+	  Length = 0;
 	  detJ  = 1;
 	  Alpha = 1;
+          DeltaTime = 0;
 
 	  //vectors
 	  StrainVector.resize(voigt_size,false);
           StressVector.resize(voigt_size,false);
-	  N.resize(number_of_nodes,false);	  
+	  N.resize(number_of_nodes,false);
 	  noalias(StrainVector) = ZeroVector(voigt_size);
 	  noalias(StressVector) = ZeroVector(voigt_size);
 	  noalias(N) = ZeroVector(number_of_nodes);
@@ -253,7 +258,7 @@ protected:
 	  noalias(InitialAxisPositionDerivatives) = ZeroVector(dimension);
 	  noalias(CurrentAxisPositionDerivatives) = ZeroVector(dimension);
 	  noalias(PreviousAxisPositionDerivatives) = ZeroVector(dimension);
-	  
+
 	  //others
 	  J.resize(1,false);
 	  j.resize(1,false);
@@ -261,13 +266,13 @@ protected:
 	  j[0].resize(dimension,dimension,false);
 	  noalias(J[0]) = ZeroMatrix(dimension,dimension);
 	  noalias(j[0]) = ZeroMatrix(dimension,dimension);
-	  
+
 	  //pointers
 	  pDN_De = NULL;
 	  pNcontainer = NULL;
 	  Directors = NULL;
 	}
-      
+
     };
 
 
@@ -281,8 +286,8 @@ protected:
     struct LocalSystemComponents
     {
     private:
-      
-      //for calculation local system with compacted LHS and RHS 
+
+      //for calculation local system with compacted LHS and RHS
       MatrixType *mpLeftHandSideMatrix;
       VectorType *mpRightHandSideVector;
 
@@ -305,11 +310,14 @@ protected:
       MatrixType& GetLeftHandSideMatrix() { return *mpLeftHandSideMatrix; };
 
       VectorType& GetRightHandSideVector() { return *mpRightHandSideVector; };
- 
+
     };
 
 
 public:
+
+    ///Type for element variables
+    typedef ElementData                                 ElementDataType;
 
     ///@name Life Cycle
     ///@{
@@ -323,7 +331,7 @@ public:
     BeamElement(BeamElement const& rOther);
 
     /// Destructor.
-    virtual ~BeamElement();
+    ~BeamElement() override;
 
 
     ///@}
@@ -391,8 +399,8 @@ public:
     /**
      * Get on rVariable a double Value from the Element Constitutive Law
      */
-    void GetValueOnIntegrationPoints( const Variable<double>& rVariable, 
-				      std::vector<double>& rValues, 
+    void GetValueOnIntegrationPoints( const Variable<double>& rVariable,
+				      std::vector<double>& rValues,
 				      const ProcessInfo& rCurrentProcessInfo ) override;
 
     /**
@@ -410,7 +418,7 @@ public:
       * Must be called before any calculation is done
       */
     void Initialize() override;
-  
+
       /**
      * Called at the beginning of each solution step
      */
@@ -465,7 +473,7 @@ public:
 
     /**
      * this is called during the assembling process in order
-     * to calculate the second derivatives contributions for the LHS and RHS 
+     * to calculate the second derivatives contributions for the LHS and RHS
      * @param rLeftHandSideMatrix: the elemental left hand side matrix
      * @param rRightHandSideVector: the elemental right hand side
      * @param rCurrentProcessInfo: the current process info instance
@@ -512,7 +520,7 @@ public:
      * SET/UNSETLOCK MUST BE PERFORMED IN THE STRATEGY BEFORE CALLING THIS FUNCTION
      * @param rRHSVector: input variable containing the RHS vector to be assembled
      * @param rRHSVariable: variable describing the type of the RHS vector to be assembled
-     * @param rDestinationVariable: variable in the database to which the rRHSVector will be assembled 
+     * @param rDestinationVariable: variable in the database to which the rRHSVector will be assembled
       * @param rCurrentProcessInfo: the current process info instance
      */
     void AddExplicitContribution(const VectorType& rRHSVector, const Variable<VectorType>& rRHSVariable, Variable<array_1d<double,3> >& rDestinationVariable, const ProcessInfo& rCurrentProcessInfo) override;
@@ -521,11 +529,11 @@ public:
     /**
      * Calculate a double Variable on the Element Constitutive Law
      */
-    void CalculateOnIntegrationPoints(const Variable<double>& rVariable, 
-				      std::vector<double>& rOutput, 
+    void CalculateOnIntegrationPoints(const Variable<double>& rVariable,
+				      std::vector<double>& rOutput,
 				      const ProcessInfo& rCurrentProcessInfo) override;
 
- 
+
     /**
      * Calculate a double Variable on the Element Constitutive Law
      */
@@ -544,7 +552,7 @@ public:
      * @param rCurrentProcessInfo
      */
     int Check(const ProcessInfo& rCurrentProcessInfo) override;
-  
+
     ///@}
     ///@name Access
     ///@{
@@ -556,7 +564,7 @@ public:
     ///@name Input and output
     ///@{
     /// Turn back information as a string.
-    virtual std::string Info() const override
+    std::string Info() const override
     {
         std::stringstream buffer;
         buffer << "Large Displacement Beam Element #" << Id();
@@ -564,13 +572,13 @@ public:
     }
 
     /// Print information about this object.
-    virtual void PrintInfo(std::ostream& rOStream) const override
+    void PrintInfo(std::ostream& rOStream) const override
     {
         rOStream << "Large Displacement Beam Element #" << Id();
     }
 
     /// Print object's data.
-    virtual void PrintData(std::ostream& rOStream) const override
+    void PrintData(std::ostream& rOStream) const override
     {
       GetGeometry().PrintData(rOStream);
     }
@@ -596,11 +604,13 @@ protected:
      * Global to Local Quaternion for Global to Local tensor transformation SPATIAL
      */
     QuaternionType  mInitialLocalQuaternion;
-  
+
     ///@}
     ///@name Protected Operators
     ///@{
     BeamElement() {};
+
+    //constexpr const std::size_t& Dimension() const {return GetGeometry().WorkingSpaceDimension();}
 
     ///@}
     ///@name Protected Operations
@@ -611,14 +621,14 @@ protected:
      */
     void IncreaseIntegrationMethod(IntegrationMethod& rThisIntegrationMethod,
 				   unsigned int increment) const;
-  
-    
+
+
     /**
      * Calculates the elemental contributions
      * \f$ K^e = w\,B^T\,D\,B \f$ and
      * \f$ r^e \f$
      */
-  
+
     virtual void CalculateElementalSystem( LocalSystemComponents& rLocalSystem,
 					   ProcessInfo& rCurrentProcessInfo );
 
@@ -631,7 +641,7 @@ protected:
 
     /**
      * Get element size from the dofs
-     */    
+     */
     virtual unsigned int GetDofsSize();
 
     /**
@@ -644,106 +654,94 @@ protected:
 
     /**
      * Transform Vector Variable from Global Frame to the Spatial Local Frame
-     */    
+     */
     Vector& MapToInitialLocalFrame(Vector& rVariable, unsigned int PointNumber = 0);
 
     /**
      * Transform Vector Variable form Spatial Frame to Global Frame
-     */    
-    virtual void MapLocalToGlobal(ElementVariables& rVariables, Matrix& rVariable);
+     */
+    virtual void MapLocalToGlobal(ElementDataType& rVariables, Matrix& rVariable);
 
     /**
      * Transform Vector Variable form Spatial Frame to Global Frame
-     */    
-    virtual void MapLocalToGlobal(ElementVariables& rVariables, VectorType& rVector);
-     
+     */
+    virtual void MapLocalToGlobal(ElementDataType& rVariables, VectorType& rVector);
+
 
     /**
      * Get Current Value in the integration point in the Local Reference configuration, buffer 0 with FastGetSolutionStepValue
-     */    
-    Vector& GetLocalCurrentValue(const Variable<array_1d<double,3> >&rVariable, 
-				 Vector& rValue, 
+     */
+    Vector& GetLocalCurrentValue(const Variable<array_1d<double,3> >&rVariable,
+				 Vector& rValue,
 				 const Vector& rN);
 
 
     /**
      * Get Reference Value in the integration point in the Local Reference configuration, buffer 1 with FastGetSolutionStepValue
-     */    
-    Vector& GetLocalPreviousValue(const Variable<array_1d<double,3> >&rVariable, 
-				  Vector& rValue, 
+     */
+    Vector& GetLocalPreviousValue(const Variable<array_1d<double,3> >&rVariable,
+				  Vector& rValue,
 				  const Vector& rN);
 
 
     /**
      * Get Current Value, buffer 0 with FastGetSolutionStepValue
-     */    
-    Vector& GetNodalCurrentValue(const Variable<array_1d<double,3> >&rVariable, 
-				 Vector& rValue, 
+     */
+    Vector& GetNodalCurrentValue(const Variable<array_1d<double,3> >&rVariable,
+				 Vector& rValue,
 				 const unsigned int& rNode);
 
     /**
      * Get Reference Value, buffer 1 with FastGetSolutionStepValue
-     */    
-    Vector& GetNodalPreviousValue(const Variable<array_1d<double,3> >&rVariable, 
-				  Vector& rValue, 
+     */
+    Vector& GetNodalPreviousValue(const Variable<array_1d<double,3> >&rVariable,
+				  Vector& rValue,
 				  const unsigned int& rNode);
 
     /**
      * Initialize Element General Variables
      */
-    virtual void InitializeElementVariables(ElementVariables & rVariables, const ProcessInfo& rCurrentProcessInfo);
+    virtual void InitializeElementData(ElementDataType & rVariables, const ProcessInfo& rCurrentProcessInfo);
 
 
     /**
      * Calculation of the Section Properties
      */
     void CalculateSectionProperties(SectionProperties & rSection);
-  
 
-    /**   
+
+    /**
      * Calculate Element Kinematics
      */
-    virtual void CalculateKinematics(ElementVariables& rVariables,
+    virtual void CalculateKinematics(ElementDataType& rVariables,
                                      const unsigned int& rPointNumber);
 
-
     /**
-     * Calculation of the increment of position (step displacement)
-     */
-    Matrix& CalculateDeltaPosition(Matrix & rDeltaPosition);
-
-    /**
-     * Calculation of the increment of position (step displacement)
-     */
-    Matrix& CalculateTotalDeltaPosition(Matrix & rDeltaPosition);
-
-
-    /**   
      * Calculate Element Constitutive Matrix
-     */ 
-    virtual void CalculateConstitutiveMatrix(ElementVariables& rVariables);
+     */
+    virtual void CalculateConstitutiveMatrix(ElementDataType& rVariables);
 
 
-    /**   
+    /**
      * Calculate Element Material Constitutive Matrix
-     */ 
-    void CalculateMaterialConstitutiveMatrix(Matrix& rConstitutiveMatrix, ElementVariables& rVariables);
+     */
+    void CalculateMaterialConstitutiveMatrix(Matrix& rConstitutiveMatrix, ElementDataType& rVariables);
 
 
-    /**   
+    /**
      * Calculate Element Stress Resultants and Couples
-     */ 
-    virtual void CalculateStressResultants(ElementVariables& rVariables, const unsigned int& rPointNumber);
+     */
+    virtual void CalculateStressResultants(ElementDataType& rVariables, const unsigned int& rPointNumber);
 
     /**
      * Calculation and addition of the matrices of the LHS
      */
-    virtual void CalculateAndAddLHS(LocalSystemComponents& rLocalSystem, ElementVariables& rVariables, double& rIntegrationWeight);
+    virtual void CalculateAndAddLHS(LocalSystemComponents& rLocalSystem, ElementDataType& rVariables, double& rIntegrationWeight);
 
     /**
      * Calculation and addition of the vectors of the RHS
      */
-    virtual void CalculateAndAddRHS(LocalSystemComponents& rLocalSystem, ElementVariables& rVariables, Vector& VolumeForce, double& rIntegrationWeight);
+    virtual void CalculateAndAddRHS(LocalSystemComponents& rLocalSystem, ElementDataType& rVariables, Vector& VolumeForce, double& rIntegrationWeight);
 
    /**
      * Calculation of the Integration Weight
@@ -755,7 +753,7 @@ protected:
      */
 
     virtual void CalculateAndAddKuum(MatrixType& rLeftHandSideMatrix,
-                                     ElementVariables& rVariables,
+                                     ElementDataType& rVariables,
                                      double& rIntegrationWeight);
 
 
@@ -764,14 +762,14 @@ protected:
      * Calculation of the Geometric Stiffness Matrix. Kuug = BT * S
      */
     virtual void CalculateAndAddKuug(MatrixType& rLeftHandSideMatrix,
-                                     ElementVariables& rVariables,
+                                     ElementDataType& rVariables,
                                      double& rIntegrationWeight);
 
     /**
      * Calculation of the External Forces Vector. Fe = N * t + N * b
      */
     virtual void CalculateAndAddExternalForces(VectorType& rRightHandSideVector,
-					       ElementVariables& rVariables,
+					       ElementDataType& rVariables,
 					       Vector& rVolumeForce,
 					       double& rIntegrationWeight);
 
@@ -780,7 +778,7 @@ protected:
       * Calculation of the Tangent Intertia Matrix
       */
     virtual void CalculateAndAddInertiaLHS(MatrixType& rLeftHandSideMatrix,
-					   ElementVariables& rVariables,
+					   ElementDataType& rVariables,
 					   ProcessInfo& rCurrentProcessInfo,
 					   double& rIntegrationWeight);
 
@@ -788,7 +786,7 @@ protected:
       * Calculation of the Inertial Forces Vector
       */
     virtual void CalculateAndAddInertiaRHS(VectorType& rRightHandSideVector,
-					   ElementVariables& rVariables,
+					   ElementDataType& rVariables,
 					   ProcessInfo& rCurrentProcessInfo,
 					   double& rIntegrationWeight);
 
@@ -796,7 +794,7 @@ protected:
       * Calculation of the Internal Forces Vector. Fi = B * sigma
       */
     virtual void CalculateAndAddInternalForces(VectorType& rRightHandSideVector,
-					       ElementVariables & rVariables,
+					       ElementDataType & rVariables,
 					       double& rIntegrationWeight);
 
 
@@ -813,7 +811,7 @@ protected:
 
     /**
      * Calculation of Element Mass
-     */ 
+     */
     double& CalculateTotalMass( SectionProperties& Section, double& rTotalMass );
 
     /**
@@ -821,7 +819,7 @@ protected:
      */
     void CalculateInertiaDyadic(SectionProperties& rSection, Matrix& rInertiaDyadic);
 
-  
+
     ///@}
     ///@name Protected  Access
     ///@{
@@ -859,9 +857,9 @@ private:
     // A private default constructor necessary for serialization
 
 
-    virtual void save(Serializer& rSerializer) const override;
+    void save(Serializer& rSerializer) const override;
 
-    virtual void load(Serializer& rSerializer) override;
+    void load(Serializer& rSerializer) override;
 
     ///@name Private Inquiry
     ///@{
@@ -875,4 +873,3 @@ private:
 
 } // namespace Kratos.
 #endif //  KRATOS_BEAM_ELEMENT_H_INCLUDED defined
-

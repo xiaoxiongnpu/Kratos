@@ -1,10 +1,10 @@
 {
     "properties" : [{
-        "model_part_name" : "Parts_Parts_Auto1",
+        "model_part_name" : "Structure.Parts_Parts_Auto1",
         "properties_id"   : 1,
         "Material"        : {
             "constitutive_law" : {
-                "name" : "KratosMultiphysics.StructuralMechanicsApplication.HyperElastic3DLaw"
+                "name" : "HyperElastic3DLaw"
             },
             "Variables"        : {
                 "DENSITY"       : 1000.0,
@@ -14,11 +14,11 @@
             "Tables"           : {}
         }
     },{
-        "model_part_name" : "Parts_Parts_Auto2",
+        "model_part_name" : "Structure.Parts_Parts_Auto2",
         "properties_id"   : 2,
         "Material"        : {
             "constitutive_law" : {
-                "name" : "KratosMultiphysics.StructuralMechanicsApplication.HyperElastic3DLaw"
+                "name" : "HyperElastic3DLaw"
             },
             "Variables"        : {
                 "DENSITY"       : 1000.0,

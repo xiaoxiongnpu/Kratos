@@ -5,25 +5,25 @@ import KratosMultiphysics.SolidMechanicsApplication as KratosSolid
 
 ## This proces sets the value of a vector variable
 import sys
-import assign_modulus_and_direction_to_conditions_process as BaseProcess
+from KratosMultiphysics.SolidMechanicsApplication.assign_modulus_and_direction_to_conditions_process import AssignModulusAndDirectionToConditionsProcess
 
 def Factory(custom_settings, Model):
     if( not isinstance(custom_settings,KratosMultiphysics.Parameters) ):
         raise Exception("Expected input shall be a Parameters object, encapsulating a json string")
     return AssignVectorToConditionsProcess(Model, custom_settings["Parameters"])
 
-class AssignVectorToConditionsProcess(BaseProcess.AssignModulusAndDirectionToConditionsProcess):
+class AssignVectorToConditionsProcess(AssignModulusAndDirectionToConditionsProcess):
     def __init__(self, Model, custom_settings ):
-        BaseProcess.AssignModulusAndDirectionToConditionsProcess.__init__(self, Model, custom_settings)
+        AssignModulusAndDirectionToConditionsProcess.__init__(self, Model, custom_settings)
 
     def ExecuteInitialize(self):
 
         # set model part
         self.model_part = self.model[self.settings["model_part_name"].GetString()]
-        if( self.model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED] == False ):
+        if not self.model_part.ProcessInfo[KratosMultiphysics.IS_RESTARTED]:
             self.model_part.ProcessInfo.SetValue(KratosMultiphysics.INTERVAL_END_TIME, self.interval[1])
 
-        if( self.IsInsideInterval() and self.interval_string == "initial" ):
+        if( self.IsInsideInterval() and (self.interval_string == "initial" or self.interval_string == "start")  ):
             self.AssignValueToConditions()
 
     def ExecuteInitializeSolutionStep(self):
@@ -55,6 +55,9 @@ class AssignVectorToConditionsProcess(BaseProcess.AssignModulusAndDirectionToCon
         self.interval_string = "custom"
         if( self.interval[0] == 0.0 and self.interval[1] == 0.0 ):
             self.interval_string = "initial"
+        elif( self.interval[0] < 0 ):
+            self.interval_string = "start"
+            self.interval[0] = 0.0
 
         ## set the value
         self.value_is_numeric = False

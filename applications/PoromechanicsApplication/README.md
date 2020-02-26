@@ -4,17 +4,17 @@ The Poromechanics Application contains developments in coupled solid-pore fluid 
 
 ### Features:
 
-- UPw small displacement element for saturated porous media (with 
+- UPw small displacement element for saturated porous media (with
 equal order interpolation, unstable under incompressible-undrained
 conditions)
 
-- Stable UPw small displacement element for saturated porous media 
+- Stable UPw small displacement element for saturated porous media
 (with higher order interpolation for displacements)
 
-- FIC-Stabilized UPw small displacement element for saturated porous media 
+- FIC-Stabilized UPw small displacement element for saturated porous media
 (with equal order interpolation for displacements)
 
-- UPw Quasi-zero-thickness interface elements for defining cracks and 
+- UPw Quasi-zero-thickness interface elements for defining cracks and
 joints
 
 - Local linear elastic damage model (Simo-Ju and modified Von Mises)
@@ -24,8 +24,8 @@ Mises)
 
 - Bilinear cohesive fracture model (for quasi-zero-thickness interface elements)
 
-- Fracture propagation utility based on the combination of the 
-damage model with the insertion of interface elements after remeshing 
+- Fracture propagation utility based on the combination of the
+damage model with the insertion of interface elements after remeshing
 with GiD
 
 
@@ -51,9 +51,7 @@ Make sure that the following lines are properly set in the configure.sh file:
 >
 > -DEXTERNAL_SOLVERS_APPLICATION=ON \\
 >
-> -DCONSTITUTIVE_MODELS_APPLICATION=ON \\
->
-> -DSOLID_MECHANICS_APPLICATION=ON \\
+> -DSTRUCTURAL_MECHANICS_APPLICATION=ON \\
 >
 > -DFLUID_DYNAMICS_APPLICATION=ON \\
 >
@@ -61,8 +59,8 @@ Make sure that the following lines are properly set in the configure.sh file:
 >
 > -DUSE_PORO_MPI=ON \\
 
-Uncomment the following line in 
-[poromechanics_main.py](https://github.com/KratosMultiphysics/Kratos/blob/master/applications/PoromechanicsApplication/custom_problemtype/Poromechanics_Application.gid/poromechanics_main.py) and [poromechanics_fracture_main.py](https://github.com/KratosMultiphysics/Kratos/blob/master/applications/PoromechanicsApplication/custom_problemtype/Poromechanics_Application.gid/poromechanics_fracture_main.py).
+Uncomment the following line in
+[KratosPoromechanics.py](https://github.com/KratosMultiphysics/Kratos/blob/master/applications/PoromechanicsApplication/custom_problemtype/Poromechanics_Application.gid/KratosPoromechanics.py).
 
 > import KratosMultiphysics.TrilinosApplication as TrilinosApplication
 

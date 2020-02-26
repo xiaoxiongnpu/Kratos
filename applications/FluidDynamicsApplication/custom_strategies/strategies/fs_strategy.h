@@ -194,21 +194,21 @@ public:
 
                 for (ModelPart::ConditionIterator itCond = CondBegin; itCond != CondEnd; ++itCond)
                 {
-                    const double FlagValue = itCond->GetValue(IS_STRUCTURE);
-                    if (FlagValue != 0.0)
+                    const bool is_slip = itCond->Is(SLIP);
+                    if (is_slip)
                     {
 
                         Condition::GeometryType& rGeom = itCond->GetGeometry();
                         for (unsigned int i = 0; i < rGeom.PointsNumber(); ++i)
                         {
                             rGeom[i].SetLock();
-                            rGeom[i].SetValue(IS_STRUCTURE,FlagValue);
+                            rGeom[i].Set(SLIP,is_slip);
                             rGeom[i].UnSetLock();
                         }
                     }
                 }
             }
-            rModelPart.GetCommunicator().AssembleNonHistoricalData(IS_STRUCTURE);
+            rModelPart.GetCommunicator().SynchronizeOrNodalFlags(SLIP);
         }
 
 
@@ -227,7 +227,7 @@ public:
     ///@name Operations
     ///@{
 
-    void Initialize() override 
+    void Initialize() override
     {}
 
     int Check() override
@@ -316,6 +316,17 @@ public:
         return NormDp;
     }
 
+    bool SolveSolutionStep() override
+    {
+        double norm_dp = this->Solve();
+        /* If not doing predictor corrector iterations, norm_dp will
+         * typically be "large" since we are not iterating on pressure.
+         * It makes no sense to report that the iteration didn't converge
+         * based on this.
+         */
+        return mPredictorCorrector ? this->CheckPressureConvergence(norm_dp) : true;
+    }
+
 
     virtual void CalculateReactions()
     {
@@ -333,11 +344,9 @@ public:
             ModelPart::NodeIterator NodesEnd;
             OpenMPUtils::PartitionedIterators(rModelPart.Nodes(),NodesBegin,NodesEnd);
 
-            const array_1d<double,3> Zero(3,0.0);
-
             for (ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode)
             {
-                itNode->FastGetSolutionStepValue(REACTION) = Zero;
+                itNode->FastGetSolutionStepValue(REACTION) = ZeroVector(3);
             }
         }
 
@@ -419,7 +428,7 @@ public:
     ///@{
 
     /// Turn back information as a string.
-    virtual std::string Info() const
+    std::string Info() const override
     {
         std::stringstream buffer;
         buffer << "FSStrategy" ;
@@ -427,10 +436,13 @@ public:
     }
 
     /// Print information about this object.
-    virtual void PrintInfo(std::ostream& rOStream) const {rOStream << "FSStrategy";}
+    void PrintInfo(std::ostream& rOStream) const override
+    {
+        rOStream << Info();
+    }
 
     /// Print object's data.
-    virtual void PrintData(std::ostream& rOStream) const {}
+    void PrintData(std::ostream& rOStream) const override {}
 
 
     ///@}
@@ -454,6 +466,43 @@ protected:
     ///@}
     ///@name Protected member Variables
     ///@{
+
+    double mVelocityTolerance;
+
+    double mPressureTolerance;
+
+    unsigned int mMaxVelocityIter;
+
+    unsigned int mMaxPressureIter;
+
+    unsigned int mDomainSize;
+
+    unsigned int mTimeOrder;
+
+    bool mPredictorCorrector;
+
+    bool mUseSlipConditions;
+
+    bool mReformDofSet;
+
+    // Fractional step index.
+    /*  1 : Momentum step (calculate fractional step velocity)
+      * 2-3 : Unused (reserved for componentwise calculation of frac step velocity)
+      * 4 : Pressure step
+      * 5 : Computation of projections
+      * 6 : End of step velocity
+      */
+//    unsigned int mStepId;
+
+    /// Scheme for the solution of the momentum equation
+    StrategyPointerType mpMomentumStrategy;
+
+    /// Scheme for the solution of the mass equation
+    StrategyPointerType mpPressureStrategy;
+
+    std::vector< Process::Pointer > mExtraIterationSteps;
+
+    const Kratos::Variable<int>& mrPeriodicIdVar;
 
 
     ///@}
@@ -505,7 +554,7 @@ protected:
         KRATOS_CATCH("");
     }
 
-    double SolveStep()
+    virtual double SolveStep()
     {
         ModelPart& rModelPart = BaseType::GetModelPart();
 
@@ -587,6 +636,7 @@ protected:
         rModelPart.GetProcessInfo().SetValue(FRACTIONAL_STEP,6);
 
         this->CalculateEndOfStepVelocity();
+
         /*
         mpPressureStrategy->Clear();
         double NormDu = mpPressureStrategy->Solve();
@@ -623,21 +673,21 @@ protected:
             }
         }
 
-        BaseType::GetModelPart().GetCommunicator().SumAll(NormV);
-
+        NormV = BaseType::GetModelPart().GetCommunicator().GetDataCommunicator().SumAll(NormV);
         NormV = sqrt(NormV);
 
         if (NormV == 0.0) NormV = 1.00;
 
         double Ratio = NormDv / NormV;
 
-        if ( BaseType::GetEchoLevel() > 0 && rModelPart.GetCommunicator().MyPID() == 0)
-            std::cout << "Fractional velocity relative error: " << Ratio << std::endl;
+        KRATOS_INFO_IF("Fractional Step Strategy : ", BaseType::GetEchoLevel() > 0) << "CONVERGENCE CHECK:" << std::endl;
+        KRATOS_INFO_IF("Fractional Step Strategy : ", BaseType::GetEchoLevel() > 0) <<  std::scientific << std::setprecision(8)
+                                                                                    << "FRAC VEL.: ratio = "
+                                                                                    << Ratio <<"; exp.ratio = " << mVelocityTolerance
+                                                                                    << " abs = " << NormDv << std::endl;
 
         if (Ratio < mVelocityTolerance)
-        {
             return true;
-        }
         else
             return false;
     }
@@ -661,8 +711,7 @@ protected:
             }
         }
 
-        BaseType::GetModelPart().GetCommunicator().SumAll(NormP);
-
+        NormP = BaseType::GetModelPart().GetCommunicator().GetDataCommunicator().SumAll(NormP);
         NormP = sqrt(NormP);
 
         if (NormP == 0.0) NormP = 1.00;
@@ -681,11 +730,9 @@ protected:
     }
 
 
-    void ComputeSplitOssProjections(ModelPart& rModelPart)
+    virtual void ComputeSplitOssProjections(ModelPart& rModelPart)
     {
-        const array_1d<double,3> Zero(3,0.0);
-
-        array_1d<double,3> Out(3,0.0);
+        array_1d<double,3> Out = ZeroVector(3);
 
 #pragma omp parallel
         {
@@ -695,8 +742,8 @@ protected:
 
             for ( ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode )
             {
-                itNode->FastGetSolutionStepValue(CONV_PROJ) = Zero;
-                itNode->FastGetSolutionStepValue(PRESS_PROJ) = Zero;
+                itNode->FastGetSolutionStepValue(CONV_PROJ) = ZeroVector(3);
+                itNode->FastGetSolutionStepValue(PRESS_PROJ) = ZeroVector(3);
                 itNode->FastGetSolutionStepValue(DIVPROJ) = 0.0;
                 itNode->FastGetSolutionStepValue(NODAL_AREA) = 0.0;
             }
@@ -738,12 +785,11 @@ protected:
         }
     }
 
-    void CalculateEndOfStepVelocity()
+    virtual void CalculateEndOfStepVelocity()
     {
         ModelPart& rModelPart = BaseType::GetModelPart();
 
-        const array_1d<double,3> Zero(3,0.0);
-        array_1d<double,3> Out(3,0.0);
+        array_1d<double,3> Out = ZeroVector(3);
 
 #pragma omp parallel
         {
@@ -753,7 +799,7 @@ protected:
 
             for ( ModelPart::NodeIterator itNode = NodesBegin; itNode != NodesEnd; ++itNode )
             {
-                itNode->FastGetSolutionStepValue(FRACT_VEL) = Zero;
+                itNode->FastGetSolutionStepValue(FRACT_VEL) = ZeroVector(3);
             }
         }
 
@@ -774,7 +820,7 @@ protected:
 
         // Force the end of step velocity to verify slip conditions in the model
         if (mUseSlipConditions)
-            this->EnforceSlipCondition(IS_STRUCTURE);
+            this->EnforceSlipCondition(SLIP);
 
         if (mDomainSize > 2)
         {
@@ -818,9 +864,9 @@ protected:
 
     /**
      * @brief Substract wall-normal component of velocity update to ensure that the final velocity satisfies slip conditions.
-     * @param rSlipWallFlag If Node.GetValue(rSlipWallFlag) != 0, the node is in the wall.
+     * @param rSlipWallFlag If Node.Is(rSlipWallFlag) == true, the node is in the wall.
      */
-    void EnforceSlipCondition(Variable<double>& rSlipWallFlag)
+    void EnforceSlipCondition(const Kratos::Flags& rSlipWallFlag)
     {
         ModelPart& rModelPart = BaseType::GetModelPart();
 
@@ -831,8 +877,8 @@ protected:
         {
             ModelPart::NodeIterator itNode = rModelPart.NodesBegin() + i;
             const Node<3>& r_const_node = *itNode;
-            
-            if ( r_const_node.GetValue(rSlipWallFlag) != 0.0 )
+
+            if ( r_const_node.Is(rSlipWallFlag) )
             {
                 const array_1d<double,3>& rNormal = itNode->FastGetSolutionStepValue(NORMAL);
                 array_1d<double,3>& rDeltaVelocity = itNode->FastGetSolutionStepValue(FRACT_VEL);
@@ -860,10 +906,11 @@ protected:
      */
      void PeriodicConditionProjectionCorrection(ModelPart& rModelPart)
      {
-         if (mrPeriodicIdVar.Key() != 0)
+         Communicator& r_comm = rModelPart.GetCommunicator();
+         if (mrPeriodicIdVar.Key() != Kratos::Variable<int>::StaticObject().Key())
          {
-             int GlobalNodesNum = rModelPart.GetCommunicator().LocalMesh().Nodes().size();
-             rModelPart.GetCommunicator().SumAll(GlobalNodesNum);
+             int GlobalNodesNum = r_comm.LocalMesh().Nodes().size();
+             GlobalNodesNum = r_comm.GetDataCommunicator().SumAll(GlobalNodesNum);
 
              for (typename ModelPart::ConditionIterator itCond = rModelPart.ConditionsBegin(); itCond != rModelPart.ConditionsEnd(); itCond++ )
              {
@@ -935,8 +982,8 @@ protected:
 
                      // reset for next iteration
                      itNode->GetValue(NODAL_AREA) = 0.0;
-                     itNode->GetValue(CONV_PROJ) = array_1d<double,3>(3,0.0);
-                     itNode->GetValue(PRESS_PROJ) = array_1d<double,3>(3,0.0);
+                     itNode->GetValue(CONV_PROJ) = ZeroVector(3);
+                     itNode->GetValue(PRESS_PROJ) = ZeroVector(3);
                      itNode->GetValue(DIVPROJ) = 0.0;
                  }
              }
@@ -945,10 +992,11 @@ protected:
 
      void PeriodicConditionVelocityCorrection(ModelPart& rModelPart)
      {
-         if (mrPeriodicIdVar.Key() != 0)
+         Communicator& r_comm = rModelPart.GetCommunicator();
+         if (mrPeriodicIdVar.Key() != Kratos::Variable<int>::StaticObject().Key())
          {
-             int GlobalNodesNum = rModelPart.GetCommunicator().LocalMesh().Nodes().size();
-             rModelPart.GetCommunicator().SumAll(GlobalNodesNum);
+             int GlobalNodesNum = r_comm.LocalMesh().Nodes().size();
+             GlobalNodesNum = r_comm.GetDataCommunicator().SumAll(GlobalNodesNum);
 
              for (typename ModelPart::ConditionIterator itCond = rModelPart.ConditionsBegin(); itCond != rModelPart.ConditionsEnd(); itCond++ )
              {
@@ -993,7 +1041,7 @@ protected:
                  if ( rDeltaVel[0]*rDeltaVel[0] + rDeltaVel[1]*rDeltaVel[1] + rDeltaVel[2]*rDeltaVel[2] != 0.0)
                  {
                      itNode->FastGetSolutionStepValue(FRACT_VEL) = itNode->GetValue(FRACT_VEL);
-                     rDeltaVel = array_1d<double,3>(3,0.0);
+                     rDeltaVel = ZeroVector(3);
                  }
              }
          }
@@ -1025,43 +1073,6 @@ private:
     ///@}
     ///@name Member Variables
     ///@{
-
-    double mVelocityTolerance;
-
-    double mPressureTolerance;
-
-    unsigned int mMaxVelocityIter;
-
-    unsigned int mMaxPressureIter;
-
-    unsigned int mDomainSize;
-
-    unsigned int mTimeOrder;
-
-    bool mPredictorCorrector;
-
-    bool mUseSlipConditions;
-
-    bool mReformDofSet;
-
-    // Fractional step index.
-    /*  1 : Momentum step (calculate fractional step velocity)
-      * 2-3 : Unused (reserved for componentwise calculation of frac step velocity)
-      * 4 : Pressure step
-      * 5 : Computation of projections
-      * 6 : End of step velocity
-      */
-//    unsigned int mStepId;
-
-    /// Scheme for the solution of the momentum equation
-    StrategyPointerType mpMomentumStrategy;
-
-    /// Scheme for the solution of the mass equation
-    StrategyPointerType mpPressureStrategy;
-
-    std::vector< Process::Pointer > mExtraIterationSteps;
-
-    const Kratos::Variable<int>& mrPeriodicIdVar;
 
     ///@}
     ///@name Private Operators
@@ -1138,21 +1149,21 @@ private:
                 for (ModelPart::ConditionIterator itCond = CondBegin; itCond != CondEnd; ++itCond)
                 {
                     const Condition& rCond = *itCond;
-                    const double& FlagValue = rCond.GetValue(IS_STRUCTURE);
-                    if (FlagValue != 0.0)
+                    const bool is_slip = rCond.Is(SLIP);
+                    if (is_slip)
                     {
 
                         Condition::GeometryType& rGeom = itCond->GetGeometry();
                         for (unsigned int i = 0; i < rGeom.PointsNumber(); ++i)
                         {
                             rGeom[i].SetLock();
-                            rGeom[i].SetValue(IS_STRUCTURE,FlagValue);
+                            rGeom[i].Set(SLIP,is_slip);
                             rGeom[i].UnSetLock();
                         }
                     }
                 }
             }
-            rModelPart.GetCommunicator().AssembleNonHistoricalData(IS_STRUCTURE);
+            rModelPart.GetCommunicator().SynchronizeOrNodalFlags(SLIP);
         }
 
         // Check input parameters

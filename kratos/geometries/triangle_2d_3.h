@@ -27,9 +27,6 @@
 #include "integration/triangle_gauss_legendre_integration_points.h"
 #include "integration/triangle_collocation_integration_points.h"
 
-//#include  "utilities/triangle_triangle_intersection.h"
-
-
 namespace Kratos
 {
 ///@name Kratos Globals
@@ -52,11 +49,25 @@ namespace Kratos
 ///@{
 
 /**
- * A three node element geometry. While the shape functions are only defined in
- * 2D it is possible to define an arbitrary orientation in space. Thus it can be used for
- * defining surfaces on 3D elements.
+ * @class Triangle2D3
+ * @ingroup KratosCore
+ * @brief A three node 2D triangle geometry with linear shape functions
+ * @details While the shape functions are only defined in 2D it is possible to define an arbitrary orientation in space. Thus it can be used for defining surfaces on 3D elements.
+ * The node ordering corresponds with:
+ *      v
+ *      ^
+ *      |
+ *      2
+ *      |`\
+ *      |  `\
+ *      |    `\
+ *      |      `\
+ *      |        `\
+ *      0----------1 --> u
+ * @author Riccardo Rossi
+ * @author Janosch Stascheit
+ * @author Felix Nagel
  */
-
 template<class TPointType> class Triangle2D3
     : public Geometry<TPointType>
 {
@@ -215,7 +226,7 @@ public:
         this->Points().push_back( pThirdPoint );
     }
 
-    Triangle2D3( const PointsArrayType& ThisPoints )
+    explicit Triangle2D3( const PointsArrayType& ThisPoints )
         : BaseType( ThisPoints, &msGeometryData )
     {
         if ( this->PointsNumber() != 3 )
@@ -248,7 +259,7 @@ public:
      * obvious that any change to this new geometry's point affect
      * source geometry's points too.
      */
-    template<class TOtherPointType> Triangle2D3( Triangle2D3<TOtherPointType> const& rOther )
+    template<class TOtherPointType> explicit Triangle2D3( Triangle2D3<TOtherPointType> const& rOther )
         : BaseType( rOther )
     {
     }
@@ -349,8 +360,18 @@ public:
         return rResult;
     }
 
-    //lumping factors for the calculation of the lumped mass matrix
-    Vector& LumpingFactors( Vector& rResult ) const override
+    /**
+     * @brief Lumping factors for the calculation of the lumped mass matrix
+     * @param rResult Vector containing the lumping factors
+     * @param LumpingMethod The lumping method considered. The three methods available are:
+     *      - The row sum method
+     *      - Diagonal scaling
+     *      - Evaluation of M using a quadrature involving only the nodal points and thus automatically yielding a diagonal matrix for standard element shape function
+     */
+    Vector& LumpingFactors(
+        Vector& rResult,
+        const typename BaseType::LumpingMethods LumpingMethod = BaseType::LumpingMethods::ROW_SUM
+        )  const override
     {
         if(rResult.size() != 3)
             rResult.resize( 3, false );
@@ -424,22 +445,21 @@ public:
     bool HasIntersection( const BaseType& rThisGeometry ) override {
         const BaseType& geom_1 = *this;
         const BaseType& geom_2 = rThisGeometry;
-        return  NoDivTriTriIsect(geom_1[0].Coordinates(), geom_1[1].Coordinates() , geom_1[2].Coordinates(),
-                                 geom_2[0].Coordinates(), geom_2[1].Coordinates(),  geom_2[2].Coordinates());
+        return  NoDivTriTriIsect(geom_1[0], geom_1[1], geom_1[2], geom_2[0], geom_2[1], geom_2[2]);
     }
 
     /**
      * Check if an axis-aliged bounding box (AABB) intersects a triangle
-     * 
+     *
      * Based on code develop by Moller: http://fileadmin.cs.lth.se/cs/personal/tomas_akenine-moller/code/tribox3.txt
      * and the article "A Fast Triangle-Triangle Intersection Test", SIGGRAPH '05 ACM, Art.8, 2005:
      * http://fileadmin.cs.lth.se/cs/personal/tomas_akenine-moller/code/tribox_tam.pdf
-     * 
+     *
      * @return bool if the triangle overlaps a box
      * @param rLowPoint first corner of the box
      * @param rHighPoint second corner of the box
      */
-    bool HasIntersection( const Point& rLowPoint, const Point& rHighPoint ) override 
+    bool HasIntersection( const Point& rLowPoint, const Point& rHighPoint ) override
     {
         Point box_center;
         Point box_half_size;
@@ -479,10 +499,6 @@ public:
      * @return double value with the minimum edge length
      */
     virtual double Semiperimeter() const {
-      auto a = this->GetPoint(0) - this->GetPoint(1);
-      auto b = this->GetPoint(1) - this->GetPoint(2);
-      auto c = this->GetPoint(2) - this->GetPoint(0);
-
       return CalculateSemiperimeter(
         MathUtils<double>::Norm3(this->GetPoint(0)-this->GetPoint(1)),
         MathUtils<double>::Norm3(this->GetPoint(1)-this->GetPoint(2)),
@@ -675,18 +691,34 @@ public:
     }
 
     /**
-     * Returns whether given arbitrary point is inside the Geometry and the respective 
+     * @brief It returns a vector that is normal to its corresponding geometry in the given local point
+     * @param rPointLocalCoordinates Reference to the local coordinates of the point in where the normal is to be computed
+     * @return The normal in the given point
+     */
+    array_1d<double, 3> Normal(const CoordinatesArrayType& rPointLocalCoordinates) const override
+    {
+        const array_1d<double, 3> tangent_xi  = this->GetPoint(1) - this->GetPoint(0);
+        const array_1d<double, 3> tangent_eta = this->GetPoint(2) - this->GetPoint(0);
+
+        array_1d<double, 3> normal;
+        MathUtils<double>::CrossProduct(normal, tangent_xi, tangent_eta);
+
+        return 0.5 * normal;
+    }
+
+    /**
+     * Returns whether given arbitrary point is inside the Geometry and the respective
      * local point for the given global point
      * @param rPoint The point to be checked if is inside o note in global coordinates
      * @param rResult The local coordinates of the point
      * @param Tolerance The  tolerance that will be considered to check if the point is inside or not
      * @return True if the point is inside, false otherwise
      */
-    bool IsInside( 
-        const CoordinatesArrayType& rPoint, 
-        CoordinatesArrayType& rResult, 
+    bool IsInside(
+        const CoordinatesArrayType& rPoint,
+        CoordinatesArrayType& rResult,
         const double Tolerance = std::numeric_limits<double>::epsilon()
-        ) override
+        ) const override
     {
         this->PointLocalCoordinates( rResult, rPoint );
 
@@ -717,14 +749,14 @@ public:
     CoordinatesArrayType& PointLocalCoordinates(
         CoordinatesArrayType& rResult,
         const CoordinatesArrayType& rPoint
-        ) override {
+        ) const override {
 
         rResult = ZeroVector(3);
-        
+
         const TPointType& point_0 = this->GetPoint(0);
 
         // Compute the Jacobian matrix and its determinant
-        bounded_matrix<double, 2, 2> J;
+        BoundedMatrix<double, 2, 2> J;
         J(0,0) = this->GetPoint(1).X() - this->GetPoint(0).X();
         J(0,1) = this->GetPoint(2).X() - this->GetPoint(0).X();
         J(1,0) = this->GetPoint(1).Y() - this->GetPoint(0).Y();
@@ -734,7 +766,7 @@ public:
         // Compute eta and xi
         const double eta = (J(1,0)*(point_0.X() - rPoint(0)) +
                             J(0,0)*(rPoint(1) - point_0.Y())) / det_J;
-        const double xi  = (J(1,1)*(rPoint(0) - point_0.X()) + 
+        const double xi  = (J(1,1)*(rPoint(0) - point_0.X()) +
                             J(0,1)*(point_0.Y() - rPoint(1))) / det_J;
 
         rResult(0) = xi;
@@ -744,41 +776,35 @@ public:
         return rResult;
     }
 
+    ///@}
+    ///@name Edge
+    ///@{
 
-    /** This method gives you number of all edges of this
-    geometry. This method will gives you number of all the edges
-    with one dimension less than this geometry. for example a
-    triangle would return three or a tetrahedral would return
-    four but won't return nine related to its six edge lines.
-
-    @return SizeType containes number of this geometry edges.
-    @see Edges()
-    @see Edge()
+    /**
+     * @brief This method gives you number of all edges of this geometry.
+     * @details For example, for a hexahedron, this would be 12
+     * @return SizeType containes number of this geometry edges.
+     * @see EdgesNumber()
+     * @see Edges()
+     * @see GenerateEdges()
+     * @see FacesNumber()
+     * @see Faces()
+     * @see GenerateFaces()
      */
     SizeType EdgesNumber() const override
     {
         return 3;
     }
 
-
-    SizeType FacesNumber() const override
-    {
-        return 3;
-    }
-
-
-    /** This method gives you all edges of this geometry. This
-    method will gives you all the edges with one dimension less
-    than this geometry. for example a triangle would return
-    three lines as its edges or a tetrahedral would return four
-    triangle as its edges but won't return its six edge
-    lines by this method.
-
-    @return GeometriesArrayType containes this geometry edges.
-    @see EdgesNumber()
-    @see Edge()
+    /**
+     * @brief This method gives you all edges of this geometry.
+     * @details This method will gives you all the edges with one dimension less than this geometry.
+     * For example a triangle would return three lines as its edges or a tetrahedral would return four triangle as its edges but won't return its six edge lines by this method.
+     * @return GeometriesArrayType containes this geometry edges.
+     * @see EdgesNumber()
+     * @see Edge()
      */
-    GeometriesArrayType Edges( void ) override
+    GeometriesArrayType GenerateEdges() const override
     {
         GeometriesArrayType edges = GeometriesArrayType();
 
@@ -788,10 +814,13 @@ public:
         return edges;
     }
 
-
+    SizeType FacesNumber() const override
+    {
+        return 3;
+    }
 
     //Connectivities of faces required
-    void NumberNodesInFaces (boost::numeric::ublas::vector<unsigned int>& NumberNodesInFaces) const override
+    void NumberNodesInFaces (DenseVector<unsigned int>& NumberNodesInFaces) const override
     {
         if(NumberNodesInFaces.size() != 3 )
             NumberNodesInFaces.resize(3,false);
@@ -802,20 +831,22 @@ public:
 
     }
 
-    void NodesInFaces (boost::numeric::ublas::matrix<unsigned int>& NodesInFaces) const override
+    void NodesInFaces (DenseMatrix<unsigned int>& NodesInFaces) const override
     {
+        // faces in columns
         if(NodesInFaces.size1() != 3 || NodesInFaces.size2() != 3)
             NodesInFaces.resize(3,3,false);
 
-        NodesInFaces(0,0)=0;//face or other node
+        //face 1
+        NodesInFaces(0,0)=0;//contrary node to the face
         NodesInFaces(1,0)=1;
         NodesInFaces(2,0)=2;
-
-        NodesInFaces(0,1)=1;//face or other node
+        //face 2
+        NodesInFaces(0,1)=1;//contrary node to the face
         NodesInFaces(1,1)=2;
         NodesInFaces(2,1)=0;
-
-        NodesInFaces(0,2)=2;//face or other node
+        //face 3
+        NodesInFaces(0,2)=2;//contrary node to the face
         NodesInFaces(1,2)=0;
         NodesInFaces(2,2)=1;
 
@@ -827,9 +858,6 @@ public:
     ///@name Shape Function
     ///@{
 
-    /**
-     * TODO: implemented but not yet tested
-     */
     /**
      * Calculates the value of a given shape function at a given point.
      *
@@ -901,7 +929,7 @@ public:
         const unsigned int integration_points_number =
             msGeometryData.IntegrationPointsNumber( ThisMethod );
 
-        boost::numeric::ublas::bounded_matrix<double,3,2> DN_DX;
+        BoundedMatrix<double,3,2> DN_DX;
         double x10 = this->Points()[1].X() - this->Points()[0].X();
         double y10 = this->Points()[1].Y() - this->Points()[0].Y();
 
@@ -944,7 +972,7 @@ public:
         const unsigned int integration_points_number =
             msGeometryData.IntegrationPointsNumber( ThisMethod );
 
-        boost::numeric::ublas::bounded_matrix<double,3,2> DN_DX;
+        BoundedMatrix<double,3,2> DN_DX;
         double x10 = this->Points()[1].X() - this->Points()[0].X();
         double y10 = this->Points()[1].Y() - this->Points()[0].Y();
 
@@ -1257,7 +1285,7 @@ public:
 
         for ( IndexType i = 0; i < rResult.size(); i++ )
         {
-            boost::numeric::ublas::vector<Matrix> temp( this->PointsNumber() );
+            DenseVector<Matrix> temp( this->PointsNumber() );
             rResult[i].swap( temp );
         }
 
@@ -1299,7 +1327,10 @@ protected:
 private:
     ///@name Static Member Variables
     ///@{
+
     static const GeometryData msGeometryData;
+
+    static const GeometryDimension msGeometryDimension;
 
     ///@}
     ///@name Serialization
@@ -1334,9 +1365,6 @@ private:
     ///@{
 
     /**
-     * TODO: implemented but not yet tested
-     */
-    /**
      * Calculates the values of all shape function in all integration points.
      * Integration points are expected to be given in local coordinates
      * @param ThisMethod the current integration method
@@ -1370,9 +1398,6 @@ private:
         return shape_function_values;
     }
 
-    /**
-     * TODO: implemented but not yet tested
-     */
     /**
      * Calculates the local gradients of all shape functions
      * in all integration points.
@@ -1909,7 +1934,7 @@ private:
     }
 
 
-    /** 
+    /**
      * @see HasIntersection
      * use separating axis theorem to test overlap between triangle and box
      * need to test for overlap in these directions:
@@ -1955,7 +1980,7 @@ private:
         //  first test overlap in the {x,y,(z)}-directions
         //  find min, max of the triangle each direction, and test for overlap in
         //  that direction -- this is equivalent to testing a minimal AABB around
-        //  the triangle against the AABB 
+        //  the triangle against the AABB
 
         // test in X-direction
         min_max = std::minmax({vert0[0],vert1[0],vert2[0]});
@@ -1978,7 +2003,7 @@ private:
 
     /** AxisTestZ
      * This method returns true if there is a separating axis
-     * 
+     *
      * @param rEdgeX, rEdgeY i-edge corrdinates
      * @param rAbsEdgeX, rAbsEdgeY i-edge abs coordinates
      * @param rVertA i   vertex
@@ -1986,10 +2011,10 @@ private:
      * @param rVertC i+2 vertex
      * @param rBoxHalfSize
      */
-    bool AxisTestZ(double& rEdgeX, double& rEdgeY, 
+    bool AxisTestZ(double& rEdgeX, double& rEdgeY,
                    double& rAbsEdgeX, double& rAbsEdgeY,
-                   array_1d<double,3>& rVertA, 
-                   array_1d<double,3>& rVertC, 
+                   array_1d<double,3>& rVertA,
+                   array_1d<double,3>& rVertC,
                    Point& rBoxHalfSize)
     {
         double proj_a, proj_c, rad;
@@ -2136,12 +2161,17 @@ template<class TPointType> inline std::ostream& operator << (
 
 template<class TPointType> const
 GeometryData Triangle2D3<TPointType>::msGeometryData(
-    2, 2, 2,
+    &msGeometryDimension,
     GeometryData::GI_GAUSS_1,
     Triangle2D3<TPointType>::AllIntegrationPoints(),
     Triangle2D3<TPointType>::AllShapeFunctionsValues(),
     AllShapeFunctionsLocalGradients()
 );
+
+template<class TPointType> const
+GeometryDimension Triangle2D3<TPointType>::msGeometryDimension(
+    2, 2, 2);
+
 }// namespace Kratos.
 
 #endif // KRATOS_TRIANGLE_2D_3_H_INCLUDED  defined

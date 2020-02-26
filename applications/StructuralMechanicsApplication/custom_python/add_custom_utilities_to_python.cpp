@@ -12,36 +12,40 @@
 // System includes
 
 // External includes
-#include <boost/python.hpp>
 
 // Project includes
-#include "includes/define.h"
 #include "custom_python/add_custom_utilities_to_python.h"
 
 //Utilities
-#include "custom_utilities/sprism_neighbours.hpp"
+#include "custom_utilities/rayleigh_damping_coefficients_utilities.h"
+#include "custom_utilities/explicit_integration_utilities.h"
+#include "custom_utilities/rve_periodicity_utility.h"
+#include "custom_utilities/project_vector_on_surface_utility.h"
 
-namespace Kratos
+namespace Kratos {
+namespace Python {
+
+void  AddCustomUtilitiesToPython(pybind11::module& m)
 {
-namespace Python
-{
+    namespace py = pybind11;
 
-void  AddCustomUtilitiesToPython()
-{
-    using namespace boost::python;
+    // RayleighDampingCoefficientsUtilities
+    m.def("ComputeDampingCoefficients",&RayleighDampingCoefficientsUtilities::ComputeDampingCoefficients);
 
-//     typedef UblasSpace<double, CompressedMatrix, Vector> SparseSpaceType;
-//     typedef UblasSpace<double, Matrix, Vector> LocalSpaceType;
-//     typedef LinearSolver<SparseSpaceType, LocalSpaceType > LinearSolverType;
-    
-    class_<SprismNeighbours>("SprismNeighbours", init<ModelPart&>())
-    .def("Execute",&SprismNeighbours::Execute)
-    .def("ClearNeighbours",&SprismNeighbours::ClearNeighbours)
-    ;
+    // ExplicitIntegrationUtilities
+    m.def("CalculateDeltaTime",&ExplicitIntegrationUtilities::CalculateDeltaTime);
 
+    py::class_<RVEPeriodicityUtility>(m,"RVEPeriodicityUtility")
+        .def(py::init<ModelPart&>())
+        .def(py::init<ModelPart&, std::size_t>())
+        .def("AssignPeriodicity",&RVEPeriodicityUtility::AssignPeriodicity)
+        .def("Finalize",&RVEPeriodicityUtility::Finalize)
+        ;
+
+    py::class_<ProjectVectorOnSurfaceUtility>(m,"ProjectVectorOnSurfaceUtility")
+        .def_static("Execute",&ProjectVectorOnSurfaceUtility::Execute);
 }
 
-}  // namespace Python.  
-
+}  // namespace Python.
 } // Namespace Kratos
 

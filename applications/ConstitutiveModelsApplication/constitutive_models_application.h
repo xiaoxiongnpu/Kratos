@@ -40,10 +40,10 @@
 #include "includes/variables.h"
 #include "includes/constitutive_law.h"
 
-#include "containers/flags.h"
+//#include "containers/flags.h"
 
 //outfitted python laws
-#include "custom_python/python_outfitted_constitutive_law.hpp"
+//#include "custom_python/python_outfitted_constitutive_law.hpp"
 
 //general constitutive laws
 
@@ -57,6 +57,10 @@
 #include "custom_laws/large_strain_laws/large_strain_plane_strain_2D_law.hpp"
 #include "custom_laws/large_strain_laws/large_strain_axisymmetric_2D_law.hpp"
 
+//strain rate laws
+#include "custom_laws/strain_rate_laws/strain_rate_plane_strain_2D_law.hpp"
+#include "custom_laws/strain_rate_laws/newtonian_plane_strain_2D_law.hpp"
+
 //specialized large strain laws
 
 //elasticity models
@@ -69,8 +73,10 @@
 #include "custom_models/elasticity_models/isochoric_neo_hookean_lnJ_squared_model.hpp"
 #include "custom_models/elasticity_models/incompressible_neo_hookean_model.hpp"
 #include "custom_models/elasticity_models/borja_model.hpp"
+#include "custom_models/elasticity_models/tamagnini_model.hpp"
 #include "custom_models/elasticity_models/ogden_model.hpp"
-#include "custom_models/elasticity_models/isochoric_ogden_model.hpp"
+//#include "custom_models/elasticity_models/isochoric_ogden_model.hpp"
+#include "custom_models/elasticity_models/incompressible_hypo_elastic_model.hpp"
 
 //plasticity models
 #include "custom_models/plasticity_models/von_mises_linear_elastic_plasticity_model.hpp"
@@ -80,14 +86,19 @@
 #include "custom_models/plasticity_models/johnson_cook_J2_thermo_plasticity_model.hpp"
 #include "custom_models/plasticity_models/baker_johnson_cook_J2_thermo_plasticity_model.hpp"
 #include "custom_models/plasticity_models/cam_clay_model.hpp"
+#include "custom_models/plasticity_models/nonlocal_cam_clay_model.hpp"
+#include "custom_models/plasticity_models/gens_nova_model.hpp"
+#include "custom_models/plasticity_models/v2_gens_nova_model.hpp"
+#include "custom_models/plasticity_models/nonlocal_v2_gens_nova_model.hpp"
 #include "custom_models/plasticity_models/simo_ju_exponential_damage_model.hpp"
-#include "custom_models/plasticity_models/simo_ju_modified_exponential_damage_model.hpp"
+//#include "custom_models/plasticity_models/simo_ju_modified_exponential_damage_model.hpp"
 
 //yield criteria
 #include "custom_models/plasticity_models/yield_surfaces/mises_huber_thermal_yield_surface.hpp"
 #include "custom_models/plasticity_models/yield_surfaces/simo_ju_yield_surface.hpp"
 #include "custom_models/plasticity_models/yield_surfaces/modified_mises_yield_surface.hpp"
 #include "custom_models/plasticity_models/yield_surfaces/modified_cam_clay_yield_surface.hpp"
+#include "custom_models/plasticity_models/yield_surfaces/gens_nova_yield_surface.hpp"
 
 //hardening rules
 #include "custom_models/plasticity_models/hardening_rules/simo_linear_hardening_rule.hpp"
@@ -97,9 +108,10 @@
 #include "custom_models/plasticity_models/hardening_rules/exponential_damage_hardening_rule.hpp"
 #include "custom_models/plasticity_models/hardening_rules/modified_exponential_damage_hardening_rule.hpp"
 #include "custom_models/plasticity_models/hardening_rules/cam_clay_hardening_rule.hpp"
+#include "custom_models/plasticity_models/hardening_rules/gens_nova_hardening_rule.hpp"
 
 
-#include "constitutive_models_application_variables.h"
+//#include "constitutive_models_application_variables.h"
 
 namespace Kratos {
 
@@ -125,13 +137,12 @@ namespace Kratos {
   /// Short class definition.
   /** Detail class definition.
    */
-  class KratosConstitutiveModelsApplication : public KratosApplication {
+  class KRATOS_API(CONSTITUTIVE_MODELS_APPLICATION) KratosConstitutiveModelsApplication : public KratosApplication
+  {
   public:
     ///@name Type Definitions
     ///@{
 
-    typedef HardeningRule                                               HardeningRuleType; 
-    
     /// Pointer definition of KratosConstitutiveModelsApplication
     KRATOS_CLASS_POINTER_DEFINITION(KratosConstitutiveModelsApplication);
 
@@ -143,7 +154,7 @@ namespace Kratos {
     KratosConstitutiveModelsApplication();
 
     /// Destructor.
-    virtual ~KratosConstitutiveModelsApplication(){}
+    ~KratosConstitutiveModelsApplication() override{}
 
 
     ///@}
@@ -155,7 +166,7 @@ namespace Kratos {
     ///@name Operations
     ///@{
 
-    virtual void Register();
+    void Register() override;
 
 
 
@@ -174,18 +185,18 @@ namespace Kratos {
     ///@{
 
     /// Turn back information as a string.
-    virtual std::string Info() const {
+    std::string Info() const override{
       return "KratosConstitutiveModelsApplication";
     }
 
     /// Print information about this object.
-    virtual void PrintInfo(std::ostream& rOStream) const {
+    void PrintInfo(std::ostream& rOStream) const  override{
       rOStream << Info();
       PrintData(rOStream);
     }
 
-    ///// Print object's data.
-    virtual void PrintData(std::ostream& rOStream) const {
+    /// Print object's data.
+    void PrintData(std::ostream& rOStream) const  override{
       KRATOS_WATCH("in KratosConstitutiveModelsApplication");
       KRATOS_WATCH(KratosComponents<VariableData>::GetComponents().size() );
 
@@ -243,16 +254,16 @@ namespace Kratos {
     ///@name Static Member Variables
     ///@{
 
-    
+
     ///@}
     ///@name Member Variables
     ///@{
 
     //outfitted python laws
-    const PythonOutfittedConstitutiveLaw           mPythonOutfittedConstitutiveLaw;
-    
+    //const PythonOutfittedConstitutiveLaw           mPythonOutfittedConstitutiveLaw;
+
     //general constitutive laws
-    
+
     //small strain laws
     const SmallStrain3DLaw                         mSmallStrain3DLaw;
     const SmallStrainOrthotropic3DLaw              mSmallStrainOrthotropic3DLaw;
@@ -265,6 +276,11 @@ namespace Kratos {
     const LargeStrainPlaneStrain2DLaw              mLargeStrainPlaneStrain2DLaw;
     const LargeStrainAxisymmetric2DLaw             mLargeStrainAxisymmetric2DLaw;
 
+    //strain rate laws
+    const StrainRate3DLaw                          mStrainRate3DLaw;
+    const StrainRatePlaneStrain2DLaw               mStrainRatePlaneStrain2DLaw;
+    const NewtonianFluid3DLaw                      mNewtonianFluid3DLaw;
+    const NewtonianFluidPlaneStrain2DLaw           mNewtonianFluidPlaneStrain2DLaw;
 
     //general constitutive models
 
@@ -278,8 +294,12 @@ namespace Kratos {
     const IsochoricNeoHookeanLnJSquaredModel       mIsochoricNeoHookeanLnJSquaredModel;
     const IncompressibleNeoHookeanModel            mIncompressibleNeoHookeanModel;
     const BorjaModel                               mBorjaModel;
+    const TamagniniModel                           mTamagniniModel;
     const OgdenModel                               mOgdenModel;
     const OgdenModel                               mIsochoricOgdenModel;
+    const HypoElasticModel                         mHypoElasticModel;
+    const IsochoricHypoElasticModel                mIsochoricHypoElasticModel;
+    const IncompressibleHypoElasticModel           mIncompressibleHypoElasticModel;
 
     //plasticity models
     const VonMisesLinearElasticPlasticityModel     mVonMisesLinearElasticPlasticityModel;
@@ -288,16 +308,21 @@ namespace Kratos {
     const SimoJ2ThermoPlasticityModel              mSimoJ2ThermoPlasticityModel;
     const JohnsonCookJ2ThermoPlasticityModel       mJohnsonCookJ2ThermoPlasticityModel;
     const BakerJohnsonCookJ2ThermoPlasticityModel  mBakerJohnsonCookJ2ThermoPlasticityModel;
+    const NonlocalCamClayModel                     mNonlocalCamClayModel;
     const CamClayModel                             mCamClayModel;
+    const GensNovaModel                            mGensNovaModel;
+    const V2GensNovaModel                          mV2GensNovaModel;
+    const NonlocalV2GensNovaModel                  mNonlocalV2GensNovaModel;
     const SimoJuExponentialDamageModel             mSimoJuExponentialDamageModel;
     const SimoJuExponentialDamageModel             mSimoJuModifiedExponentialDamageModel;
-    
+
     //yield criteria
-    const MisesHuberYieldSurface<HardeningRuleType>         mMisesHuberYieldSurface;
-    const MisesHuberThermalYieldSurface<HardeningRuleType>  mMisesHuberThermalYieldSurface;
-    const SimoJuYieldSurface<HardeningRuleType>             mSimoJuYieldSurface;
-    const ModifiedMisesYieldSurface<HardeningRuleType>      mModifiedMisesYieldSurface;
-    const ModifiedCamClayYieldSurface<HardeningRuleType>    mModifiedCamClayYieldSurface;
+    const MisesHuberYieldSurface<HardeningRule>         mMisesHuberYieldSurface;
+    const MisesHuberThermalYieldSurface<HardeningRule>  mMisesHuberThermalYieldSurface;
+    const SimoJuYieldSurface<HardeningRule>             mSimoJuYieldSurface;
+    const ModifiedMisesYieldSurface<HardeningRule>      mModifiedMisesYieldSurface;
+    const ModifiedCamClayYieldSurface<HardeningRule>    mModifiedCamClayYieldSurface;
+    const GensNovaYieldSurface<HardeningRule>           mGensNovaYieldSurface;
     
     //hardening rules
     const SimoExponentialHardeningRule              mSimoExponentialHardeningRule;
@@ -308,6 +333,7 @@ namespace Kratos {
     const ExponentialDamageHardeningRule            mExponentialDamageHardeningRule;
     const ModifiedExponentialDamageHardeningRule    mModifiedExponentialDamageHardeningRule;
     const CamClayHardeningRule                      mCamClayHardeningRule;
+    const GensNovaHardeningRule                     mGensNovaHardeningRule;
       
        
     ///@}

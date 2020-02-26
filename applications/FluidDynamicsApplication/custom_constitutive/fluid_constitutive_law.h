@@ -31,7 +31,7 @@ namespace Kratos
 ///@{
 
 /// This class contains the common infrastructure for fluid constitutive laws.
-class FluidConstitutiveLaw : public ConstitutiveLaw
+class KRATOS_API(FLUID_DYNAMICS_APPLICATION) FluidConstitutiveLaw : public ConstitutiveLaw
 {
 public:
 
@@ -125,13 +125,13 @@ public:
     ///@{
 
     /// @return A short string identifying this constitutive law instance.
-    virtual std::string Info() const;
+    std::string Info() const override;
 
     /// Print basic information about this constitutive law instance.
-    virtual void PrintInfo(std::ostream& rOStream) const;
+    void PrintInfo(std::ostream& rOStream) const override;
 
     /// Print detailed information about this constitutive law instance and its managed data.
-    virtual void PrintData(std::ostream& rOStream) const;
+    void PrintData(std::ostream& rOStream) const override;
 
     ///@}
 
@@ -158,8 +158,28 @@ protected:
     ///@name Protected  Access
     ///@{
 
-    /// Get the effective viscosity (in dynamic units -- Pa s) for the fluid.
+    /**
+     * @brief Get the Effective Viscosity object
+     * Get the effective viscosity (in dynamic units -- Pa s) for the fluid.
+     * @param rParameters constitutive law parameters
+     * @return double obtained effective viscosity
+     */
     virtual double GetEffectiveViscosity(ConstitutiveLaw::Parameters& rParameters) const;
+
+    /**
+     * @brief Get the Value From Table object
+     * For an table input variable, this method returns the table output variable 
+     * value. Note that the properties container must have a table relating the
+     * input and output variables. 
+     * @param rVariableInput input variable
+     * @param rVariableOutput output variable
+     * @param rParameters constitutive law parameters container
+     * @return double output variable value
+     */
+    virtual double GetValueFromTable(
+        const Variable<double> &rVariableInput,
+        const Variable<double> &rVariableOutput,
+        ConstitutiveLaw::Parameters &rParameters) const;
 
     ///@}
 

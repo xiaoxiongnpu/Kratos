@@ -12,33 +12,26 @@
 from __future__ import print_function, absolute_import, division
 
 # importing the Kratos Library
-from KratosMultiphysics import *
-from KratosMultiphysics.ShapeOptimizationApplication import *
-
-# check that KratosMultiphysics was imported in the main script
-CheckForPreviousImport()
+import KratosMultiphysics as KM
+import KratosMultiphysics.ShapeOptimizationApplication as KSO
 
 # Additional imports
 import time as timer
-
-from mesh_controller_base import MeshController
+from .mesh_controller_base import MeshController
 
 # ==============================================================================
-class MeshControllerBasicUpdating( MeshController ):
+class MeshControllerBasicUpdating(MeshController):
     # --------------------------------------------------------------------------
-    def __init__( self, OptimizationModelPart ):
+    def __init__(self, OptimizationModelPart):
         self.OptimizationModelPart = OptimizationModelPart
 
     # --------------------------------------------------------------------------
-    def Initialize( self ):
-        pass
-
-    # --------------------------------------------------------------------------
-    def UpdateMeshAccordingInputVariable( self, InputVariable ):
-        print("\n> Starting to update the mesh")
+    def UpdateMeshAccordingInputVariable(self, variable):
+        KM.Logger.Print("")
+        KM.Logger.PrintInfo("ShapeOpt", "Starting to update the mesh")
         startTime = timer.time()
-        MeshControllerUtilities( self.OptimizationModelPart ).UpdateMeshAccordingInputVariable( InputVariable )
-        MeshControllerUtilities( self.OptimizationModelPart ).LogMeshChangeAccordingInputVariable( InputVariable )
-        print("> Time needed for updating the mesh = ",round(timer.time() - startTime,2),"s")
+        KSO.MeshControllerUtilities(self.OptimizationModelPart).UpdateMeshAccordingInputVariable(variable)
+        KSO.MeshControllerUtilities(self.OptimizationModelPart).LogMeshChangeAccordingInputVariable(variable)
+        KM.Logger.PrintInfo("ShapeOpt", "Time needed for updating the mesh = ",round(timer.time() - startTime,2),"s")
 
 # ==============================================================================

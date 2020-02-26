@@ -62,7 +62,7 @@ public:
       : Scheme<TSparseSpace, TDenseSpace>(),
         mVelocityRelaxationFactor(VelocityRelaxationFactor),
         mPressureRelaxationFactor(PressureRelaxationFactor),
-        mRotationTool(DomainSize,DomainSize+1,IS_STRUCTURE,0.0)
+        mRotationTool(DomainSize,DomainSize+1,SLIP)
   {}
 
   ResidualBasedSimpleSteadyScheme(
@@ -73,7 +73,7 @@ public:
       : Scheme<TSparseSpace, TDenseSpace>(),
         mVelocityRelaxationFactor(VelocityRelaxationFactor),
         mPressureRelaxationFactor(PressureRelaxationFactor),
-        mRotationTool(DomainSize,DomainSize+1,IS_STRUCTURE,0.0),
+        mRotationTool(DomainSize,DomainSize+1,SLIP),
         mpTurbulenceModel(pTurbulenceModel)
 
   {}
@@ -112,25 +112,11 @@ public:
   {
     KRATOS_TRY;
 
-    std::cout << "VelocityRelaxationFactor = " << mVelocityRelaxationFactor << std::endl;
-    std::cout << "PressureRelaxationFactor = " << mPressureRelaxationFactor << std::endl;
     mRotationTool.RotateVelocities(rModelPart);
 
-    int NumThreads = OpenMPUtils::GetNumThreads();
-    OpenMPUtils::PartitionVector DofSetPartition;
-    OpenMPUtils::DivideInPartitions(rDofSet.size(), NumThreads, DofSetPartition);
+    TSparseSpace::InplaceMult(rDx, mVelocityRelaxationFactor);
 
-#pragma omp parallel
-    {
-      int k = OpenMPUtils::ThisThread();
-
-      typename DofsArrayType::iterator DofSetBegin = rDofSet.begin() + DofSetPartition[k];
-      typename DofsArrayType::iterator DofSetEnd = rDofSet.begin() + DofSetPartition[k + 1];
-
-      for (typename DofsArrayType::iterator itDof = DofSetBegin; itDof != DofSetEnd; itDof++)
-        if (itDof->IsFree())
-          itDof->GetSolutionStepValue() += TSparseSpace::GetValue(rDx, itDof->EquationId());
-    }
+    mpDofUpdater->UpdateDofs(rDofSet,rDx);
 
     mRotationTool.RecoverVelocities(rModelPart);
 
@@ -148,16 +134,13 @@ public:
 
     rCurrentElement->InitializeNonLinearIteration(CurrentProcessInfo);
     rCurrentElement->CalculateLocalSystem(LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
-    Matrix Mass;
-    rCurrentElement->CalculateMassMatrix(Mass, CurrentProcessInfo);
+
     Matrix SteadyLHS;
     rCurrentElement->CalculateLocalVelocityContribution(SteadyLHS, RHS_Contribution, CurrentProcessInfo);
     rCurrentElement->EquationIdVector(EquationId, CurrentProcessInfo);
 
     if (SteadyLHS.size1() != 0)
       noalias(LHS_Contribution) += SteadyLHS;
-
-    AddRelaxation(rCurrentElement, LHS_Contribution, RHS_Contribution, Mass, CurrentProcessInfo);
 
     // apply slip condition
     mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentElement->GetGeometry());
@@ -177,16 +160,13 @@ public:
 
     rCurrentCondition->InitializeNonLinearIteration(CurrentProcessInfo);
     rCurrentCondition->CalculateLocalSystem(LHS_Contribution, RHS_Contribution, CurrentProcessInfo);
-    Matrix Mass;
-    rCurrentCondition->CalculateMassMatrix(Mass, CurrentProcessInfo);
+
     Matrix SteadyLHS;
     rCurrentCondition->CalculateLocalVelocityContribution(SteadyLHS, RHS_Contribution, CurrentProcessInfo);
     rCurrentCondition->EquationIdVector(EquationId, CurrentProcessInfo);
 
     if (SteadyLHS.size1() != 0)
       noalias(LHS_Contribution) += SteadyLHS;
-
-    AddRelaxation(rCurrentCondition, LHS_Contribution, RHS_Contribution, Mass, CurrentProcessInfo);
 
     // apply slip condition
     mRotationTool.Rotate(LHS_Contribution,RHS_Contribution,rCurrentCondition->GetGeometry());
@@ -226,78 +206,63 @@ public:
     KRATOS_CATCH("");
   }
 
-  void InitializeNonLinIteration(ModelPart& rModelPart,
-                                         TSystemMatrixType& rA,
-                                         TSystemVectorType& rDx,
-                                         TSystemVectorType& rb) override
+  void FinalizeNonLinIteration(ModelPart& rModelPart,
+                                       TSystemMatrixType& rA,
+                                       TSystemVectorType& rDx,
+                                       TSystemVectorType& rb) override
   {
-    KRATOS_TRY;
-
-    for (typename ModelPart::NodesContainerType::iterator itNode = rModelPart.NodesBegin();
-         itNode != rModelPart.NodesEnd(); itNode++)
-      itNode->FastGetSolutionStepValue(NODAL_AREA) = 0.0;
-
-    double output;
-    ProcessInfo& CurrentProcessInfo = rModelPart.GetProcessInfo();
-    for (typename ModelPart::ElementsContainerType::iterator itElem = rModelPart.ElementsBegin();
-         itElem != rModelPart.ElementsEnd(); itElem++)
-      itElem->Calculate(NODAL_AREA, output, CurrentProcessInfo);
-
-    rModelPart.GetCommunicator().AssembleCurrentData(NODAL_AREA);
-
-    if (mpTurbulenceModel != 0) // If not null
+    if (mpTurbulenceModel) // If not null
+    {
       mpTurbulenceModel->Execute();
+    }
 
-    KRATOS_CATCH("");
-  }
-
-  void FinalizeNonLinIteration(ModelPart &rModelPart,
-                                       TSystemMatrixType &rA,
-                                       TSystemVectorType &rDx,
-                                       TSystemVectorType &rb) override
-  {
     ProcessInfo& CurrentProcessInfo = rModelPart.GetProcessInfo();
 
     //if orthogonal subscales are computed
     if (CurrentProcessInfo[OSS_SWITCH] == 1.0) {
 
-      if (rModelPart.GetCommunicator().MyPID() == 0)
-        std::cout << "Computing OSS projections" << std::endl;
+      KRATOS_INFO_IF("ResidualBasedSimpleSteadyScheme", rModelPart.GetCommunicator().MyPID() == 0)
+          << "Computing OSS projections" << std::endl;
 
-      for (typename ModelPart::NodesContainerType::iterator itNode = rModelPart.NodesBegin();
-           itNode != rModelPart.NodesEnd(); itNode++)
-      {
-        noalias(itNode->FastGetSolutionStepValue(ADVPROJ)) = ZeroVector(3);
-        itNode->FastGetSolutionStepValue(DIVPROJ) = 0.0;
-        itNode->FastGetSolutionStepValue(NODAL_AREA) = 0.0;
+      const int number_of_nodes = rModelPart.NumberOfNodes();
+
+      #pragma omp parallel for
+      for (int i = 0; i < number_of_nodes; i++) {
+        ModelPart::NodeIterator it_node = rModelPart.NodesBegin() + i;
+        noalias(it_node->FastGetSolutionStepValue(ADVPROJ)) = ZeroVector(3);
+        it_node->FastGetSolutionStepValue(DIVPROJ) = 0.0;
+        it_node->FastGetSolutionStepValue(NODAL_AREA) = 0.0;
       }
 
+      const int number_of_elements = rModelPart.NumberOfElements();
       array_1d<double, 3 > output;
-      for (typename ModelPart::ElementsContainerType::iterator itElem = rModelPart.ElementsBegin();
-           itElem != rModelPart.ElementsEnd(); itElem++)
-      {
-        itElem->Calculate(ADVPROJ, output, CurrentProcessInfo);
+
+      #pragma omp parallel for private(output)
+      for (int i = 0; i < number_of_elements; i++) {
+        ModelPart::ElementIterator it_elem = rModelPart.ElementsBegin() + i;
+        it_elem->Calculate(ADVPROJ,output,CurrentProcessInfo);
       }
+
       rModelPart.GetCommunicator().AssembleCurrentData(NODAL_AREA);
       rModelPart.GetCommunicator().AssembleCurrentData(DIVPROJ);
       rModelPart.GetCommunicator().AssembleCurrentData(ADVPROJ);
 
-      for (typename ModelPart::NodesContainerType::iterator itNode = rModelPart.NodesBegin();
-           itNode != rModelPart.NodesEnd(); itNode++)
-      {
-        if (itNode->FastGetSolutionStepValue(NODAL_AREA) == 0.0)
-          itNode->FastGetSolutionStepValue(NODAL_AREA) = 1.0;
-        const double Area = itNode->FastGetSolutionStepValue(NODAL_AREA);
-        itNode->FastGetSolutionStepValue(ADVPROJ) /= Area;
-        itNode->FastGetSolutionStepValue(DIVPROJ) /= Area;
+      #pragma omp parallel for
+      for (int i = 0; i < number_of_nodes; i++) {
+        ModelPart::NodeIterator it_node = rModelPart.NodesBegin() + i;
+        if (it_node->FastGetSolutionStepValue(NODAL_AREA) == 0.0)
+          it_node->FastGetSolutionStepValue(NODAL_AREA) = 1.0;
+        const double area_inverse = 1.0 / it_node->FastGetSolutionStepValue(NODAL_AREA);
+        it_node->FastGetSolutionStepValue(ADVPROJ) *= area_inverse;
+        it_node->FastGetSolutionStepValue(DIVPROJ) *= area_inverse;
       }
     }
   }
 
-  void FinalizeSolutionStep(ModelPart &rModelPart,
-                            TSystemMatrixType &rA,
-                            TSystemVectorType &rDx,
-                            TSystemVectorType &rb) override
+  void FinalizeSolutionStep(ModelPart& rModelPart,
+                            TSystemMatrixType& rA,
+                            TSystemVectorType& rDx,
+                            TSystemVectorType& rb) override
   {
     LocalSystemVectorType RHS_Contribution;
     LocalSystemMatrixType LHS_Contribution;
@@ -343,112 +308,6 @@ protected:
 
   ///@name Protected Operators
   ///@{
-  void AddRelaxation(Element::Pointer rCurrentElement,
-                     LocalSystemMatrixType& LHS_Contribution,
-                     LocalSystemVectorType& RHS_Contribution,
-                     LocalSystemMatrixType& Mass,
-                     ProcessInfo& CurrentProcessInfo)
-  {
-    if (Mass.size1() == 0)
-      return;
-
-    GeometryType& rGeom = rCurrentElement->GetGeometry();
-    const unsigned int NumNodes = rGeom.PointsNumber();
-    const unsigned int Dimension = rGeom.WorkingSpaceDimension();
-    const unsigned int VelocityBlockSize = NumNodes * Dimension;
-    unsigned int DofIndex = 0;
-    for (unsigned int iNode = 0; iNode < NumNodes; iNode++)
-    {
-      array_1d<double, 3>& rVel = rGeom[iNode].FastGetSolutionStepValue(VELOCITY,0);
-      double Area = rGeom[iNode].FastGetSolutionStepValue(NODAL_AREA,0);
-      double VelNorm = 0.0;
-      for (unsigned int d = 0; d < Dimension; ++d)
-        VelNorm += rVel[d] * rVel[d];
-      VelNorm = sqrt(VelNorm);
-      double LocalDt;
-      if (VelNorm != 0.0)
-        LocalDt = pow(Area, 1.0 / double(Dimension)) / VelNorm;
-      else
-        LocalDt = 1.0;
-
-      for (unsigned int i = 0; i < Dimension; i++)
-      {
-        double LumpedMass = 0.0;
-        for (unsigned int j = 0; j < VelocityBlockSize; j++)
-        {
-          LumpedMass += Mass(DofIndex,j);
-          Mass(DofIndex,j) = 0.0;
-        }
-        // the relaxation factor defines the local cfl number
-        Mass(DofIndex,DofIndex) = LumpedMass / (mVelocityRelaxationFactor * LocalDt);
-        DofIndex++;
-      }
-      DofIndex++; // pressure dof
-    }
-    noalias(LHS_Contribution) += Mass;
-
-    // pressure relaxation
-    for (unsigned int iNode = 0; iNode < NumNodes; iNode++)
-    {
-      unsigned int BlockIndex = iNode * (Dimension + 1);
-      LHS_Contribution(BlockIndex+Dimension,BlockIndex+Dimension) /= mPressureRelaxationFactor;
-    }
-  }
-
-  void AddRelaxation(Condition::Pointer rCurrentCondition,
-                     LocalSystemMatrixType& LHS_Contribution,
-                     LocalSystemVectorType& RHS_Contribution,
-                     LocalSystemMatrixType& Mass,
-                     ProcessInfo& CurrentProcessInfo)
-  {
-    if (Mass.size1() == 0)
-      return;
-
-    GeometryType& rGeom = rCurrentCondition->GetGeometry();
-    const unsigned int NumNodes = rGeom.PointsNumber();
-    const unsigned int Dimension = rGeom.WorkingSpaceDimension();
-    const unsigned int VelocityBlockSize = NumNodes * Dimension;
-    unsigned int DofIndex = 0;
-    for (unsigned int iNode = 0; iNode < NumNodes; iNode++)
-    {
-      array_1d<double, 3>& rVel = rGeom[iNode].FastGetSolutionStepValue(VELOCITY,0);
-      double Area = rGeom[iNode].FastGetSolutionStepValue(NODAL_AREA,0);
-      double VelNorm = 0.0;
-      for (unsigned int d = 0; d < Dimension; ++d)
-        VelNorm += rVel[d] * rVel[d];
-      VelNorm = sqrt(VelNorm);
-      double LocalDt;
-      if (VelNorm != 0.0)
-        LocalDt = pow(Area, 1.0 / double(Dimension)) / VelNorm;
-      else
-        LocalDt = 1.0;
-
-      for (unsigned int i = 0; i < Dimension; i++)
-      {
-        double LumpedMass = 0.0;
-        for (unsigned int j = 0; j < VelocityBlockSize; j++)
-        {
-          LumpedMass += Mass(DofIndex,j);
-          Mass(DofIndex,j) = 0.0;
-        }
-        // the relaxation factor defines the local cfl number
-        Mass(DofIndex,DofIndex) = LumpedMass / (mVelocityRelaxationFactor * LocalDt);
-        DofIndex++;
-      }
-      DofIndex++; // pressure dof
-    }
-    noalias(LHS_Contribution) += Mass;
-
-    // pressure relaxation
-    for (unsigned int iNode = 0; iNode < NumNodes; iNode++)
-    {
-      unsigned int BlockIndex = iNode * (Dimension + 1);
-      LHS_Contribution(BlockIndex+Dimension,BlockIndex+Dimension) /= mPressureRelaxationFactor;
-    }
-//Vector OldDofValues;
-    //rCurrentCondition->GetFirstDerivativesVector(OldDofValues, 0);
-    //noalias(RHS_Contribution) -= prod(Mass, OldDofValues);
-  }
 
   ///@}
 
@@ -460,6 +319,7 @@ private:
   double mPressureRelaxationFactor;
   CoordinateTransformationUtils<LocalSystemMatrixType,LocalSystemVectorType,double> mRotationTool;
   Process::Pointer mpTurbulenceModel;
+  typename TSparseSpace::DofUpdaterPointerType mpDofUpdater = TSparseSpace::CreateDofUpdater();
 
   ///@}
 };

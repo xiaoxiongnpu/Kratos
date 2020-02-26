@@ -1,19 +1,20 @@
-// KRATOS  __  __ _____ ____  _   _ ___ _   _  ____ 
+// KRATOS  __  __ _____ ____  _   _ ___ _   _  ____
 //        |  \/  | ____/ ___|| | | |_ _| \ | |/ ___|
-//        | |\/| |  _| \___ \| |_| || ||  \| | |  _ 
+//        | |\/| |  _| \___ \| |_| || ||  \| | |  _
 //        | |  | | |___ ___) |  _  || || |\  | |_| |
 //        |_|  |_|_____|____/|_| |_|___|_| \_|\____| APPLICATION
 //
 //  License:		 BSD License
 //                       license: MeshingApplication/license.txt
 //
-//  Main authors:    Vicente Mataix Ferrándiz
+//  Main authors:    Vicente Mataix Ferrandiz
 //
 
 #if !defined(KRATOS_MMG_PROCESS)
 #define KRATOS_MMG_PROCESS
 
 // System includes
+#include <unordered_set>
 #include <unordered_map>
 
 // External includes
@@ -25,7 +26,9 @@
 #include "includes/key_hash.h"
 #include "includes/model_part.h"
 #include "includes/kratos_parameters.h"
+#include "custom_utilities/mmg_utilities.h"
 #include "containers/variables_list.h"
+#include "meshing_application.h"
 
 // NOTE: The following contains the license of the MMG library
 /* =============================================================================
@@ -58,94 +61,88 @@ namespace Kratos
 ///@name Type Definitions
 ///@{
 
-    // Containers definition
-    typedef ModelPart::NodesContainerType                        NodesArrayType;
-    typedef ModelPart::ElementsContainerType                  ElementsArrayType;
-    typedef ModelPart::ConditionsContainerType              ConditionsArrayType;
-    
-    // Components definition
-    typedef Node <3>                                                   NodeType;
-    typedef Properties                                           PropertiesType;
-    typedef Element                                                 ElementType;
-    typedef Condition                                             ConditionType;
-    
-    // Index definition
-    typedef std::size_t                                               IndexType;
-    typedef std::size_t                                                SizeType;
-    
-    // DoF definition
-    typedef Dof<double>                                                 DofType;
-    
-    // Mesh definition
-    typedef Mesh<NodeType, PropertiesType, ElementType, ConditionType> MeshType;
-    typedef MeshType::PropertiesContainerType           PropertiesContainerType;
-    typedef MeshType::NodeConstantIterator                 NodeConstantIterator;
-    typedef MeshType::ConditionConstantIterator       ConditionConstantIterator;
-    typedef MeshType::ElementConstantIterator           ElementConstantIterator;
+    /// Index definition
+    typedef std::size_t                  IndexType;
+
+    /// Size definition
+    typedef std::size_t                   SizeType;
+
+    /// Index vector
+    typedef std::vector<IndexType> IndexVectorType;
 
 ///@}
 ///@name  Enum's
 ///@{
 
-    /**
-     * This enums are used to simplify the computation of the std::vector containing the conditions and elements
-     */
-#if !defined(MMG_GEOMETRY)
-#define MMG_GEOMETRY
-    enum CondGeometries2D {Line = 0};
-    
-    enum ElemGeometries2D {Triangle2D = 0};
-    
-    enum CondGeometries3D {Triangle3D = 0, Quadrilateral3D = 1};
-    
-    enum ElemGeometries3D {Tetrahedra = 0, Prism = 1};
-#endif
-    
-#if !defined(FRAMEWORK_EULER_LAGRANGE)
-#define FRAMEWORK_EULER_LAGRANGE
-    enum FrameworkEulerLagrange {Eulerian = 0, Lagrangian = 1, ALE = 2};
-#endif
-    
 ///@}
 ///@name  Functions
 ///@{
-    
+
 ///@}
 ///@name Kratos Classes
 ///@{
 
-//// This class is a remesher which uses the MMG library 
-// The class uses a class for the 2D and 3D cases 
-
-template<unsigned int TDim>  
-class MmgProcess 
+/**
+ * @class MmgProcess
+ * @ingroup MeshingApplication
+ * @brief This class is a remesher which uses the MMG library
+ * @details This class is a remesher which uses the MMG library. The class uses a class for the 2D and 3D cases.
+ * The remesher keeps the previous submodelparts and interpolates the nodal values between the old and new mesh
+ * @author Vicente Mataix Ferrandiz
+ */
+template<MMGLibrary TMMGLibrary>
+class KRATOS_API(MESHING_APPLICATION) MmgProcess
     : public Process
 {
 public:
 
     ///@name Type Definitions
     ///@{
-    
+
+    /// Pointer definition of MmgProcess
+    KRATOS_CLASS_POINTER_DEFINITION(MmgProcess);
+
+    /// Node definition
+    typedef Node <3>                                                   NodeType;
+    // Geometry definition
+    typedef Geometry<NodeType>                                     GeometryType;
+
+    /// Conditions array size
+    static constexpr SizeType Dimension = (TMMGLibrary == MMGLibrary::MMG2D) ? 2 : 3;
+
+    /// The type of array considered for the tensor
+    typedef typename std::conditional<Dimension == 2, array_1d<double, 3>, array_1d<double, 6>>::type TensorArrayType;
+
+    /// Colors map
+    typedef std::unordered_map<IndexType,IndexType> ColorsMapType;
+
+    /// Index pair
+    typedef std::pair<IndexType,IndexType> IndexPairType;
+
+
+    ///@}
+    ///@name  Enum's
+    ///@{
+
     ///@}
     ///@name Life Cycle
     ///@{
-     
+
     // Constructor
-    
+
     /**
-     * This is the default constructor, which is used to read the input files 
+     * @brief This is the default constructor, which is used to read the input files
      * @param rThisModelPart The model part
      * @param ThisParameters The parameters
      */
-    
     MmgProcess(
-        ModelPart& rThisModelPart, 
+        ModelPart& rThisModelPart,
         Parameters ThisParameters = Parameters(R"({})")
         );
 
     /// Destructor.
     ~MmgProcess() override = default;
-    
+
     ///@}
     ///@name Access
     ///@{
@@ -161,22 +158,66 @@ public:
     ///@}
     ///@name Friends
     ///@{
-    
+
     ///@}
     ///@name Operators
     ///@{
-    
+
     void operator()();
 
     ///@}
     ///@name Operations
     ///@{
-    
+
     /**
-     * Instead of using an files already created we read an existing model part
+     * @brief Execute method is used to execute the Process algorithms.
      */
-    
     void Execute() override;
+
+    /**
+     * @brief This function is designed for being execute once before the solution loop but after all of the solvers where built
+     */
+    void ExecuteInitialize() override;
+
+    /**
+     * @brief This function is designed for being execute once before the solution loop but after all of the solvers where built
+     */
+    void ExecuteBeforeSolutionLoop() override;
+
+    /**
+     * @brief This function will be executed at every time step BEFORE performing the solve phase
+     */
+    void ExecuteInitializeSolutionStep() override;
+
+    /**
+     * @brief This function will be executed at every time step AFTER performing the solve phase
+     */
+    void ExecuteFinalizeSolutionStep() override;
+
+    /**
+     * @brief This function will be executed at every time step BEFORE  writing the output
+     */
+    void ExecuteBeforeOutputStep() override;
+
+    /**
+     * @brief This function will be executed at every time step AFTER writing the output
+     */
+    void ExecuteAfterOutputStep() override;
+
+    /**
+     * @brief This function is designed for being called at the end of the computations right after reading the model and the groups
+     */
+    void ExecuteFinalize() override;
+
+    /**
+     * @brief This sets the output mesh in a .mdpa format
+     */
+    void OutputMdpa();
+
+    /**
+     * @brief Ths function removes superfluous (defined by "not belonging to an element") nodes from the model part
+     */
+    void CleanSuperfluousNodes();
 
     ///@}
     ///@name Access
@@ -191,7 +232,7 @@ public:
     ///@}
     ///@name Input and output
     ///@{
-    
+
     /// Turn back information as a string.
     std::string Info() const override
     {
@@ -208,16 +249,16 @@ public:
     void PrintData(std::ostream& rOStream) const override
     {
     }
-    
+
 protected:
-    
+
     ///@name Protected static Member Variables
     ///@{
 
     ///@}
     ///@name Protected member Variables
     ///@{
-    
+
     ///@}
     ///@name Protected Operators
     ///@{
@@ -239,7 +280,7 @@ protected:
     ///@{
 
     ///@}
-    
+
 private:
     ///@name Static Member Variables
     ///@{
@@ -248,21 +289,25 @@ private:
     ///@}
     ///@name Member Variables
     ///@{
-    
-    ModelPart& mrThisModelPart;                                   // The model part to compute           
-    Parameters mThisParameters;                                   // The parameters (can be used for general pourposes)
-    Node<3>::DofsContainerType  mDofs;                            // Storage for the dof of the node
-    
-    char* mFilename;                                              // I/O file name
-    std::string mStdStringFilename;                               // I/O file name (string)
-    unsigned int mEchoLevel;                                      // The echo level
 
-    FrameworkEulerLagrange mFramework;                            // The framework
-    
-    std::unordered_map<int,std::vector<std::string>> mColors;     // Where the sub model parts IDs are stored
-    
-    std::unordered_map<int,Element::Pointer>   mpRefElement;      // Reference condition
-    std::unordered_map<int,Condition::Pointer> mpRefCondition;    // Reference element
+    ModelPart& mrThisModelPart;                                      /// The model part to compute
+    Parameters mThisParameters;                                      /// The parameters (can be used for general pourposes)
+    NodeType::DofsContainerType mDofs;                               /// Storage for the dof of the node
+
+    MmgUtilities<TMMGLibrary> mMmmgUtilities;                        /// The MMG utilities class
+
+    std::string mFilename;                                           /// I/O file name
+    IndexType mEchoLevel;                                            /// The echo level
+
+    FrameworkEulerLagrange mFramework;                               /// The framework
+
+    DiscretizationOption mDiscretization;                            /// The discretization option
+    bool mRemoveRegions;                                             /// Cuttig-out specified regions during surface remeshing
+
+    std::unordered_map<IndexType,std::vector<std::string>> mColors;  /// Where the sub model parts IDs are stored
+
+    std::unordered_map<IndexType,Element::Pointer>   mpRefElement;   /// Reference element
+    std::unordered_map<IndexType,Condition::Pointer> mpRefCondition; /// Reference condition
 
     ///@}
     ///@name Private Operators
@@ -273,355 +318,169 @@ private:
     ///@{
 
     /**
-     * This function generates the mesh MMG5 structure from a Kratos Model Part
-     */
-    
-    void InitializeMeshData();
-    
-    /**
-     * This function generates the metric MMG5 structure from a Kratos Model Part
-     */
-    
-    void InitializeSolData();
-    
-    /**
-     * We execute the MMg library and build the new model part from the old model part
-     */
-    
-    void ExecuteRemeshing();
-    
-    /**
-     * This function reorder the nodes, conditions and elements to avoid problems with non-consecutive ids
-     */
-    
-    void ReorderAllIds();
-    
-    /**
-     * After we have transfer the information from the previous modelpart we initilize the elements and conditions
-     */
-    
-    void InitializeElementsAndConditions();
-    
-    /**
-     * It checks if the nodes are repeated and remove the repeated ones
-     */
-    
-    std::vector<unsigned int> CheckNodes();
-    
-    /**
-     * It checks if the conditions are repeated and remove the repeated ones
-     */
-    
-    std::vector<unsigned int> CheckConditions0();
-    
-    /**
-     * It checks if the conditions are repeated and remove the repeated ones
-     */
-        
-    std::vector<unsigned int> CheckConditions1();
-    
-    /**
-     * It checks if the elemenst are removed and remove the repeated ones
-     */
-    
-    std::vector<unsigned int> CheckElements0();
-    
-    /**
-     * It checks if the elemenst are removed and remove the repeated ones
-     */
-        
-    std::vector<unsigned int> CheckElements1();
-    
-    /**
-     * It blocks certain nodes before remesh the model
-     * @param iNode The index of the noode
-     */
-    
-    void BlockNode(unsigned int iNode);
-    
-    /**
-     * It creates the new node
-     * @param iNode The index of the new noode
-     * @param Ref The submodelpart id
-     * @param IsRequired MMG value (I don't know that it does)
-     * @return pNode The pointer to the new node created
-     */
-    
-    NodeType::Pointer CreateNode(
-        unsigned int iNode,
-        int& Ref, 
-        int& IsRequired
-        );
-    
-    /**
-     * It creates the new condition
-     * @param CondId The id of the condition
-     * @param PropId The submodelpart id
-     * @param IsRequired MMG value (I don't know that it does)
-     * @return pCondition The pointer to the new condition created
-     */
-    
-    ConditionType::Pointer CreateCondition0(
-        const unsigned int CondId,
-        int& PropId, 
-        int& IsRequired,
-        bool SkipCreation
-        );
-    
-    /**
-     * It creates the new condition
-     * @param CondId The id of the condition
-     * @param PropId The submodelpart id
-     * @param IsRequired MMG value (I don't know that it does)
-     * @return pCondition The pointer to the new condition created
-     */
-    
-    ConditionType::Pointer CreateCondition1(
-        const unsigned int CondId,
-        int& PropId, 
-        int& IsRequired,
-        bool SkipCreation
-        );
-    
-    /**
-     * It creates the new element
-     * @param ElemId The id of the element
-     * @param PropId The submodelpart id
-     * @param IsRequired MMG value (I don't know that it does)
-     * @return pElement The pointer to the new condition created
-     */
-    
-    ElementType::Pointer CreateElement0(
-        const unsigned int ElemId,
-        int& PropId, 
-        int& IsRequired,
-        bool SkipCreation
-        );
-    
-    /**
-     * It creates the new element
-     * @param ElemId The id of the element
-     * @param PropId The submodelpart id
-     * @param IsRequired MMG value (I don't know that it does)
-     * @return pElement The pointer to the new condition created
-     */
-    
-    ElementType::Pointer CreateElement1(
-        const unsigned int ElemId,
-        int& PropId, 
-        int& IsRequired,
-        bool SkipCreation
-        );
-    
-    /**
-     * It saves the solution and mesh to files (for debugging pourpose g.e)
-     * @param PostOutput If the file to save is after or before remeshing
-     */
-    
-    void SaveSolutionToFile(const bool PostOutput);
-    
-    /**
-     * It frees the memory used during all the process
-     */
-    
-    void FreeMemory();
-    
-    /** 
-     * Initialisation of mesh and sol structures args of InitMesh:
-     * MMG5_ARG_start we start to give the args of a variadic func
-     * MMG5_ARG_ppMesh next arg will be a pointer over a MMG5_pMesh
-     * &mmgMesh pointer toward your MMG5_pMesh (that store your mesh)
-     * MMG5_ARG_ppMet next arg will be a pointer over a MMG5_pSol storing a metric
-     * &mmgSol pointer toward your MMG5_pSol (that store your metric) 
-     */
-    
-    void InitMesh();
-    
-    /** 
-     * Here the verbosity is set 
-     */
-    
-    void InitVerbosity();
-    
-    /** 
-     * Here the verbosity is set using the API
-     * @param verbosityMMG The equivalent verbosity level in the MMG API
-     */
-        
-    void InitVerbosityParameter(const int& VerbosityMMG);
-    
-    /**
-     * This sets the size of the mesh
-     * @param NumNodes Number of nodes
-     * @param NumElements Number of Elements
-     * @param NumConditions Number of Conditions
-     */
-    
-    void SetMeshSize(
-        const SizeType NumNodes,
-        const array_1d<SizeType, TDim - 1> NumArrayElements,  // NOTE: We do this tricky thing to take into account the prisms
-        const array_1d<SizeType, TDim - 1> NumArrayConditions // NOTE: We do this tricky thing to take into account the quadrilaterals
-        );
-    
-    /**
-     * This sets the size of the solution for the scalar case
-     * @param NumNodes Number of nodes
-     */
-    
-    void SetSolSizeScalar(const int NumNodes);
-    
-    /**
-     * This sets the size of the solution for the vector case
-     * @param NumNodes: Number of nodes
-     */
-    
-    void SetSolSizeVector(const int NumNodes);
-    
-    /**
-     * This sets the size of the solution for the tensor case
-     * @param NumNodes Number of nodes
-     */
-    
-    void SetSolSizeTensor(const int NumNodes);
-    
-    /**
-     * This checks the mesh data and prints if it is OK
-     */
-    
-    void CheckMeshData();
-    
-    /**
-     * This sets the output mesh
-     * @param PostOutput If the ouput file is the solution after take into account the metric or not
-     * @param step The step to postprocess
-     */
-    
-    void OutputMesh(
-        const bool PostOutput, 
-        const unsigned int Step
-        );
-    
-    /**
-     * This sets the output mesh in a .mdpa format
-     */
-    void OutputMdpa();
-
-    /**
-     * This sets the output sol
-     * @param PostOutput If the ouput file is the solution after take into account the metric or not
-     * @param step The step to postprocess
-     */
-    
-    void OutputSol(
-        const bool PostOutput, 
-        const unsigned int Step
-        );
-    
-    /**
-     * This loads the solution
-     */
-    
-    void MMGLibCall();
-    
-    /**
-     * This frees the MMG structures
-     */
-    
-    void FreeAll();
-    
-    /**
-     * This sets the nodes of the mesh
-     * @param X Coordinate X
-     * @param Y Coordinate Y
-     * @param Z Coordinate Z
-     * @param Color Reference of the node(submodelpart)
-     * @param Index The index number of the node 
-     */
-    
-    void SetNodes(
-        const double X,
-        const double Y,
-        const double Z,
-        const int Color,
-        const int Index
-        );
-    
-    /**
-     * This sets the conditions of the mesh
-     * @param Geom The geometry of the condition
-     * @param Color Reference of the node(submodelpart)
-     * @param Index The index number of the node 
-     */
-    
-    void SetConditions(
-        Geometry<Node<3> > & Geom,
-        const int Color,
-        const int Index
-        );
-    
-    /**
-     * This sets elements of the mesh
-     * @param Geom The geometry of the element
-     * @param Color Reference of the node(submodelpart)
-     * @param Index The index number of the node 
-     */
-    
-    void SetElements(
-        Geometry<Node<3> > & Geom,
-        const int Color,
-        const int Index
-        );
-    
-    /**
-     * This functions gets the "colors", parts of a model part to process
-     * @param NodeColors Map where the submodelparts and nodes are stored
-     * @param CondColors Map where the submodelparts and conditions are stored
-     * @param ElemColors Map where the submodelparts and elements are stored
-     */
-    
-    void ComputeColors(
-        std::unordered_map<int,int>& NodeColors,
-        std::unordered_map<int,int>& CondColors,
-        std::unordered_map<int,int>& ElemColors
-        );
-
-    /**
-     * This function is used to compute the metric scalar
-     * @param Metric The inverse of the size node
-     */
-
-    void SetMetricScalar(
-        const double& Metric,
-        const int NodeId 
-        );
-    
-    /**
-     * This function is used to compute the metric vector (x, y, z)
-     * @param Metric This array contains the components of the metric vector
-     */
-
-    void SetMetricVector(
-        const array_1d<double, 3>& Metric,
-        const int NodeId 
-        );
-    
-    /**
-     * This function is used to compute the Hessian metric tensor, note that when using the Hessian, more than one metric can be defined simultaneously, so in consecuence we need to define the elipsoid which defines the volume of maximal intersection
-     * @param Metric This array contains the components of the metric tensor in the MMG defined order
-     */
-
-    void SetMetricTensor(
-        const Vector& Metric,
-        const int NodeId 
-        );
-    
-    /**
-     * This converts the framework string to an enum
-     * @param Str The string
+     * @brief This converts the framework string to an enum
+     * @param rString The string
      * @return FrameworkEulerLagrange: The equivalent enum
      */
-        
-    FrameworkEulerLagrange ConvertFramework(const std::string& Str);
+    static inline FrameworkEulerLagrange ConvertFramework(const std::string& rString)
+    {
+        if(rString == "Lagrangian" || rString == "LAGRANGIAN")
+            return FrameworkEulerLagrange::LAGRANGIAN;
+        else if(rString == "Eulerian" || rString == "EULERIAN")
+            return FrameworkEulerLagrange::EULERIAN;
+        else if(rString == "ALE")
+            return FrameworkEulerLagrange::ALE;
+        else
+            return FrameworkEulerLagrange::EULERIAN;
+    }
+
+    /**
+     * @brief This converts the discretization string to an enum
+     * @param rString The string
+     * @return DiscretizationOption: The equivalent enum
+     */
+    static inline DiscretizationOption ConvertDiscretization(const std::string& rString)
+    {
+        if(rString == "Lagrangian" || rString == "LAGRANGIAN")
+            return DiscretizationOption::LAGRANGIAN;
+        else if(rString == "Standard" || rString == "STANDARD")
+            return DiscretizationOption::STANDARD;
+        else if(rString == "Isosurface" || rString == "ISOSURFACE" || rString == "IsoSurface")
+            return DiscretizationOption::ISOSURFACE;
+        else
+            return DiscretizationOption::STANDARD;
+    }
+
+    /**
+     * @brief This function generates the mesh MMG5 structure from a Kratos Model Part
+     */
+    void InitializeMeshData();
+
+    /**
+     *@brief This function generates the metric MMG5 structure from a Kratos Model Part
+     */
+    void InitializeSolDataMetric();
+
+    /**
+     *@brief This function generates the MMG5 structure for the distance field from a Kratos Model Part
+     */
+    void InitializeSolDataDistance();
+
+    /**
+     *@brief This function generates the displacement MMG5 structure from a Kratos Model Part
+     */
+    void InitializeDisplacementData();
+
+    /**
+     * @brief We execute the MMg library and build the new model part from the old model part
+     */
+    void ExecuteRemeshing();
+
+    /**
+     * @brief After we have transfer the information from the previous modelpart we initilize the elements and conditions
+     */
+    void InitializeElementsAndConditions();
+
+    /**
+     * @brief It saves the solution and mesh to files (for debugging pourpose g.e)
+     * @param PostOutput If the file to save is after or before remeshing
+     */
+    void SaveSolutionToFile(const bool PostOutput);
+
+    /**
+     * @brief It frees the memory used during all the process
+     */
+    void FreeMemory();
+
+    /**
+     * @brief It sets to zero the entity data, using the variables from the orginal model part
+     * @param rNewModelPart The new container
+     * @param rOldModelPart The old container
+     * @tparam TContainerType The container type
+     * @todo Interpolate values in the future
+     */
+    template<class TContainerType>
+    void SetToZeroEntityData(
+        TContainerType& rNewContainer,
+        const TContainerType& rOldContainer
+        )
+    {
+        // Firts we generate the variable list
+        std::unordered_set<std::string> list_variables;
+        const auto it_begin_old = rOldContainer.begin();
+        auto& data = it_begin_old->Data();
+        for(auto i = data.begin() ; i != data.end() ; ++i) {
+            list_variables.insert((i->first)->Name());
+        }
+
+        for (auto& var_name : list_variables) {
+            if (KratosComponents<Variable<bool>>::Has(var_name)) {
+                const Variable<bool>& r_var = KratosComponents<Variable<bool>>::Get(var_name);
+                VariableUtils().SetNonHistoricalVariable(r_var, false, rNewContainer);
+            } else if (KratosComponents<Variable<double>>::Has(var_name)) {
+                const Variable<double>& r_var = KratosComponents<Variable<double>>::Get(var_name);
+                VariableUtils().SetNonHistoricalVariable(r_var, 0.0, rNewContainer);
+            } else if (KratosComponents<Variable<array_1d<double, 3>>>::Has(var_name)) {
+                const Variable<array_1d<double, 3>>& r_var = KratosComponents<Variable<array_1d<double, 3>>>::Get(var_name);
+                const array_1d<double, 3> aux_value = ZeroVector(3);
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            } else if (KratosComponents<Variable<array_1d<double, 4>>>::Has(var_name)) {
+                const Variable<array_1d<double, 4>>& r_var = KratosComponents<Variable<array_1d<double, 4>>>::Get(var_name);
+                const array_1d<double, 4> aux_value = ZeroVector(4);
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            } else if (KratosComponents<Variable<array_1d<double, 6>>>::Has(var_name)) {
+                const Variable<array_1d<double, 6>>& r_var = KratosComponents<Variable<array_1d<double, 6>>>::Get(var_name);
+                const array_1d<double, 6> aux_value = ZeroVector(6);
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            } else if (KratosComponents<Variable<array_1d<double, 9>>>::Has(var_name)) {
+                const Variable<array_1d<double, 9>>& r_var = KratosComponents<Variable<array_1d<double, 9>>>::Get(var_name);
+                const array_1d<double, 9> aux_value = ZeroVector(9);
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            } else if (KratosComponents<Variable<Vector>>::Has(var_name)) {
+                const Variable<Vector>& r_var = KratosComponents<Variable<Vector>>::Get(var_name);
+                Vector aux_value = ZeroVector(it_begin_old->GetValue(r_var).size());
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            } else if (KratosComponents<Variable<Matrix>>::Has(var_name)) {
+                const Variable<Matrix>& r_var = KratosComponents<Variable<Matrix>>::Get(var_name);
+                const Matrix& ref_matrix = it_begin_old->GetValue(r_var);
+                Matrix aux_value = ZeroMatrix(ref_matrix.size1(), ref_matrix.size2());
+                VariableUtils().SetNonHistoricalVariable(r_var, aux_value, rNewContainer);
+            }
+        }
+    }
+
+    /**
+     * @brief This method collapses the prisms elements into triangles
+     */
+    void CollapsePrismsToTriangles();
+
+    /**
+     * @brief This method extrudes the triangles elements into prisms
+     * @param rOldModelPart The old model part
+     */
+    void ExtrudeTrianglestoPrisms(ModelPart& rOldModelPart);
+
+    /**
+     * @brief This function removes the conditions with duplicated geometries
+     */
+    void ClearConditionsDuplicatedGeometries();
+
+    /**
+     * @brief This function creates an before/after remesh output file
+     * @param rOldModelPart The old model part before remesh
+     */
+    void CreateDebugPrePostRemeshOutput(ModelPart& rOldModelPart);
+
+    /**
+     * @brief This method is used in order to mark the conditions in a recursive way to avoid remove necessary conditions
+     * @param rModelPart The modelpart to be marked
+     */
+    void MarkConditionsSubmodelParts(ModelPart& rModelPart);
+
+    /**
+     * @brief This method provides the defaults parameters to avoid conflicts between the different constructors
+     */
+    Parameters GetDefaultParameters();
 
     ///@}
     ///@name Private  Access
@@ -637,14 +496,14 @@ private:
     ///@name Un accessible methods
     ///@{
 
-//     /// Assignment operator.
-//     MmgProcess& operator=(MmgProcess const& rOther);
+    /// Assignment operator.
+    MmgProcess& operator=(MmgProcess const& rOther);
 
-//     /// Copy constructor.
-//     MmgProcess(MmgProcess const& rOther);
+    /// Copy constructor.
+    MmgProcess(MmgProcess const& rOther);
 
     ///@}
-    
+
 };// class MmgProcess
 ///@}
 
@@ -657,19 +516,21 @@ private:
 ///@{
 
 /// input stream function
-// inline std::istream& operator >> (std::istream& rIStream,
-//                                   MmgProcess& rThis);
-//
-// /// output stream function
-// inline std::ostream& operator << (std::ostream& rOStream,
-//                                   const MmgProcess& rThis)
-// {
-//     rThis.PrintInfo(rOStream);
-//     rOStream << std::endl;
-//     rThis.PrintData(rOStream);
-//
-//     return rOStream;
-// }
+template<MMGLibrary TMMGLibrary>
+inline std::istream& operator >> (std::istream& rIStream,
+                                  MmgProcess<TMMGLibrary>& rThis);
+
+/// output stream function
+template<MMGLibrary TMMGLibrary>
+inline std::ostream& operator << (std::ostream& rOStream,
+                                  const MmgProcess<TMMGLibrary>& rThis)
+{
+    rThis.PrintInfo(rOStream);
+    rOStream << std::endl;
+    rThis.PrintData(rOStream);
+
+    return rOStream;
+}
 
 }// namespace Kratos.
 #endif /* KRATOS_MMG_PROCESS defined */

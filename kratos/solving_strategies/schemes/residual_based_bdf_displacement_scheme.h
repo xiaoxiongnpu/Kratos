@@ -21,7 +21,7 @@
 /* Project includes */
 #include "solving_strategies/schemes/residual_based_bdf_scheme.h"
 #include "includes/variables.h"
-#include "includes/checks.h" 
+#include "includes/checks.h"
 
 namespace Kratos
 {
@@ -40,11 +40,11 @@ namespace Kratos
 ///@name Kratos Classes
 ///@{
 
-/** 
+/**
  * @class ResidualBasedBDFDisplacementScheme
  * @ingroup KratosCore
  * @brief BDF integration scheme (displacement based)
- * @details The \f$ n \f$ order Backward Differentiation Formula (BDF) method is a two step \f$ n \f$ order accurate method. 
+ * @details The \f$ n \f$ order Backward Differentiation Formula (BDF) method is a two step \f$ n \f$ order accurate method.
  * Look at the base class for more details
  * @see ResidualBasedBDFScheme
  * @author Vicente Mataix Ferrandiz
@@ -56,54 +56,72 @@ class ResidualBasedBDFDisplacementScheme
 public:
     ///@name Type Definitions
     ///@{
+
+    /// Pointer definition of ResidualBasedBDFDisplacementScheme
     KRATOS_CLASS_POINTER_DEFINITION( ResidualBasedBDFDisplacementScheme );
 
+    /// Base class definition
     typedef Scheme<TSparseSpace,TDenseSpace>                                  BaseType;
-    
     typedef ResidualBasedImplicitTimeScheme<TSparseSpace,TDenseSpace> ImplicitBaseType;
-    
     typedef ResidualBasedBDFScheme<TSparseSpace,TDenseSpace>               BDFBaseType;
 
+    /// Data type definition
     typedef typename BDFBaseType::TDataType                                  TDataType;
-
-    typedef typename BDFBaseType::DofsArrayType                          DofsArrayType;
-
-    typedef typename Element::DofsVectorType                            DofsVectorType;
-
+    /// Matrix type definition
     typedef typename BDFBaseType::TSystemMatrixType                  TSystemMatrixType;
-
+    /// Vector type definition
     typedef typename BDFBaseType::TSystemVectorType                  TSystemVectorType;
-
+    /// Local system matrix type definition
     typedef typename BDFBaseType::LocalSystemVectorType          LocalSystemVectorType;
-
+    /// Local system vector type definition
     typedef typename BDFBaseType::LocalSystemMatrixType          LocalSystemMatrixType;
 
+    /// DoF array type definition
+    typedef typename BDFBaseType::DofsArrayType                          DofsArrayType;
+    /// DoF vector type definition
+    typedef typename Element::DofsVectorType                            DofsVectorType;
+
+    /// Nodes containers definition
     typedef ModelPart::NodesContainerType                               NodesArrayType;
-
+    /// Elements containers definition
     typedef ModelPart::ElementsContainerType                         ElementsArrayType;
-
+    /// Conditions containers definition
     typedef ModelPart::ConditionsContainerType                     ConditionsArrayType;
 
-    typedef typename BaseType::Pointer                                 BaseTypePointer;
+    typedef VectorComponentAdaptor< array_1d< double, 3 > >              ComponentType;
 
     ///@}
     ///@name Life Cycle
     ///@{
 
     /**
-     * Constructor.
-     * The BDF method
+     * @brief Constructor. The BDF method (parameters)
+     * @param ThisParameters Parameters with the integration order
+     */
+    explicit ResidualBasedBDFDisplacementScheme(Parameters ThisParameters)
+        : ResidualBasedBDFDisplacementScheme(ThisParameters.Has("integration_order") ? static_cast<std::size_t>(ThisParameters["integration_order"].GetInt()) : 2)
+    {
+        // Validate default parameters
+        Parameters default_parameters = Parameters(R"(
+        {   "name"              : "ResidualBasedBDFDisplacementScheme",
+            "integration_order" : 2
+        })" );
+        ThisParameters.ValidateAndAssignDefaults(default_parameters);
+    }
+
+    /**
+     * @brief Constructor. The BDF method
      * @param Order The integration order
      * @todo The ideal would be to use directly the dof or the variable itself to identify the type of variable and is derivatives
      */
-    ResidualBasedBDFDisplacementScheme(const std::size_t Order = 2)
+    explicit ResidualBasedBDFDisplacementScheme(const std::size_t Order = 2)
         :BDFBaseType(Order)
     {
     }
 
     /** Copy Constructor.
      */
-    ResidualBasedBDFDisplacementScheme(ResidualBasedBDFDisplacementScheme& rOther)
+    explicit ResidualBasedBDFDisplacementScheme(ResidualBasedBDFDisplacementScheme& rOther)
         :BDFBaseType(rOther)
     {
     }
@@ -111,9 +129,9 @@ public:
     /**
      * Clone
      */
-    BaseTypePointer Clone() override
+    typename BaseType::Pointer Clone() override
     {
-        return BaseTypePointer( new ResidualBasedBDFDisplacementScheme(*this) );
+        return Kratos::make_shared<ResidualBasedBDFDisplacementScheme>(*this);
     }
 
     /** Destructor.
@@ -130,15 +148,79 @@ public:
     ///@{
 
     /**
+     * @brief It initializes time step solution. Only for reasons if the time step solution is restarted
+     * @param rModelPart The model part of the problem to solve
+     * @param rA LHS matrix
+     * @param rDx Incremental update of primary variables
+     * @param rb RHS Vector
+     */
+    void InitializeSolutionStep(
+        ModelPart& rModelPart,
+        TSystemMatrixType& rA,
+        TSystemVectorType& rDx,
+        TSystemVectorType& rb
+        ) override
+    {
+        KRATOS_TRY;
+
+        // The current process info
+        const ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
+
+        BDFBaseType::InitializeSolutionStep(rModelPart, rA, rDx, rb);
+
+        // Updating time derivatives (nodally for efficiency)
+        const int num_nodes = static_cast<int>( rModelPart.Nodes().size() );
+        const auto it_node_begin = rModelPart.Nodes().begin();
+
+        // Getting dimension
+        KRATOS_WARNING_IF("ResidualBasedBDFDisplacementScheme", !r_current_process_info.Has(DOMAIN_SIZE)) << "DOMAIN_SIZE not defined. Please define DOMAIN_SIZE. 3D case will be assumed" << std::endl;
+        const std::size_t dimension = r_current_process_info.Has(DOMAIN_SIZE) ? r_current_process_info.GetValue(DOMAIN_SIZE) : 3;
+
+        // Getting position
+        const int velpos = it_node_begin->HasDofFor(VELOCITY_X) ? it_node_begin->GetDofPosition(VELOCITY_X) : -1;
+        const int accelpos = it_node_begin->HasDofFor(ACCELERATION_X) ? it_node_begin->GetDofPosition(ACCELERATION_X) : -1;
+
+        std::array<bool, 3> fixed = {false, false, false};
+        const std::array<VariableComponent<ComponentType>, 3> disp_components = {DISPLACEMENT_X, DISPLACEMENT_Y, DISPLACEMENT_Z};
+        const std::array<VariableComponent<ComponentType>, 3> vel_components = {VELOCITY_X, VELOCITY_Y, VELOCITY_Z};
+        const std::array<VariableComponent<ComponentType>, 3> accel_components = {ACCELERATION_X, ACCELERATION_Y, ACCELERATION_Z};
+
+        #pragma omp parallel for private(fixed)
+        for(int i = 0;  i < num_nodes; ++i) {
+            auto it_node = it_node_begin + i;
+
+            for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim)
+                fixed[i_dim] = false;
+
+            if (accelpos > -1) {
+                for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim) {
+                    if (it_node->GetDof(accel_components[i_dim], accelpos + i_dim).IsFixed()) {
+                        it_node->Fix(disp_components[i_dim]);
+                        fixed[i_dim] = true;
+                    }
+                }
+            }
+            if (velpos > -1) {
+                for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim) {
+                    if (it_node->GetDof(vel_components[i_dim], velpos + i_dim).IsFixed() && !fixed[i_dim]) {
+                        it_node->Fix(disp_components[i_dim]);
+                    }
+                }
+            }
+        }
+
+        KRATOS_CATCH("ResidualBasedBDFDisplacementScheme.InitializeSolutionStep");
+    }
+
+    /**
      * @brief Performing the prediction of the solution
      * @details It predicts the solution for the current step x = xold + vold * Dt
      * @param rModelPart The model of the problem to solve
-     * @param rDofSet set of all primary variables
+     * @param rDofSet Set of all primary variables
      * @param A LHS matrix
      * @param Dx Incremental update of primary variables
      * @param b RHS Vector
      */
-
     void Predict(
         ModelPart& rModelPart,
         DofsArrayType& rDofSet,
@@ -149,17 +231,36 @@ public:
     {
         KRATOS_TRY;
 
-        ProcessInfo& current_process_info = rModelPart.GetProcessInfo();
-        const double delta_time = current_process_info[DELTA_TIME];
+        // The current process info
+        const ProcessInfo& r_current_process_info = rModelPart.GetProcessInfo();
+        const double delta_time = r_current_process_info[DELTA_TIME];
 
         // Updating time derivatives (nodally for efficiency)
         const int num_nodes = static_cast<int>( rModelPart.Nodes().size() );
+        const auto it_node_begin = rModelPart.Nodes().begin();
 
-        #pragma omp parallel for
+        // Getting position
+        KRATOS_ERROR_IF_NOT(it_node_begin->HasDofFor(DISPLACEMENT_X)) << "ResidualBasedBDFDisplacementScheme:: DISPLACEMENT is not added" << std::endl;
+        const int disppos = it_node_begin->GetDofPosition(DISPLACEMENT_X);
+        const int velpos = it_node_begin->HasDofFor(VELOCITY_X) ? it_node_begin->GetDofPosition(VELOCITY_X) : -1;
+        const int accelpos = it_node_begin->HasDofFor(ACCELERATION_X) ? it_node_begin->GetDofPosition(ACCELERATION_X) : -1;
+
+        // Getting dimension
+        KRATOS_WARNING_IF("ResidualBasedBDFDisplacementScheme", !r_current_process_info.Has(DOMAIN_SIZE)) << "DOMAIN_SIZE not defined. Please define DOMAIN_SIZE. 3D case will be assumed" << std::endl;
+        const std::size_t dimension = r_current_process_info.Has(DOMAIN_SIZE) ? r_current_process_info.GetValue(DOMAIN_SIZE) : 3;
+
+        // Auxiliar variables
+        std::array<bool, 3> predicted = {false, false, false};
+        const std::array<VariableComponent<ComponentType>, 3> disp_components = {DISPLACEMENT_X, DISPLACEMENT_Y, DISPLACEMENT_Z};
+        const std::array<VariableComponent<ComponentType>, 3> vel_components = {VELOCITY_X, VELOCITY_Y, VELOCITY_Z};
+        const std::array<VariableComponent<ComponentType>, 3> accel_components = {ACCELERATION_X, ACCELERATION_Y, ACCELERATION_Z};
+
+        #pragma omp parallel for private(predicted)
         for(int i = 0;  i< num_nodes; ++i) {
-            auto it_node = rModelPart.Nodes().begin() + i;
+            auto it_node = it_node_begin + i;
 
-            //ATTENTION::: the prediction is performed only on free nodes
+            for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim)
+                predicted[i_dim] = false;
 
             const array_1d<double, 3>& dot2un1 = it_node->FastGetSolutionStepValue(ACCELERATION, 1);
             const array_1d<double, 3>& dotun1 = it_node->FastGetSolutionStepValue(VELOCITY,     1);
@@ -167,75 +268,37 @@ public:
             const array_1d<double, 3>& dot2un0 = it_node->FastGetSolutionStepValue(ACCELERATION);
             array_1d<double, 3>& dotun0 = it_node->FastGetSolutionStepValue(VELOCITY);
             array_1d<double, 3>& un0 = it_node->FastGetSolutionStepValue(DISPLACEMENT);
-            
-            if (it_node->HasDofFor(ACCELERATION_X)) {
-                if (it_node -> IsFixed(ACCELERATION_X)) {
-                    dotun0[0] = (dot2un0[0] - BDFBaseType::mBDF[1] * dotun1[0])/BDFBaseType::mBDF[0];
-                    un0[0] = (dotun0[0] - BDFBaseType::mBDF[1] * un1[0])/BDFBaseType::mBDF[0];
-            } } else if (it_node->HasDofFor(VELOCITY_X)) {
-                if (it_node -> IsFixed(VELOCITY_X)) {
-                    un0[0] = (dotun1[0] - BDFBaseType::mBDF[1] * un1[0])/BDFBaseType::mBDF[0];
-            } } else if (it_node -> IsFixed(DISPLACEMENT_X) == false) {
-                un0[0] = un1[0] + delta_time * dotun1[0] + 0.5 * std::pow(delta_time, 2) * dot2un1[0];
-            }
 
-            if (it_node->HasDofFor(ACCELERATION_Y)) {
-                if (it_node -> IsFixed(ACCELERATION_Y)) {
-                    dotun0[1] = (dot2un0[1] - BDFBaseType::mBDF[1] * dotun1[1])/BDFBaseType::mBDF[0];
-                    un0[1] = (dotun0[1] - BDFBaseType::mBDF[1] * un1[1])/BDFBaseType::mBDF[0];
-            } } else if (it_node->HasDofFor(VELOCITY_Y)) {
-                if (it_node -> IsFixed(VELOCITY_Y)) {
-                    un0[1] = (dotun1[1] - BDFBaseType::mBDF[1] * un1[1])/BDFBaseType::mBDF[0];
-            } } else if (it_node -> IsFixed(DISPLACEMENT_Y) == false) {
-                un0[1] = un1[1] + delta_time * dotun1[1] + 0.5 * std::pow(delta_time, 2) * dot2un1[1];
-            }
+            if (accelpos > -1) {
+                for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim) {
+                    if (it_node->GetDof(accel_components[i_dim], accelpos + i_dim).IsFixed()) {
+                        dotun0[i_dim] = dot2un0[i_dim];
+                        for (std::size_t i_order = 1; i_order < BDFBaseType::mOrder + 1; ++i_order)
+                            dotun0[i_dim] -= BDFBaseType::mBDF[i_order] * it_node->FastGetSolutionStepValue(vel_components[i_dim], i_order);
+                        dotun0[i_dim] /= BDFBaseType::mBDF[i_dim];
 
-            // For 3D cases
-            if (it_node -> HasDofFor(DISPLACEMENT_Z)) {
-                if (it_node->HasDofFor(ACCELERATION_Z)) {
-                    if (it_node -> IsFixed(ACCELERATION_Z)) {
-                        dotun0[2] = (dot2un0[2] - BDFBaseType::mBDF[1] * dotun1[2])/BDFBaseType::mBDF[0];
-                        un0[2] = (dotun0[2] - BDFBaseType::mBDF[1] * un1[2])/BDFBaseType::mBDF[0];
-                } } else if (it_node->HasDofFor(VELOCITY_Y)) {
-                    if (it_node -> IsFixed(VELOCITY_Y)) {
-                        un0[2] = (dotun1[2] - BDFBaseType::mBDF[1] * un1[2])/BDFBaseType::mBDF[0];
-                } } else if (it_node -> IsFixed(DISPLACEMENT_Z) == false) {
-                    un0[2] = un1[2] + delta_time * dotun1[2] + 0.5 * std::pow(delta_time, 2) * dot2un1[2];
+                        un0[i_dim] = dotun0[i_dim];
+                        for (std::size_t i_order = 1; i_order < BDFBaseType::mOrder + 1; ++i_order)
+                            un0[i_dim] -= BDFBaseType::mBDF[i_order] * it_node->FastGetSolutionStepValue(disp_components[i_dim], i_order);
+                        un0[i_dim] /= BDFBaseType::mBDF[i_dim];
+                        predicted[i_dim] = true;
+                    }
                 }
             }
-            
-            for (std::size_t i_order = 2; i_order < BDFBaseType::mOrder + 1; ++i_order) {
-                const array_1d<double, 3>& dotun = it_node->FastGetSolutionStepValue(VELOCITY,     i_order);
-                const array_1d<double, 3>& un = it_node->FastGetSolutionStepValue(DISPLACEMENT, i_order);
-                
-                if (it_node->HasDofFor(ACCELERATION_X)) {
-                    if (it_node -> IsFixed(ACCELERATION_X)) {
-                        dotun0[0] -= (BDFBaseType::mBDF[i_order] * dotun[0])/BDFBaseType::mBDF[0];
-                        un0[0] -= (BDFBaseType::mBDF[i_order] * un[0])/BDFBaseType::mBDF[0];
-                } } else if (it_node->HasDofFor(VELOCITY_X)) {
-                    if (it_node -> IsFixed(VELOCITY_X)) {
-                        un0[0] -= (BDFBaseType::mBDF[i_order] * un[0])/BDFBaseType::mBDF[0];
-                } }
-
-                if (it_node->HasDofFor(ACCELERATION_Y)) {
-                    if (it_node -> IsFixed(ACCELERATION_Y)) {
-                        dotun0[1] -= (BDFBaseType::mBDF[i_order] * dotun[1])/BDFBaseType::mBDF[0];
-                        un0[1] -= (BDFBaseType::mBDF[i_order] * un[1])/BDFBaseType::mBDF[0];
-                } } else if (it_node->HasDofFor(VELOCITY_Y)) {
-                    if (it_node -> IsFixed(VELOCITY_X)) {
-                        un0[1] -= (BDFBaseType::mBDF[i_order] * un[1])/BDFBaseType::mBDF[0];
-                } }
-
-                // For 3D cases
-                if (it_node -> HasDofFor(DISPLACEMENT_Z)) {
-                    if (it_node->HasDofFor(ACCELERATION_Z)) {
-                        if (it_node -> IsFixed(ACCELERATION_Z)) {
-                            dotun0[1] -= (BDFBaseType::mBDF[i_order] * dotun[2])/BDFBaseType::mBDF[0];
-                            un0[1] -= (BDFBaseType::mBDF[i_order] * un[2])/BDFBaseType::mBDF[0];
-                    } } else if (it_node->HasDofFor(VELOCITY_Y)) {
-                        if (it_node -> IsFixed(VELOCITY_X)) {
-                            un0[1] -= (BDFBaseType::mBDF[i_order] * un[2])/BDFBaseType::mBDF[0];
-                    } }
+            if (velpos > -1) {
+                for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim) {
+                    if (it_node->GetDof(vel_components[i_dim], velpos + i_dim).IsFixed() && !predicted[i_dim]) {
+                        un0[i_dim] = dotun0[i_dim];
+                        for (std::size_t i_order = 1; i_order < BDFBaseType::mOrder + 1; ++i_order)
+                            un0[i_dim] -= BDFBaseType::mBDF[i_order] * it_node->FastGetSolutionStepValue(disp_components[i_dim], i_order);
+                        un0[i_dim] /= BDFBaseType::mBDF[i_dim];
+                        predicted[i_dim] = true;
+                    }
+                }
+            }
+            for (std::size_t i_dim = 0; i_dim < dimension; ++i_dim) {
+                if (!it_node->GetDof(disp_components[i_dim], disppos + i_dim).IsFixed() && !predicted[i_dim]) {
+                    un0[i_dim] = un1[i_dim] + delta_time * dotun1[i_dim] + 0.5 * std::pow(delta_time, 2) * dot2un1[i_dim];
                 }
             }
 
@@ -249,13 +312,12 @@ public:
 
     /**
      * @brief This function is designed to be called once to perform all the checks needed
-     * on the input provided. 
+     * on the input provided.
      * @details Checks can be "expensive" as the function is designed
      * to catch user's errors.
      * @param rModelPart The model of the problem to solve
      * @return Zero means  all ok
      */
-
     int Check(ModelPart& rModelPart) override
     {
         KRATOS_TRY;
@@ -265,23 +327,23 @@ public:
 
         // Check for variables keys
         // Verify that the variables are correctly initialized
-        KRATOS_CHECK_VARIABLE_KEY(DISPLACEMENT) 
-        KRATOS_CHECK_VARIABLE_KEY(VELOCITY) 
-        KRATOS_CHECK_VARIABLE_KEY(ACCELERATION) 
+        KRATOS_CHECK_VARIABLE_KEY(DISPLACEMENT)
+        KRATOS_CHECK_VARIABLE_KEY(VELOCITY)
+        KRATOS_CHECK_VARIABLE_KEY(ACCELERATION)
 
         // Check that variables are correctly allocated
         for(auto& rnode : rModelPart.Nodes()) {
-            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(DISPLACEMENT,rnode) 
-            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(VELOCITY,rnode) 
-            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(ACCELERATION,rnode) 
-    
+            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(DISPLACEMENT,rnode)
+            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(VELOCITY,rnode)
+            KRATOS_CHECK_VARIABLE_IN_NODAL_DATA(ACCELERATION,rnode)
+
             KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_X, rnode)
-            KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Y, rnode) 
-            KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Z, rnode) 
+            KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Y, rnode)
+            KRATOS_CHECK_DOF_IN_NODE(DISPLACEMENT_Z, rnode)
         }
 
         KRATOS_CATCH( "" );
-        
+
         return 0;
     }
 
@@ -296,6 +358,24 @@ public:
     ///@}
     ///@name Input and output
     ///@{
+
+    /// Turn back information as a string.
+    std::string Info() const override
+    {
+        return "ResidualBasedBDFDisplacementScheme";
+    }
+
+    /// Print information about this object.
+    void PrintInfo(std::ostream& rOStream) const override
+    {
+        rOStream << Info();
+    }
+
+    /// Print object's data.
+    void PrintData(std::ostream& rOStream) const override
+    {
+        rOStream << Info();
+    }
 
     ///@}
     ///@name Friends
@@ -317,12 +397,11 @@ protected:
     ///@}
     ///@name Protected Operations
     ///@{
-    
+
     /**
      * @brief Updating first time derivative (velocity)
      * @param itNode the node interator
      */
-    
     inline void UpdateFirstDerivative(NodesArrayType::iterator itNode) override
     {
         array_1d<double, 3>& dotun0 = itNode->FastGetSolutionStepValue(VELOCITY);
@@ -335,7 +414,6 @@ protected:
      * @brief Updating second time derivative (acceleration)
      * @param itNode the node interator
      */
-    
     inline void UpdateSecondDerivative(NodesArrayType::iterator itNode) override
     {
         array_1d<double, 3>& dot2un0 = itNode->FastGetSolutionStepValue(ACCELERATION);
@@ -343,7 +421,7 @@ protected:
         for (std::size_t i_order = 1; i_order < BDFBaseType::mOrder + 1; ++i_order)
             noalias(dot2un0) += BDFBaseType::mBDF[i_order] * itNode->FastGetSolutionStepValue(VELOCITY, i_order);
     }
-    
+
     ///@}
     ///@name Protected  Access
     ///@{
@@ -372,7 +450,7 @@ private:
     ///@}
     ///@name Private Operations
     ///@{
-    
+
     ///@}
     ///@name Private  Access
     ///@{

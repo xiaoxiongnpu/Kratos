@@ -18,15 +18,11 @@
 // External includes
 
 // Project includes
-#include "includes/element.h"
-#include "custom_utilities/shell_cross_section.hpp"
+#include "custom_elements/base_shell_element.h"
 #include "custom_utilities/shellt3_local_coordinate_system.hpp"
-#include "utilities/quaternion.h"
 
 namespace Kratos
 {
-
-
 ///@name Kratos Globals
 ///@{
 ///@}
@@ -58,16 +54,14 @@ class ShellT3_CoordinateTransformation;
  * using a Corotational Coordinate Transformation.
  * Material nonlinearity is handled by means of the cross section object.
  */
-class ShellThinElement3D3N : public Element
+class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) ShellThinElement3D3N : public BaseShellElement
 {
 public:
 
     ///@name Type Definitions
     ///@{
 
-    KRATOS_CLASS_POINTER_DEFINITION(ShellThinElement3D3N);
-
-    typedef std::vector< ShellCrossSection::Pointer > CrossSectionContainerType;
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION(ShellThinElement3D3N);
 
     typedef ShellT3_CoordinateTransformation CoordinateTransformationBaseType;
 
@@ -112,27 +106,33 @@ public:
 
     // Basic
 
-    Element::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const override;
+    /**
+     * @brief Creates a new element
+     * @param NewId The Id of the new created element
+     * @param pGeom The pointer to the geometry of the element
+     * @param pProperties The pointer to property
+     * @return The pointer to the created element
+     */
+    Element::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeom,
+        PropertiesType::Pointer pProperties
+    ) const override;
 
-    IntegrationMethod GetIntegrationMethod() const override;
+    /**
+     * @brief Creates a new element
+     * @param NewId The Id of the new created element
+     * @param ThisNodes The array containing nodes
+     * @param pProperties The pointer to property
+     * @return The pointer to the created element
+     */
+    Element::Pointer Create(
+        IndexType NewId,
+        NodesArrayType const& ThisNodes,
+        PropertiesType::Pointer pProperties
+    ) const override;
 
     void Initialize() override;
-
-    void ResetConstitutiveLaw() override;
-
-    void EquationIdVector(EquationIdVectorType& rResult, ProcessInfo& rCurrentProcessInfo) override;
-
-    void GetDofList(DofsVectorType& ElementalDofList, ProcessInfo& CurrentProcessInfo) override;
-
-    int Check(const ProcessInfo& rCurrentProcessInfo) override;
-
-    void CleanMemory() override;
-
-    void GetValuesVector(Vector& values, int Step = 0) override;
-
-    void GetFirstDerivativesVector(Vector& values, int Step = 0) override;
-
-    void GetSecondDerivativesVector(Vector& values, int Step = 0) override;
 
     void InitializeNonLinearIteration(ProcessInfo& CurrentProcessInfo) override;
 
@@ -144,57 +144,27 @@ public:
 
     void CalculateMassMatrix(MatrixType& rMassMatrix, ProcessInfo& rCurrentProcessInfo) override;
 
-    void CalculateDampingMatrix(MatrixType& rDampingMatrix, ProcessInfo& rCurrentProcessInfo) override;
+    // More results calculation on integration points to interface with python
+    void CalculateOnIntegrationPoints(const Variable<double>& rVariable,
+                                      std::vector<double>& rOutput, const ProcessInfo& rCurrentProcessInfo) override;
 
-    void CalculateLocalSystem(MatrixType& rLeftHandSideMatrix,
-                              VectorType& rRightHandSideVector,
-                              ProcessInfo& rCurrentProcessInfo) override;
+    void CalculateOnIntegrationPoints(const Variable<Matrix>& rVariable,
+                                      std::vector<Matrix>& rOutput, const ProcessInfo& rCurrentProcessInfo) override;
 
-    void CalculateRightHandSide(VectorType& rRightHandSideVector,
-                                ProcessInfo& rCurrentProcessInfo) override;
+    void CalculateOnIntegrationPoints(const Variable<array_1d<double,
+                                      3> >& rVariable, std::vector<array_1d<double, 3> >& rOutput,
+                                      const ProcessInfo& rCurrentProcessInfo) override;
 
-    // Results calculation on integration points
-
-    void GetValueOnIntegrationPoints(const Variable<double>& rVariable, std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo) override;
-
-    void GetValueOnIntegrationPoints(const Variable<Vector>& rVariable, std::vector<Vector>& rValues, const ProcessInfo& rCurrentProcessInfo) override;
-
-    void GetValueOnIntegrationPoints(const Variable<Matrix>& rVariable, std::vector<Matrix>& rValues, const ProcessInfo& rCurrentProcessInfo) override;
-
-    void GetValueOnIntegrationPoints(const Variable<array_1d<double,3> >& rVariable, std::vector<array_1d<double,3> >& rValues, const ProcessInfo& rCurrentProcessInfo) override;
-
-    void GetValueOnIntegrationPoints(const Variable<array_1d<double,6> >& rVariable, std::vector<array_1d<double,6> >& rValues, const ProcessInfo& rCurrentProcessInfo) override;
-
-
-	// More results calculation on integration points to interface with python
-	void CalculateOnIntegrationPoints(const Variable<double>& rVariable,
-		std::vector<double>& rValues, const ProcessInfo& rCurrentProcessInfo);
-
-	void CalculateOnIntegrationPoints(const Variable<Vector>& rVariable,
-		std::vector<Vector>& rValues, const ProcessInfo& rCurrentProcessInfo);
-
-	void CalculateOnIntegrationPoints(const Variable<Matrix>& rVariable,
-		std::vector<Matrix>& rValues, const ProcessInfo& rCurrentProcessInfo);
-
-	void CalculateOnIntegrationPoints(const Variable<array_1d<double,
-		3> >& rVariable, std::vector<array_1d<double, 3> >& rValues,
-		const ProcessInfo& rCurrentProcessInfo);
-
-	void CalculateOnIntegrationPoints(const Variable<array_1d<double,
-		6> >& rVariable, std::vector<array_1d<double, 6> >& rValues,
-        const ProcessInfo& rCurrentProcessInfo);
-        
     // Calculate functions
     void Calculate(const Variable<Matrix >& rVariable,
-        Matrix& Output,
-        const ProcessInfo& rCurrentProcessInfo) override;
+                   Matrix& Output,
+                   const ProcessInfo& rCurrentProcessInfo) override;
 
     ///@}
 
     ///@name Public specialized Access - Temporary
     ///@{
 
-    void SetCrossSectionsOnIntegrationPoints(std::vector< ShellCrossSection::Pointer >& crossSections);
 
     ///@}
 
@@ -206,7 +176,7 @@ protected:
     /**
      * Protected empty constructor
      */
-    ShellThinElement3D3N() : Element()
+    ShellThinElement3D3N() : BaseShellElement()
     {
     }
 
@@ -261,7 +231,7 @@ private:
         // calculations
 
         double beta0;
-        size_t gpIndex;
+        SizeType gpIndex;
 
         // ---------------------------------------
         // calculation-variable data
@@ -277,8 +247,8 @@ private:
 
         VectorType generalizedStrains;  /*!< generalized strain vector at the current integration point */
         VectorType generalizedStresses; /*!< generalized stress vector at the current integration point */
-		std::vector<VectorType> rlaminateStrains;	/*!< laminate strain vector at all surfaces at the current integration point */
-		std::vector<VectorType> rlaminateStresses;	/*!< laminate stress vector at all surfaces at the current integration point */
+        std::vector<VectorType> rlaminateStrains;	/*!< laminate strain vector at all surfaces at the current integration point */
+        std::vector<VectorType> rlaminateStresses;	/*!< laminate stress vector at all surfaces at the current integration point */
 
         VectorType N; /*!< shape function vector at the current integration point */
 
@@ -312,22 +282,22 @@ private:
     ///@name Private Operations
     ///@{
 
-	void CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int& ijob, bool& bGlobal);
+    void CheckGeneralizedStressOrStrainOutput(const Variable<Matrix>& rVariable, int& ijob, bool& bGlobal);
 
-	void CalculateStressesFromForceResultants(VectorType& rstresses,
-		const double& rthickness);
+    void CalculateStressesFromForceResultants(VectorType& rstresses,
+            const double& rthickness);
 
-	void CalculateLaminaStrains(CalculationData& data);
+    void CalculateLaminaStrains(CalculationData& data);
 
-	void CalculateLaminaStresses(CalculationData& data);
+    void CalculateLaminaStresses(CalculationData& data);
 
-	double CalculateTsaiWuPlaneStress(const CalculationData& data, const Matrix& rLamina_Strengths, const unsigned int& rCurrent_Ply);
+    double CalculateTsaiWuPlaneStress(const CalculationData& data, const Matrix& rLamina_Strengths, const unsigned int& rCurrent_Ply);
 
-	void CalculateVonMisesStress(const CalculationData& data, const Variable<double>& rVariable, double& rVon_Mises_Result);
+    void CalculateVonMisesStress(const CalculationData& data, const Variable<double>& rVariable, double& rVon_Mises_Result);
 
     void DecimalCorrection(Vector& a);
 
-    void SetupOrientationAngles();
+    void SetupOrientationAngles() override;
 
     void InitializeCalculationData(CalculationData& data);
 
@@ -345,17 +315,19 @@ private:
 
     void CalculateAll(MatrixType& rLeftHandSideMatrix,
                       VectorType& rRightHandSideVector,
-                      ProcessInfo& rCurrentProcessInfo,
-                      const bool LHSrequired,
-                      const bool RHSrequired);
+                      const ProcessInfo& rCurrentProcessInfo,
+                      const bool CalculateStiffnessMatrixFlag,
+                      const bool CalculateResidualVectorFlag) override;
 
-    bool TryGetValueOnIntegrationPoints_MaterialOrientation(const Variable<array_1d<double,3> >& rVariable,
-            std::vector<array_1d<double,3> >& rValues,
-            const ProcessInfo& rCurrentProcessInfo);
-
-    bool TryGetValueOnIntegrationPoints_GeneralizedStrainsOrStresses(const Variable<Matrix>& rVariable,
+    bool TryCalculateOnIntegrationPoints_GeneralizedStrainsOrStresses(const Variable<Matrix>& rVariable,
             std::vector<Matrix>& rValues,
             const ProcessInfo& rCurrentProcessInfo);
+
+    /**
+    * Returns the behavior of this shell (thin/thick)
+    * @return the shell behavior
+    */
+    ShellCrossSection::SectionBehaviorType GetSectionBehavior() const override;
 
     ///@}
 
@@ -368,9 +340,7 @@ private:
 
     CoordinateTransformationBasePointerType mpCoordinateTransformation; /*!< The Coordinate Transformation */
 
-    CrossSectionContainerType mSections; /*!< Container for cross section associated to each integration point */
-
-    IntegrationMethod mThisIntegrationMethod; /*!< Currently selected integration method */
+    SizeType mStrainSize = 6;
 
     ///@}
 

@@ -30,11 +30,22 @@
 namespace Kratos
 {
 /**
- * A four node quadrilateral geometry. While the shape functions are only define in
- * 2D it is possible to define an arbitrary orientation in space. Thus it can be used for
- * defining surfaces on 3D elements.
+ * @class Quadrilateral2D8
+ * @ingroup KratosCore
+ * @brief A eight node 2D quadrilateral geometry with quadratic shape functions
+ * @details While the shape functions are only defined in 2D it is possible to define an arbitrary orientation in space. Thus it can be used for defining surfaces on 3D elements.
+ * The node ordering corresponds with:
+ *      3-----6-----2
+ *      |           |
+ *      |           |
+ *      7           5
+ *      |           |
+ *      |           |
+ *      0-----4-----1
+ * @author Riccardo Rossi
+ * @author Janosch Stascheit
+ * @author Felix Nagel
  */
-
 template<class TPointType> class Quadrilateral2D8
     : public Geometry<TPointType>
 {
@@ -332,25 +343,6 @@ public:
     //     return p_clone;
     // }
 
-
-    /**
-     * :TODO: the lumpig factors need to be reviewed and
-     * probably reimplemented
-     * (comment by janosch)
-     */
-    //lumping factors for the calculation of the lumped mass matrix
-    Vector& LumpingFactors( Vector& rResult ) const override
-    {
-	if(rResult.size() != 8)
-           rResult.resize( 8, false );
-
-        for ( int i = 0; i < 4; i++ ) rResult[i] = 1.00 / 36.00;
-
-        for ( int i = 4; i < 8; i++ ) rResult[i] = 1.00 / 9.00;
-
-        return rResult;
-    }
-
     /**
      * Information
      */
@@ -378,74 +370,80 @@ public:
         return sqrt( fabs( DeterminantOfJacobian( point ) ) );
     }
 
-    /**
-     * This method calculates and returns area or surface area of
+    /** This method calculates and returns area or surface area of
      * this geometry depending to it's dimension. For one dimensional
      * geometry it returns zero, for two dimensional it gives area
      * and for three dimensional geometries it gives surface area.
      *
      * @return double value contains area or surface
-     * area.
+     * area.N
      * @see Length()
      * @see Volume()
      * @see DomainSize()
-     */
-    /**
-     * :TODO: the characteristic area is to be reviewed
-     * (comment by janosch)
+     * @todo could be replaced by something more suitable (comment by janosch)
      */
     double Area() const override
     {
         Vector temp;
-        DeterminantOfJacobian( temp, msGeometryData.DefaultIntegrationMethod() );
+        this->DeterminantOfJacobian( temp, msGeometryData.DefaultIntegrationMethod() );
         const IntegrationPointsArrayType& integration_points = this->IntegrationPoints( msGeometryData.DefaultIntegrationMethod() );
         double Area = 0.0;
 
-        for ( unsigned int i = 0; i < integration_points.size(); i++ )
-        {
+        for ( unsigned int i = 0; i < integration_points.size(); i++ ) {
             Area += temp[i] * integration_points[i].Weight();
         }
 
-        //KRATOS_WATCH(temp)
         return Area;
-
-        //return fabs(DeterminantOfJacobian(PointType())) * 0.5;
-
     }
 
-
     /**
-     * This method calculates and returns length, area or volume of
+     * This method calculates and returns the volume of this geometry.
+     * This method calculates and returns the volume of this geometry.
+     *
+     * This method uses the V = (A x B) * C / 6 formula.
+     *
+     * @return double value contains length, area or volume.
+     *
+     * @see Length()
+     * @see Area()
+     * @see Volume()
+     *
+     * @todo might be necessary to reimplement
+     */
+    double Volume() const override
+    {
+        return Area();
+    }
+
+    /** This method calculates and returns length, area or volume of
      * this geometry depending to it's dimension. For one dimensional
      * geometry it returns its length, for two dimensional it gives area
      * and for three dimensional geometries it gives its volume.
+     *
      * @return double value contains length, area or volume.
      * @see Length()
      * @see Area()
      * @see Volume()
-     */
-    /**
-     * :TODO: the characteristic domain size is to be reviewed
-     * (comment by janosch)
+     * @todo could be replaced by something more suitable (comment by janosch)
      */
     double DomainSize() const override
     {
-        return std::abs( DeterminantOfJacobian( PointType() ) ) * 0.5;
+        return Area();
     }
 
     /**
-     * Returns whether given arbitrary point is inside the Geometry and the respective 
+     * @brief Returns whether given arbitrary point is inside the Geometry and the respective
      * local point for the given global point
      * @param rPoint The point to be checked if is inside o note in global coordinates
      * @param rResult The local coordinates of the point
      * @param Tolerance The  tolerance that will be considered to check if the point is inside or not
      * @return True if the point is inside, false otherwise
      */
-    virtual bool IsInside( 
-        const CoordinatesArrayType& rPoint, 
-        CoordinatesArrayType& rResult, 
-        const double Tolerance = std::numeric_limits<double>::epsilon() 
-        ) override
+    bool IsInside(
+        const CoordinatesArrayType& rPoint,
+        CoordinatesArrayType& rResult,
+        const double Tolerance = std::numeric_limits<double>::epsilon()
+        ) const override
     {
         this->PointLocalCoordinates( rResult, rPoint );
 
@@ -534,7 +532,7 @@ public:
      * point index of given integration method.
      *
      * @param DeltaPosition Matrix with the nodes position increment which describes
-     * the configuration where the jacobian has to be calculated.     
+     * the configuration where the jacobian has to be calculated.
      *
      * @see DeterminantOfJacobian
      * @see InverseOfJacobian
@@ -603,14 +601,14 @@ public:
     Matrix& Jacobian( Matrix& rResult, IndexType IntegrationPointIndex, IntegrationMethod ThisMethod ) const override
     {
         //setting up size of jacobian matrix
-        rResult.resize( 2, 2 );
+        rResult.resize( 2, 2 , false);
         //derivatives of shape functions
         ShapeFunctionsGradientsType shape_functions_gradients =
             CalculateShapeFunctionsIntegrationPointsLocalGradients( ThisMethod );
         Matrix ShapeFunctionsGradientInIntegrationPoint =
             shape_functions_gradients( IntegrationPointIndex );
         //values of shape functions in integration points
-        vector<double> ShapeFunctionsValuesInIntegrationPoint = ZeroVector( 8 );
+        DenseVector<double> ShapeFunctionsValuesInIntegrationPoint = ZeroVector( 8 );
         ShapeFunctionsValuesInIntegrationPoint =
             row( CalculateShapeFunctionsIntegrationPointsValues(
                      ThisMethod ), IntegrationPointIndex );
@@ -651,7 +649,7 @@ public:
     Matrix& Jacobian( Matrix& rResult, const CoordinatesArrayType& rPoint ) const override
     {
         //setting up size of jacobian matrix
-        rResult.resize( 2, 2 );
+        rResult.resize( 2, 2 , false);
         //derivatives of shape functions
         Matrix shape_functions_gradients;
         shape_functions_gradients = ShapeFunctionsLocalGradients(
@@ -685,9 +683,9 @@ public:
      * @see Jacobian
      * @see InverseOfJacobian
      */
-    Vector& DeterminantOfJacobian( 
+    Vector& DeterminantOfJacobian(
         Vector& rResult,
-        IntegrationMethod ThisMethod 
+        IntegrationMethod ThisMethod
         ) const override
     {
         // Workaround by riccardo
@@ -831,10 +829,10 @@ public:
         // Current jacobian
         Matrix tempMatrix = ZeroMatrix( 2, 2 );
         tempMatrix = Jacobian( tempMatrix, IntegrationPointIndex, ThisMethod );
-        
+
         // Determinant of jacobian
         const double det_j = DeterminantOfJacobian( IntegrationPointIndex, ThisMethod );
-        
+
         // Checking for singularity
         if ( det_j == 0.00 )
         {
@@ -842,7 +840,7 @@ public:
         }
 
         // Setting up result matrix
-        rResult.resize( 2, 2 );
+        rResult.resize( 2, 2 , false);
 
         // Filling matrix
         rResult( 0, 0 ) = ( tempMatrix( 1, 1 ) ) / ( det_j );
@@ -887,7 +885,7 @@ public:
         }
 
         //setting up result matrix
-        rResult.resize( 2, 2 );
+        rResult.resize( 2, 2 , false);
 
         //filling matrix
         rResult( 0, 0 ) = ( tempMatrix( 1, 1 ) ) / ( det_j );
@@ -901,33 +899,35 @@ public:
         return rResult;
     }
 
-    /** This method gives you number of all edges of this
-    geometry. This method will gives you number of all the edges
-    with one dimension less than this geometry. for example a
-    triangle would return three or a tetrahedral would return
-    four but won't return nine related to its six edge lines.
+    ///@}
+    ///@name Edge
+    ///@{
 
-    @return SizeType containes number of this geometry edges.
-    @see Edges()
-    @see Edge()
+    /**
+     * @brief This method gives you number of all edges of this geometry.
+     * @details For example, for a hexahedron, this would be 12
+     * @return SizeType containes number of this geometry edges.
+     * @see EdgesNumber()
+     * @see Edges()
+     * @see GenerateEdges()
+     * @see FacesNumber()
+     * @see Faces()
+     * @see GenerateFaces()
      */
     SizeType EdgesNumber() const override
     {
         return 4;
     }
 
-    /** This method gives you all edges of this geometry. This
-     * method will gives you all the edges with one dimension less
-     * than this geometry. for example a triangle would return
-     * three lines as its edges or a tetrahedral would return four
-     * triangle as its edges but won't return its six edge
-     * lines by this method.
-     *
+    /**
+     * @brief This method gives you all edges of this geometry.
+     * @details This method will gives you all the edges with one dimension less than this geometry.
+     * For example a triangle would return three lines as its edges or a tetrahedral would return four triangle as its edges but won't return its six edge lines by this method.
      * @return GeometriesArrayType containes this geometry edges.
      * @see EdgesNumber()
      * @see Edge()
      */
-    GeometriesArrayType Edges( void ) override
+    GeometriesArrayType GenerateEdges() const override
     {
         GeometriesArrayType edges = GeometriesArrayType();
         edges.push_back( Kratos::make_shared<EdgeType>( this->pGetPoint( 0 ), this->pGetPoint( 4 ), this->pGetPoint( 1 ) ) );
@@ -992,7 +992,7 @@ public:
     }
 
     /** This method gives all non-zero shape functions values evaluated at the rCoordinates provided
-     * @return Vector of values of shape functions \f$ F_{i} \f$ where i is the shape function index 
+     * @return Vector of values of shape functions \f$ F_{i} \f$ where i is the shape function index
      * (for NURBS it is the index
      * of the local enumeration in the element).
      * @see ShapeFunctionValue
@@ -1004,7 +1004,7 @@ public:
         const CoordinatesArrayType& rCoordinates
         ) const override
     {
-        if(rResult.size() != 8) 
+        if(rResult.size() != 8)
         {
             rResult.resize(8,false);
         }
@@ -1018,7 +1018,7 @@ public:
                      *( 1.0 - rCoordinates[0] - rCoordinates[1] ) ) / 4.0;
         rResult[3] = -(( 1.0 - rCoordinates[0] )*( 1.0 + rCoordinates[1] )
                      *( 1.0 + rCoordinates[0] - rCoordinates[1] ) ) / 4.0;
-                  
+
         // Secondary nodes
         rResult[4] =  (( 1.0 -rCoordinates[0]*rCoordinates[0] )
                      *( 1.0 - rCoordinates[1] ) ) / 2.0;
@@ -1082,7 +1082,7 @@ public:
         //loop over all integration points
         for ( unsigned int pnt = 0; pnt < integration_points_number; pnt++ )
         {
-            rResult[pnt].resize( 4, 2 );
+            rResult[pnt].resize( 4, 2, false );
 
             for ( unsigned int i = 0; i < 4; i++ )
             {
@@ -1191,26 +1191,26 @@ public:
     * @return the gradients of all shape functions
     * \f$ \frac{\partial N^i}{\partial \xi_j} \f$
      */
-    Matrix& ShapeFunctionsLocalGradients( 
+    Matrix& ShapeFunctionsLocalGradients(
         Matrix& rResult,
-        const CoordinatesArrayType& rPoint 
+        const CoordinatesArrayType& rPoint
         ) const override
     {
         // Setting up result matrix
-        rResult.resize( 8, 2 );
+        rResult.resize( 8, 2 , false);
         noalias( rResult ) = ZeroMatrix( 8, 2 );
 
         // Primary nodes
-        rResult( 0, 0 ) = - ((-1.0 + rPoint[1])*( 2.0 * rPoint[0] + rPoint[1])) / 4.0;               
+        rResult( 0, 0 ) = - ((-1.0 + rPoint[1])*( 2.0 * rPoint[0] + rPoint[1])) / 4.0;
         rResult( 0, 1 ) = - ((-1.0 + rPoint[0])*( 2.0 * rPoint[1] + rPoint[0])) / 4.0;
 
-        rResult( 1, 0 ) =   ((-1.0 + rPoint[1])*(-2.0 * rPoint[0] + rPoint[1])) / 4.0;          
+        rResult( 1, 0 ) =   ((-1.0 + rPoint[1])*(-2.0 * rPoint[0] + rPoint[1])) / 4.0;
         rResult( 1, 1 ) =   (( 1.0 + rPoint[0])*( 2.0 * rPoint[1] - rPoint[0])) / 4.0;
 
-        rResult( 2, 0 ) =   (( 1.0 + rPoint[1])*( 2.0 * rPoint[0] + rPoint[1])) / 4.0;             
+        rResult( 2, 0 ) =   (( 1.0 + rPoint[1])*( 2.0 * rPoint[0] + rPoint[1])) / 4.0;
         rResult( 2, 1 ) =   (( 1.0 + rPoint[0])*( 2.0 * rPoint[1] + rPoint[0])) / 4.0;
 
-        rResult( 3, 0 ) = - (( 1.0 + rPoint[1])*(-2.0 * rPoint[0] + rPoint[1])) / 4.0;             
+        rResult( 3, 0 ) = - (( 1.0 + rPoint[1])*(-2.0 * rPoint[0] + rPoint[1])) / 4.0;
         rResult( 3, 1 ) = - ((-1.0 + rPoint[0])*( 2.0 * rPoint[1] - rPoint[0])) / 4.0;
 
         // Secondary nodes
@@ -1236,7 +1236,7 @@ public:
      */
     Matrix& PointsLocalCoordinates( Matrix& rResult ) const override
     {
-        rResult.resize( 8, 2 );
+        rResult.resize( 8, 2 , false);
         noalias( rResult ) = ZeroMatrix( 8, 2 );
         rResult( 0, 0 ) = -1.0;
         rResult( 0, 1 ) = -1.0;
@@ -1267,11 +1267,11 @@ public:
      */
     virtual Matrix& ShapeFunctionsGradients( Matrix& rResult, PointType& rPoint )
     {
-        rResult.resize( 8, 2 );
+        rResult.resize( 8, 2 , false);
         noalias( rResult ) = ZeroMatrix( 8, 2 );
 
         const CoordinatesArrayType& Coords = rPoint.Coordinates();
-        
+
         rResult = ShapeFunctionsLocalGradients(rResult, Coords);
 
         return rResult;
@@ -1295,7 +1295,7 @@ public:
 
         for ( unsigned  int i = 0; i < this->PointsNumber(); i++ )
         {
-            rResult[i].resize( 2, 2 );
+            rResult[i].resize( 2, 2 , false);
             noalias( rResult[i] ) = ZeroMatrix( 2, 2 );
         }
 
@@ -1358,9 +1358,9 @@ public:
      * @param rResult a fourth order tensor which contains the third derivatives
      * @param rPoint the given point the third order derivatives are calculated in
      */
-    ShapeFunctionsThirdDerivativesType& ShapeFunctionsThirdDerivatives( 
-        ShapeFunctionsThirdDerivativesType& rResult, 
-        const CoordinatesArrayType& rPoint 
+    ShapeFunctionsThirdDerivativesType& ShapeFunctionsThirdDerivatives(
+        ShapeFunctionsThirdDerivativesType& rResult,
+        const CoordinatesArrayType& rPoint
         ) const override
     {
 
@@ -1375,7 +1375,7 @@ public:
 
         for ( IndexType i = 0; i < rResult.size(); i++ )
         {
-            vector<Matrix> temp( this->PointsNumber() );
+            DenseVector<Matrix> temp( this->PointsNumber() );
             rResult[i].swap( temp );
         }
 
@@ -1383,8 +1383,8 @@ public:
         {
             for ( int j = 0; j < 2; j++ )
             {
-                rResult[i][j].resize( 2, 2 );
-                noalias( rResult[i][j] ) = ZeroMatrix( 2, 2 );
+                rResult[i][j].resize( 2, 2 , false);
+                noalias( rResult[i][j] ) = ZeroMatrix( 2, 2);
             }
         }
 
@@ -1471,6 +1471,8 @@ private:
 
     static const GeometryData msGeometryData;
 
+    static const GeometryDimension msGeometryDimension;
+
 
     ///@}
     ///@name Serialization
@@ -1509,55 +1511,55 @@ private:
     {
         IntegrationPointsContainerType all_integration_points = AllIntegrationPoints();
         IntegrationPointsArrayType integration_points = all_integration_points[ThisMethod];
-        
+
         // Number of integration points
         const unsigned int integration_points_number = integration_points.size();
-        
+
         // Number of nodes in current geometry
         const unsigned int points_number = 8;
-        
+
         // Setting up return matrix
         Matrix shape_function_values( integration_points_number, points_number );
-        
+
         // Loop over all integration points
         for ( unsigned int pnt = 0; pnt < integration_points_number; pnt++ )
         {
             // Primary nodes
-            row( shape_function_values, pnt )( 0 ) =
+            row( shape_function_values, pnt )[0] =
                 -(( 1.0 - integration_points[pnt].X() )
                   * ( 1.0 - integration_points[pnt].Y() )
                   * ( 1.0 + integration_points[pnt].X()
                       + integration_points[pnt].Y() ) ) / 4.0;
-            row( shape_function_values, pnt )( 1 ) =
+            row( shape_function_values, pnt )[1] =
                 -(( 1.0 + integration_points[pnt].X() )
                   * ( 1.0 - integration_points[pnt].Y() ) * ( 1.0
                           - integration_points[pnt].X()
                           + integration_points[pnt].Y() ) ) / 4.0;
-            row( shape_function_values, pnt )( 2 ) =
+            row( shape_function_values, pnt )[2] =
                 -(( 1.0 + integration_points[pnt].X() )
                   * ( 1.0 + integration_points[pnt].Y() ) * ( 1.0
                           - integration_points[pnt].X()
                           - integration_points[pnt].Y() ) ) / 4.0;
-            row( shape_function_values, pnt )( 3 ) =
+            row( shape_function_values, pnt )[3] =
                 -(( 1.0 - integration_points[pnt].X() ) * ( 1.0
                         + integration_points[pnt].Y() ) * ( 1.0 ) * ( 1.0
                         + integration_points[pnt].X()
                         - integration_points[pnt].Y() ) ) / 4.0;
-            
+
             // Secondary nodes
-            row( shape_function_values, pnt )( 4 ) =
+            row( shape_function_values, pnt )[4] =
                 (( 1.0 - integration_points[pnt].X()
                    * integration_points[pnt].X() )
                  * ( 1.0 - integration_points[pnt].Y() ) ) / 2.0;
-            row( shape_function_values, pnt )( 5 ) =
+            row( shape_function_values, pnt )[5] =
                 (( 1.0 + integration_points[pnt].X() )
                  * ( 1.0 - integration_points[pnt].Y()
                      * integration_points[pnt].Y() ) ) / 2.0 ;
-            row( shape_function_values, pnt )( 6 ) =
+            row( shape_function_values, pnt )[6] =
                 (( 1.0 - integration_points[pnt].X()
                    * integration_points[pnt].X() )
                  * ( 1.0 + integration_points[pnt].Y() ) ) / 2.0 ;
-            row( shape_function_values, pnt )( 7 ) =
+            row( shape_function_values, pnt )[7] =
                 (( 1.0 - integration_points[pnt].X() )
                  * ( 1.0 - integration_points[pnt].Y()
                      * integration_points[pnt].Y() ) ) / 2.0 ;
@@ -1587,23 +1589,23 @@ private:
         ShapeFunctionsGradientsType d_shape_f_values( integration_points_number );
         // Initialising container
         //std::fill(d_shape_f_values.begin(), d_shape_f_values.end(), Matrix(4,2));
-        
+
         // Loop over all integration points
         for ( unsigned int pnt = 0; pnt < integration_points_number; pnt++ )
         {
             Matrix result = ZeroMatrix( 8, 2 );
-                
+
             // Primary nodes
-            result( 0, 0 ) = - ((-1.0 + integration_points[pnt].Y())*( 2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;               
+            result( 0, 0 ) = - ((-1.0 + integration_points[pnt].Y())*( 2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;
             result( 0, 1 ) = - ((-1.0 + integration_points[pnt].X())*( 2.0 * integration_points[pnt].Y() + integration_points[pnt].X())) / 4.0;
 
-            result( 1, 0 ) =   ((-1.0 + integration_points[pnt].Y())*(-2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;          
+            result( 1, 0 ) =   ((-1.0 + integration_points[pnt].Y())*(-2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;
             result( 1, 1 ) =   (( 1.0 + integration_points[pnt].X())*( 2.0 * integration_points[pnt].Y() - integration_points[pnt].X())) / 4.0;
 
-            result( 2, 0 ) =   (( 1.0 + integration_points[pnt].Y())*( 2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;             
+            result( 2, 0 ) =   (( 1.0 + integration_points[pnt].Y())*( 2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;
             result( 2, 1 ) =   (( 1.0 + integration_points[pnt].X())*( 2.0 * integration_points[pnt].Y() + integration_points[pnt].X())) / 4.0;
 
-            result( 3, 0 ) = - (( 1.0 + integration_points[pnt].Y())*(-2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;             
+            result( 3, 0 ) = - (( 1.0 + integration_points[pnt].Y())*(-2.0 * integration_points[pnt].X() + integration_points[pnt].Y())) / 4.0;
             result( 3, 1 ) = - ((-1.0 + integration_points[pnt].X())*( 2.0 * integration_points[pnt].Y() - integration_points[pnt].X())) / 4.0;
 
             // Secondary nodes
@@ -1618,7 +1620,7 @@ private:
 
             result( 7, 0 ) =   ((1.0 + integration_points[pnt].Y()) * (-1.0 + integration_points[pnt].Y())) / 2.0;
             result( 7, 1 ) =   integration_points[pnt].Y() * (-1.0 + integration_points[pnt].X());
-            
+
             d_shape_f_values[pnt] = result;
         }
 
@@ -1730,14 +1732,19 @@ template<class TPointType> inline std::ostream& operator << (
     return rOStream;
 }
 
-template<class TPointType> const GeometryData
-Quadrilateral2D8<TPointType>::msGeometryData( 2, 2, 2,
+template<class TPointType>
+const GeometryData Quadrilateral2D8<TPointType>::msGeometryData(
+        &msGeometryDimension,
         GeometryData::GI_GAUSS_3,
         Quadrilateral2D8<TPointType>::AllIntegrationPoints(),
         Quadrilateral2D8<TPointType>::AllShapeFunctionsValues(),
         AllShapeFunctionsLocalGradients()
-                                            );
+);
+
+template<class TPointType>
+const GeometryDimension Quadrilateral2D8<TPointType>::msGeometryDimension(
+    2, 2, 2);
 
 }  // namespace Kratos.
 
-#endif // KRATOS_QUADRILATERAL_2D_8_H_INCLUDED  defined 
+#endif // KRATOS_QUADRILATERAL_2D_8_H_INCLUDED  defined

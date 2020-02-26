@@ -95,75 +95,6 @@ namespace Kratos
    }
 
 
-   // THIS IS NOT THE PLACE TO PROGRAM THIS. However..
-   // This function removes previous boundary conditions at nodes that are now in contact (that is, removes Dirichlet water pressure conditions from contacting nodes).
-
-   void SetMechanicalInitialStateProcess::ExecuteFinalizeSolutionStep()
-   {
-      std::cout << " [ Trying to remove boundary conditions " << std::endl;
-
-      const unsigned int NumberOfMeshes = mrModelPart.NumberOfMeshes();
-
-      if (NumberOfMeshes < 2) {
-         std::cout << " Nothing To Be Done ] " << std::endl;
-         return;
-      }
-
-      unsigned int arranged = 0, allPossible = 0;
-      array_1d<double, 3 > ContactForce, NeigContactForce;
-      double CFModul, CFModulNeig;
-      int ContactNeig;
-      for ( ModelPart::NodesContainerType::const_iterator in = mrModelPart.NodesBegin(); in != mrModelPart.NodesEnd(); ++in)
-	{
-
-	  ContactForce = in->GetSolutionStepValue(CONTACT_FORCE);
-	  CFModul = fabs( ContactForce[0] ) + fabs( ContactForce[1] );
-	  if ( CFModul > 1e-5)
-            {
-	      ContactNeig = 0;
-	      WeakPointerVector<Node<3 > >  & rN = in->GetValue( NEIGHBOUR_NODES );
-	      for ( unsigned int neig = 0; neig < rN.size(); neig++)
-		{
-                  NeigContactForce = rN[neig].GetSolutionStepValue( CONTACT_FORCE);
-                  CFModulNeig = fabs( NeigContactForce[0]) + fabs( NeigContactForce[1]);
-                  if ( CFModulNeig > 1e-5)
-		    ContactNeig += 1;
-		}
-
-	      if (ContactNeig == 2)
-		{
-                  if ( in->SolutionStepsDataHas(LINE_LOAD) )
-		    {
-		      array_1d<double, 3 > & rLineLoad = in->GetSolutionStepValue( LINE_LOAD);
-		      if ( fabs( rLineLoad[0]) + fabs( rLineLoad[1]) > 1e-5)
-			{
-			  rLineLoad *= 0.0;
-			  //in->SetSolutionStepValue( LINE_LOAD, LineLoad); // ja està, no facis coses rares....
-			}
-		    }
-                  else
-		    {
-		      std::cout << " ES RARO PQ no HAY LINE LOAD " << std::endl;
-		    }
-
-                  if ( in->SolutionStepsDataHas( WATER_PRESSURE ) )
-		    {
-		      if ( in->IsFixed( WATER_PRESSURE ) )
-			{
-			  in->Free( WATER_PRESSURE);
-			  arranged++;
-			}
-		    }
-
-                  allPossible += 1;
-		}
-            }
-	}
-      
-
-      std::cout << " We have Done " << arranged << " from a possible bicontacting "<< allPossible << " in the BCCorrection ]"<< std::endl;
-
-   }
 
    // THE FUNCTION
    void SetMechanicalInitialStateProcess::SetInitialMechanicalState(ModelPart& rModelPart, int EchoLevel)
@@ -181,7 +112,7 @@ namespace Kratos
       double Ymax = rModelPart.NodesBegin()->Y(); 
       for (ModelPart::NodesContainerType::const_iterator in = rModelPart.NodesBegin(); in != rModelPart.NodesEnd(); ++in)
       {
-         if ( Ymax < in->Y() ) {
+         if ( ( Ymax < in->Y() ) && ( in->IsNot(RIGID) ) ) {
             Ymax = in->Y();
          }
       } 
@@ -203,6 +134,7 @@ namespace Kratos
       if( EchoLevel > 0 )
          std::cout << "    number of meshes: " << NumberOfMeshes << " meshes" << std::endl;
 
+      std::cout << " nEl " << rModelPart.NumberOfElements() << std::endl;
 
       if ( rModelPart.NumberOfElements() ) {
 	ModelPart::ElementsContainerType::const_iterator FirstElement = rModelPart.ElementsBegin();
@@ -234,6 +166,15 @@ namespace Kratos
 
       ProcessInfo SomeProcessInfo;
 
+      ModelPart::ElementsContainerType::const_iterator  pFirstElement = rModelPart.ElementsBegin();
+      Element::GeometryType& rGeom = pFirstElement->GetGeometry();
+      GeometryData::IntegrationMethod MyIntegrationMethod = pFirstElement->GetIntegrationMethod();
+      const Element::GeometryType::IntegrationPointsArrayType& IntegrationPoints = rGeom.IntegrationPoints(MyIntegrationMethod);
+      unsigned int numberOfGP = IntegrationPoints.size();
+      for (unsigned int i = 0; i < numberOfGP; i++)
+         StressVector.push_back(ThisVector);
+
+
       for (ModelPart::ElementsContainerType::const_iterator pElement = rModelPart.ElementsBegin(); pElement != rModelPart.ElementsEnd() ; pElement++)
       {
          pElement->SetValueOnIntegrationPoints( ELASTIC_LEFT_CAUCHY_FROM_KIRCHHOFF_STRESS, StressVector, SomeProcessInfo); 
@@ -246,6 +187,8 @@ namespace Kratos
          {
             double & rNodeWaterPressure = pNode->FastGetSolutionStepValue( WATER_PRESSURE );
             rNodeWaterPressure = rWaterPressure;
+            double & rNodeWaterPressureOld = pNode->FastGetSolutionStepValue( WATER_PRESSURE , 1);
+            rNodeWaterPressureOld = rWaterPressure;
          }
 
       }
@@ -530,6 +473,9 @@ namespace Kratos
       std::cout << " number " << OverLoad / 10.0 / (MixtureDensity +WaterDensity) << std::endl;
       std::cout << " olverLoad " << OverLoad << std::endl; */
 
+      double sign = 1.0;
+      if ( (rModelPart.NodesBegin() )->SolutionStepsDataHas( WATER_DISPLACEMENT_X) )
+         sign = -1.0;
       for (ModelPart::NodesContainerType::const_iterator pNode = rModelPart.NodesBegin(); pNode != rModelPart.NodesEnd() ; pNode++) {
 
          WaterPressure = 10.0*WaterDensity * ( pNode->Y() -rYmax ) + WaterOverLoad;
@@ -541,7 +487,9 @@ namespace Kratos
             WaterPressure = 0.0;
 
          double& rWaterPressure = pNode->FastGetSolutionStepValue( WATER_PRESSURE );
-         rWaterPressure = WaterPressure ;
+         rWaterPressure = sign * WaterPressure ;
+         double& rWaterPressureOld = pNode->FastGetSolutionStepValue( WATER_PRESSURE, 1 );
+         rWaterPressureOld = sign * WaterPressure ;
       }
 
       double VerticalStress, HorizontalStress;

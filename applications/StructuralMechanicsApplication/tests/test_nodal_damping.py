@@ -1,5 +1,5 @@
 from __future__ import print_function, absolute_import, division
-import KratosMultiphysics 
+import KratosMultiphysics
 
 import KratosMultiphysics.StructuralMechanicsApplication as StructuralMechanicsApplication
 import KratosMultiphysics.KratosUnittest as KratosUnittest
@@ -9,16 +9,15 @@ from math import sqrt, atan, cos, exp
 class NodalDampingTests(KratosUnittest.TestCase):
     def setUp(self):
         pass
-    
     def _add_variables(self,mp):
         mp.AddNodalSolutionStepVariable(KratosMultiphysics.DISPLACEMENT)
         mp.AddNodalSolutionStepVariable(KratosMultiphysics.VELOCITY)
         mp.AddNodalSolutionStepVariable(KratosMultiphysics.ACCELERATION)
-        mp.AddNodalSolutionStepVariable(KratosMultiphysics.VOLUME_ACCELERATION)        
+        mp.AddNodalSolutionStepVariable(KratosMultiphysics.VOLUME_ACCELERATION)
 
-        
+
     def _solve(self,mp):
-        
+
         #define a minimal newton raphson dynamic solver
         damp_factor_m = -0.01
         linear_solver = KratosMultiphysics.SkylineLUFactorizationSolver()
@@ -27,22 +26,22 @@ class NodalDampingTests(KratosUnittest.TestCase):
         # convergence_criterion = KratosMultiphysics.ResidualCriteria(1e-14,1e-20)
         convergence_criterion = KratosMultiphysics.ResidualCriteria(1e-4,1e-9)
         convergence_criterion.SetEchoLevel(0)
-        
+
         max_iters = 20
         compute_reactions = False
         reform_step_dofs = True
         move_mesh_flag = True
-        strategy = KratosMultiphysics.ResidualBasedNewtonRaphsonStrategy(mp, 
-                                                                        scheme, 
-                                                                        linear_solver, 
-                                                                        convergence_criterion, 
-                                                                        builder_and_solver, 
-                                                                        max_iters, 
-                                                                        compute_reactions, 
-                                                                        reform_step_dofs, 
+        strategy = KratosMultiphysics.ResidualBasedNewtonRaphsonStrategy(mp,
+                                                                        scheme,
+                                                                        linear_solver,
+                                                                        convergence_criterion,
+                                                                        builder_and_solver,
+                                                                        max_iters,
+                                                                        compute_reactions,
+                                                                        reform_step_dofs,
                                                                         move_mesh_flag)
         strategy.SetEchoLevel(0)
-        
+
         strategy.Check()
         strategy.Solve()
 
@@ -54,6 +53,7 @@ class NodalDampingTests(KratosUnittest.TestCase):
         time = mp.ProcessInfo[KratosMultiphysics.TIME]
         time = time - delta_time * (buffer_size)
         mp.ProcessInfo.SetValue(KratosMultiphysics.TIME, time)
+        mp.ProcessInfo.SetValue(KratosMultiphysics.DOMAIN_SIZE, 3)
         for size in range(0, buffer_size):
             step = size - (buffer_size -1)
             mp.ProcessInfo.SetValue(KratosMultiphysics.STEP, step)
@@ -62,9 +62,11 @@ class NodalDampingTests(KratosUnittest.TestCase):
             mp.CloneTimeStep(time)
 
         mp.ProcessInfo[KratosMultiphysics.IS_RESTARTED] = False
-   
+
     def test_nodal_damping(self):
-        mp = KratosMultiphysics.ModelPart("sdof")
+        current_model = KratosMultiphysics.Model()
+        mp = current_model.CreateModelPart("sdof")
+
         self._add_variables(mp)
 
         #create node
@@ -86,7 +88,7 @@ class NodalDampingTests(KratosUnittest.TestCase):
         stiffness = 10.0
         damping = 1.0
         element.SetValue(KratosMultiphysics.NODAL_MASS,mass)
-        element.SetValue(StructuralMechanicsApplication.NODAL_STIFFNESS,[0,stiffness,0])
+        element.SetValue(StructuralMechanicsApplication.NODAL_DISPLACEMENT_STIFFNESS,[0,stiffness,0])
         element.SetValue(StructuralMechanicsApplication.NODAL_DAMPING_RATIO,[0,damping,0])
 
         #time integration parameters
@@ -113,7 +115,7 @@ class NodalDampingTests(KratosUnittest.TestCase):
             self._solve(mp)
             current_analytical_displacement_y = A * cos(omega_D*time+theta) * exp(-delta*time)
             self.assertAlmostEqual(node.GetSolutionStepValue(KratosMultiphysics.DISPLACEMENT_Y,0),current_analytical_displacement_y,delta=1e-3)
-            
+
 
 if __name__ == '__main__':
     KratosUnittest.main()

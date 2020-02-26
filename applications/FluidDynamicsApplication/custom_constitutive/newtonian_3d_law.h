@@ -28,7 +28,7 @@ namespace Kratos
  * This material law is defined by the parameters:
  * 1) DYNAMIC_VISCOSITY
  */
-class Newtonian3DLaw : public FluidConstitutiveLaw
+class KRATOS_API(FLUID_DYNAMICS_APPLICATION) Newtonian3DLaw : public FluidConstitutiveLaw
 {
 public:
     /**
@@ -104,7 +104,7 @@ public:
     /**
      * Turn back information as a string.
      */
-    virtual std::string Info() const;
+    std::string Info() const override;
 
 protected:
 
@@ -124,9 +124,6 @@ protected:
     double GetEffectiveViscosity(ConstitutiveLaw::Parameters& rParameters) const override;
     
     ///@}
-
-
-
 private:
 
     ///@name Static Member Variables

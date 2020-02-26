@@ -13,7 +13,6 @@
 #if !defined(KRATOS_POSTPROCESS_EIGENVALUES_H_INCLUDED )
 #define  KRATOS_POSTPROCESS_EIGENVALUES_H_INCLUDED
 
-
 // System includes
 
 // External includes
@@ -23,41 +22,24 @@
 #include "processes/process.h"
 #include "includes/kratos_parameters.h"
 
-#include "custom_io/gid_eigen_io.h"
-
-
 namespace Kratos {
 
 ///@name Kratos Globals
 ///@{
 
-///@}
-///@name Type Definitions
-///@{
-
-///@}
-///@name  Enum's
-///@{
-
-///@}
-///@name  Functions
-///@{
-
-///@}
 ///@name Kratos Classes
 ///@{
 
 /// Process to create the animated Eigenvectors
-/** This process takes the results of an Eigenvalue Analysis and creates the 
+/** This process takes the results of an Eigenvalue Analysis and creates the
  * animated Eigenvectors (Eigenmodes) for GiD using the GidEigenIO, which
  * is customized for this case
  * The Input should be the ComputingModelPart! (Otherwise nodal results migth be messed up)
  * It is of particular importance that all Nodes have the same Dofs!
  */
-class PostprocessEigenvaluesProcess : public Process
+class KRATOS_API(STRUCTURAL_MECHANICS_APPLICATION) PostprocessEigenvaluesProcess : public Process
 {
-  public:
-
+public:
     ///@name Type Definitions
     ///@{
 
@@ -69,36 +51,19 @@ class PostprocessEigenvaluesProcess : public Process
     typedef std::size_t SizeType;
 
     typedef ModelPart::NodeType::DofsContainerType DofsContainerType;
-    
+
     ///@}
     ///@name Life Cycle
     ///@{
 
-    PostprocessEigenvaluesProcess(ModelPart &rModelPart,
+    PostprocessEigenvaluesProcess(ModelPart& rModelPart,
                                   Parameters OutputParameters);
-
-    ///@}
-    ///@name Operators
-    ///@{
-
 
     ///@}
     ///@name Operations
     ///@{
 
-    void ExecuteInitialize() override;
-
-    void ExecuteBeforeSolutionLoop() override;
-
-    void ExecuteFinalize() override;
-
-    ///@}
-    ///@name Access
-    ///@{
-
-    ///@}
-    ///@name Inquiry
-    ///@{
+    void ExecuteFinalizeSolutionStep() override;
 
     ///@}
     ///@name Input and output
@@ -110,102 +75,36 @@ class PostprocessEigenvaluesProcess : public Process
     }
 
     /// Print information about this object.
-    virtual void PrintInfo(std::ostream& rOStream) const override {
+    void PrintInfo(std::ostream& rOStream) const override {
         rOStream << "PostprocessEigenvaluesProcess";
     }
 
     /// Print object's data.
-    virtual void PrintData(std::ostream& rOStream) const override {
+    void PrintData(std::ostream& rOStream) const override {
     }
 
     ///@}
-    ///@name Friends
-    ///@{
 
-    ///@}
-
-  protected:
-
-    ///@name Protected static Member Variables
-    ///@{
-
-    ///@}
-    ///@name Protected member Variables
-    ///@{
-
-    ///@}
-    ///@name Protected Operators
-    ///@{
-
-    ///@}
-    ///@name Protected Operations
-    ///@{
-
-    ///@}
-    ///@name Protected  Access
-    ///@{
-
-    ///@}
-    ///@name Protected Inquiry
-    ///@{
-
-    ///@}
-    ///@name Protected LifeCycle
-    ///@{
-
-    ///@}
-
-  private:
-
-    ///@name Static Member Variables
-    ///@{
-
-    ///@}
+private:
     ///@name Member Variables
     ///@{
+
     ModelPart& mrModelPart;
     Parameters mOutputParameters;
-    GidEigenIO::Pointer mpGidEigenIO;
-
-    ///@}
-    ///@name Private Operators
-    ///@{
 
     ///@}
     ///@name Private Operations
     ///@{
-    
+
     std::string GetLabel(const int NumberOfEigenValue,
-                         const double EigenValueSolution);
+                         const double EigenValueSolution) const;
 
     void GetVariables(std::vector<Variable<double>>& rRequestedDoubleResults,
-                      std::vector<Variable<array_1d<double,3>>>& rRequestedVectorResults);
-
-    ///@}
-    ///@name Private  Access
-    ///@{
-
-    ///@}
-    ///@name Private Inquiry
-    ///@{
-
-    ///@}
-    ///@name Un accessible methods
-    ///@{
-
+                      std::vector<Variable<array_1d<double,3>>>& rRequestedVectorResults) const;
 
     ///@}
 
 }; // Class PostprocessEigenvaluesProcess
-
-///@}
-
-///@name Type Definitions
-///@{
-
-///@}
-///@name Input and output
-///@{
 
 ///@}
 

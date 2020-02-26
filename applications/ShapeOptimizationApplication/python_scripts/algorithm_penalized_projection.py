@@ -12,93 +12,108 @@
 # Making KratosMultiphysics backward compatible with python 2.6 and 2.7
 from __future__ import print_function, absolute_import, division
 
-# importing the Kratos Library
-from KratosMultiphysics import *
-from KratosMultiphysics.ShapeOptimizationApplication import *
-
-# check that KratosMultiphysics was imported in the main script
-CheckForPreviousImport()
-
-# Import algorithm base classes
-from algorithm_base import OptimizationAlgorithm
+# Kratos Core and Apps
+import KratosMultiphysics as KM
+import KratosMultiphysics.ShapeOptimizationApplication as KSO
 
 # Additional imports
-import timer_factory as timer_factory
+from .algorithm_base import OptimizationAlgorithm
+from . import mapper_factory
+from . import data_logger_factory
+from .custom_timer import Timer
+from .custom_variable_utilities import WriteDictionaryDataOnNodalVariable
 
 # ==============================================================================
-class AlgorithmPenalizedProjection( OptimizationAlgorithm ) :
+class AlgorithmPenalizedProjection(OptimizationAlgorithm):
+    # --------------------------------------------------------------------------
+    def __init__(self, optimization_settings, analyzer, communicator, model_part_controller):
+        default_algorithm_settings = KM.Parameters("""
+        {
+            "name"                    : "penalized_projection",
+            "correction_scaling"      : 1.0,
+            "use_adaptive_correction" : true,
+            "max_iterations"          : 100,
+            "relative_tolerance"      : 1e-3,
+            "line_search" : {
+                "line_search_type"           : "manual_stepping",
+                "normalize_search_direction" : true,
+                "step_size"                  : 1.0
+            }
+        }""")
+        self.algorithm_settings =  optimization_settings["optimization_algorithm"]
+        self.algorithm_settings.RecursivelyValidateAndAssignDefaults(default_algorithm_settings)
+
+        self.optimization_settings = optimization_settings
+        self.mapper_settings = optimization_settings["design_variables"]["filter"]
+
+        self.analyzer = analyzer
+        self.communicator = communicator
+        self.model_part_controller = model_part_controller
+
+        self.design_surface = None
+        self.mapper = None
+        self.data_logger = None
+        self.optimization_utilities = None
+
+        self.objectives = optimization_settings["objectives"]
+        self.constraints = optimization_settings["constraints"]
+
+        self.step_size = self.algorithm_settings["line_search"]["step_size"].GetDouble()
+        self.max_iterations = self.algorithm_settings["max_iterations"].GetInt() + 1
+        self.relative_tolerance = self.algorithm_settings["relative_tolerance"].GetDouble()
+
+        self.optimization_model_part = model_part_controller.GetOptimizationModelPart()
+        self.optimization_model_part.AddNodalSolutionStepVariable(KSO.SEARCH_DIRECTION)
 
     # --------------------------------------------------------------------------
-    def __init__( self,
-                  ModelPartController,
-                  Analyzer,
-                  Communicator,
-                  Mapper,
-                  DataLogger,
-                  OptimizationSettings ):
-
-        self.ModelPartController = ModelPartController
-        self.Analyzer = Analyzer
-        self.Communicator = Communicator
-        self.Mapper = Mapper
-        self.DataLogger = DataLogger
-        self.OptimizationSettings = OptimizationSettings
-
-        self.OptimizationModelPart = ModelPartController.GetOptimizationModelPart()
-        self.DesignSurface = ModelPartController.GetDesignSurface()
-
-        self.onlyObjectiveId = OptimizationSettings["objectives"][0]["identifier"].GetString()
-        self.onlyConstraintId = OptimizationSettings["constraints"][0]["identifier"].GetString()
-        self.typeOfOnlyConstraint = OptimizationSettings["constraints"][0]["type"].GetString()
-        self.projectionOnNormalsIsSpecified = OptimizationSettings["optimization_algorithm"]["project_gradients_on_surface_normals"].GetBool()
-        self.dampingIsSpecified = OptimizationSettings["design_variables"]["damping"]["perform_damping"].GetBool()
-        self.maxIterations = OptimizationSettings["optimization_algorithm"]["max_iterations"].GetInt() + 1
-
-        self.GeometryUtilities = GeometryUtilities( self.DesignSurface )
-        self.OptimizationUtilities = OptimizationUtilities( self.DesignSurface, OptimizationSettings )
-        if self.dampingIsSpecified:
-            damping_regions = self.ModelPartController.GetDampingRegions()
-            self.DampingUtilities = DampingUtilities( self.DesignSurface, damping_regions, self.OptimizationSettings )
+    def CheckApplicability(self):
+        if self.objectives.size() > 1:
+            raise RuntimeError("Penalized projection algorithm only supports one objective function!")
+        if self.constraints.size() == 0:
+            raise RuntimeError("Penalized projection algorithm requires definition of a constraint!")
+        if self.constraints.size() > 1:
+            raise RuntimeError("Penalized projection algorithm only supports one constraint!")
 
     # --------------------------------------------------------------------------
-    def execute( self ):
-        self.__initializeOptimizationLoop()
-        self.__runOptimizationLoop()
-        self.__finalizeOptimizationLoop()
+    def InitializeOptimizationLoop(self):
+        self.model_part_controller.Initialize()
+
+        self.analyzer.InitializeBeforeOptimizationLoop()
+
+        self.design_surface = self.model_part_controller.GetDesignSurface()
+
+        self.mapper = mapper_factory.CreateMapper(self.design_surface, self.design_surface, self.mapper_settings)
+        self.mapper.Initialize()
+
+        self.data_logger = data_logger_factory.CreateDataLogger(self.model_part_controller, self.communicator, self.optimization_settings)
+        self.data_logger.InitializeDataLogging()
+
+        self.optimization_utilities = KSO.OptimizationUtilities(self.design_surface, self.optimization_settings)
 
     # --------------------------------------------------------------------------
-    def __initializeOptimizationLoop( self ):
-        self.Analyzer.initializeBeforeOptimizationLoop()
-        self.ModelPartController.InitializeMeshController()
-        self.DataLogger.StartTimer()
-        self.DataLogger.InitializeDataLogging()
+    def RunOptimizationLoop(self):
+        timer = Timer()
+        timer.StartTimer()
 
-    # --------------------------------------------------------------------------
-    def __runOptimizationLoop( self ):
+        for self.optimization_iteration in range(1,self.max_iterations):
+            KM.Logger.Print("")
+            KM.Logger.Print("===============================================================================")
+            KM.Logger.PrintInfo("ShapeOpt", timer.GetTimeStamp(), ": Starting optimization iteration ", self.optimization_iteration)
+            KM.Logger.Print("===============================================================================\n")
 
-        for self.optimizationIteration in range(1,self.maxIterations):
-            print("\n>===================================================================")
-            print("> ",self.DataLogger.GetTimeStamp(),": Starting optimization iteration ", self.optimizationIteration)
-            print(">===================================================================\n")
+            timer.StartNewLap()
 
             self.__initializeNewShape()
 
             self.__analyzeShape()
 
-            if self.projectionOnNormalsIsSpecified:
-                self.__projectSensitivitiesOnSurfaceNormals()
-
-            if self.dampingIsSpecified:
-                self.__dampSensitivities()
-
             self.__computeShapeUpdate()
-
-            if self.dampingIsSpecified:
-                self.__dampShapeUpdate()
 
             self.__logCurrentOptimizationStep()
 
-            self.__timeOptimizationStep()
+            KM.Logger.Print("")
+            KM.Logger.PrintInfo("ShapeOpt", "Time needed for current optimization step = ", timer.GetLapTime(), "s")
+            KM.Logger.PrintInfo("ShapeOpt", "Time needed for total optimization so far = ", timer.GetTotalTime(), "s")
 
             if self.__isAlgorithmConverged():
                 break
@@ -106,77 +121,64 @@ class AlgorithmPenalizedProjection( OptimizationAlgorithm ) :
                 self.__determineAbsoluteChanges()
 
     # --------------------------------------------------------------------------
-    def __finalizeOptimizationLoop( self ):
-        self.DataLogger.FinalizeDataLogging()
-        self.Analyzer.finalizeAfterOptimizationLoop()
+    def FinalizeOptimizationLoop(self):
+        self.data_logger.FinalizeDataLogging()
+        self.analyzer.FinalizeAfterOptimizationLoop()
 
     # --------------------------------------------------------------------------
-    def __initializeNewShape( self ):
-        self.ModelPartController.CloneTimeStep( self.optimizationIteration )
-        self.ModelPartController.UpdateMeshAccordingInputVariable( SHAPE_UPDATE )
-        self.ModelPartController.SetReferenceMeshToMesh()
+    def __initializeNewShape(self):
+        self.model_part_controller.UpdateTimeStep(self.optimization_iteration)
+        self.model_part_controller.UpdateMeshAccordingInputVariable(KSO.SHAPE_UPDATE)
+        self.model_part_controller.SetReferenceMeshToMesh()
 
     # --------------------------------------------------------------------------
-    def __analyzeShape( self ):
-        self.Communicator.initializeCommunication()
-        self.Communicator.requestValueOf( self.onlyObjectiveId )
-        self.Communicator.requestValueOf( self.onlyConstraintId )
-        self.Communicator.requestGradientOf( self.onlyObjectiveId )
-        self.Communicator.requestGradientOf( self.onlyConstraintId )
+    def __analyzeShape(self):
+        self.communicator.initializeCommunication()
+        self.communicator.requestValueOf(self.objectives[0]["identifier"].GetString())
+        self.communicator.requestGradientOf(self.objectives[0]["identifier"].GetString())
+        self.communicator.requestValueOf(self.constraints[0]["identifier"].GetString())
+        self.communicator.requestGradientOf(self.constraints[0]["identifier"].GetString())
 
-        self.Analyzer.analyzeDesignAndReportToCommunicator( self.DesignSurface, self.optimizationIteration, self.Communicator )
+        self.analyzer.AnalyzeDesignAndReportToCommunicator(self.optimization_model_part, self.optimization_iteration, self.communicator)
 
-        self.__storeResultOfSensitivityAnalysisOnNodes()
-        self.__RevertPossibleShapeModificationsDuringAnalysis()
+        objGradientDict = self.communicator.getStandardizedGradient(self.objectives[0]["identifier"].GetString())
+        conGradientDict = self.communicator.getStandardizedGradient(self.constraints[0]["identifier"].GetString())
 
-    # --------------------------------------------------------------------------
-    def __storeResultOfSensitivityAnalysisOnNodes( self ):
-        gradientOfObjectiveFunction = self.Communicator.getStandardizedGradient( self.onlyObjectiveId )
-        gradientOfConstraintFunction = self.Communicator.getStandardizedGradient( self.onlyConstraintId )
-        self.__storeGradientOnNodalVariable( gradientOfObjectiveFunction, OBJECTIVE_SENSITIVITY )
-        self.__storeGradientOnNodalVariable( gradientOfConstraintFunction, CONSTRAINT_SENSITIVITY )
+        WriteDictionaryDataOnNodalVariable(objGradientDict, self.optimization_model_part, KSO.DF1DX)
+        WriteDictionaryDataOnNodalVariable(conGradientDict, self.optimization_model_part, KSO.DC1DX)
 
-    # --------------------------------------------------------------------------
-    def __storeGradientOnNodalVariable( self, gradient, variable_name ):
-        for nodeId, tmp_gradient in gradient.items():
-            self.OptimizationModelPart.Nodes[nodeId].SetSolutionStepValue(variable_name,0,tmp_gradient)
+        if self.objectives[0]["project_gradient_on_surface_normals"].GetBool() or self.constraints[0]["project_gradient_on_surface_normals"].GetBool():
+            self.model_part_controller.ComputeUnitSurfaceNormals()
 
-    # --------------------------------------------------------------------------
-    def __RevertPossibleShapeModificationsDuringAnalysis( self ):
-        self.ModelPartController.SetMeshToReferenceMesh()
-        self.ModelPartController.SetDeformationVariablesToZero()
+        if self.objectives[0]["project_gradient_on_surface_normals"].GetBool():
+            self.model_part_controller.ProjectNodalVariableOnUnitSurfaceNormals(KSO.DF1DX)
+
+        if self.constraints[0]["project_gradient_on_surface_normals"].GetBool():
+            self.model_part_controller.ProjectNodalVariableOnUnitSurfaceNormals(KSO.DC1DX)
+
+        self.model_part_controller.DampNodalVariableIfSpecified(KSO.DF1DX)
+        self.model_part_controller.DampNodalVariableIfSpecified(KSO.DC1DX)
 
     # --------------------------------------------------------------------------
-    def __projectSensitivitiesOnSurfaceNormals( self ):
-        self.GeometryUtilities.ComputeUnitSurfaceNormals()
-        self.GeometryUtilities.ProjectNodalVariableOnUnitSurfaceNormals( OBJECTIVE_SENSITIVITY )
-        self.GeometryUtilities.ProjectNodalVariableOnUnitSurfaceNormals( CONSTRAINT_SENSITIVITY )
+    def __computeShapeUpdate(self):
+        self.mapper.Update()
+        self.mapper.InverseMap(KSO.DF1DX, KSO.DF1DX_MAPPED)
+        self.mapper.InverseMap(KSO.DC1DX, KSO.DC1DX_MAPPED)
 
-    # --------------------------------------------------------------------------
-    def __dampSensitivities( self ):
-        self.DampingUtilities.DampNodalVariable( OBJECTIVE_SENSITIVITY )
-        self.DampingUtilities.DampNodalVariable( CONSTRAINT_SENSITIVITY )
-
-    # --------------------------------------------------------------------------
-    def __computeShapeUpdate( self ):
-        self.__mapSensitivitiesToDesignSpace()
-        constraint_value = self.Communicator.getStandardizedValue( self.onlyConstraintId )
-        if self.__isConstraintActive( constraint_value ):
-            self.OptimizationUtilities.ComputeProjectedSearchDirection()
-            self.OptimizationUtilities.CorrectProjectedSearchDirection( constraint_value )
+        constraint_value = self.communicator.getStandardizedValue(self.constraints[0]["identifier"].GetString())
+        if self.__isConstraintActive(constraint_value):
+            self.optimization_utilities.ComputeProjectedSearchDirection()
+            self.optimization_utilities.CorrectProjectedSearchDirection(constraint_value)
         else:
-            self.OptimizationUtilities.ComputeSearchDirectionSteepestDescent()
-        self.OptimizationUtilities.ComputeControlPointUpdate()
-        self.__mapDesignUpdateToGeometrySpace()
+            self.optimization_utilities.ComputeSearchDirectionSteepestDescent()
+        self.optimization_utilities.ComputeControlPointUpdate(self.step_size)
+
+        self.mapper.Map(KSO.CONTROL_POINT_UPDATE, KSO.SHAPE_UPDATE)
+        self.model_part_controller.DampNodalVariableIfSpecified(KSO.SHAPE_UPDATE)
 
     # --------------------------------------------------------------------------
-    def __mapSensitivitiesToDesignSpace( self ):
-        self.Mapper.MapToDesignSpace( OBJECTIVE_SENSITIVITY, MAPPED_OBJECTIVE_SENSITIVITY )
-        self.Mapper.MapToDesignSpace( CONSTRAINT_SENSITIVITY, MAPPED_CONSTRAINT_SENSITIVITY )
-
-    # --------------------------------------------------------------------------
-    def __isConstraintActive( self, constraintValue ):
-        if self.typeOfOnlyConstraint == "=":
+    def __isConstraintActive(self, constraintValue):
+        if self.constraints[0]["type"].GetString() == "=":
             return True
         elif constraintValue > 0:
             return True
@@ -184,43 +186,34 @@ class AlgorithmPenalizedProjection( OptimizationAlgorithm ) :
             return False
 
     # --------------------------------------------------------------------------
-    def __mapDesignUpdateToGeometrySpace( self ):
-        self.Mapper.MapToGeometrySpace( CONTROL_POINT_UPDATE, SHAPE_UPDATE )
+    def __logCurrentOptimizationStep(self):
+        additional_values_to_log = {}
+        additional_values_to_log["correction_scaling"] = self.optimization_utilities.GetCorrectionScaling()
+        additional_values_to_log["step_size"] = self.step_size
+        self.data_logger.LogCurrentValues(self.optimization_iteration, additional_values_to_log)
+        self.data_logger.LogCurrentDesign(self.optimization_iteration)
 
     # --------------------------------------------------------------------------
-    def __dampShapeUpdate( self ):
-        self.DampingUtilities.DampNodalVariable( SHAPE_UPDATE )
+    def __isAlgorithmConverged(self):
 
-    # --------------------------------------------------------------------------
-    def __logCurrentOptimizationStep( self ):
-        self.DataLogger.LogCurrentData( self.optimizationIteration )
-
-    # --------------------------------------------------------------------------
-    def __timeOptimizationStep( self ):
-        print("\n> Time needed for current optimization step = ", self.DataLogger.GetLapTime(), "s")
-        print("> Time needed for total optimization so far = ", self.DataLogger.GetTotalTime(), "s")
-
-    # --------------------------------------------------------------------------
-    def __isAlgorithmConverged( self ):
-
-        if self.optimizationIteration > 1 :
+        if self.optimization_iteration > 1 :
 
             # Check if maximum iterations were reached
-            if self.optimizationIteration == self.maxIterations:
-                print("\n> Maximal iterations of optimization problem reached!")
+            if self.optimization_iteration == self.max_iterations:
+                KM.Logger.Print("")
+                KM.Logger.PrintInfo("ShapeOpt", "Maximal iterations of optimization problem reached!")
                 return True
 
-            relativeChangeOfObjectiveValue = self.DataLogger.GetValue( "RELATIVE_CHANGE_OF_OBJECTIVE_VALUE" )
-
             # Check for relative tolerance
-            relativeTolerance = self.OptimizationSettings["optimization_algorithm"]["relative_tolerance"].GetDouble()
-            if abs(relativeChangeOfObjectiveValue) < relativeTolerance:
-                print("\n> Optimization problem converged within a relative objective tolerance of ",relativeTolerance,"%.")
+            relative_change_of_objective_value = self.data_logger.GetValues("rel_change_objective")[self.optimization_iteration]
+            if abs(relative_change_of_objective_value) < self.relative_tolerance:
+                KM.Logger.Print("")
+                KM.Logger.PrintInfo("ShapeOpt", "Optimization problem converged within a relative objective tolerance of ",self.relative_tolerance,"%.")
                 return True
 
     # --------------------------------------------------------------------------
-    def __determineAbsoluteChanges( self ):
-        self.OptimizationUtilities.AddFirstVariableToSecondVariable( CONTROL_POINT_UPDATE, CONTROL_POINT_CHANGE )
-        self.OptimizationUtilities.AddFirstVariableToSecondVariable( SHAPE_UPDATE, SHAPE_CHANGE )
+    def __determineAbsoluteChanges(self):
+        self.optimization_utilities.AddFirstVariableToSecondVariable(KSO.CONTROL_POINT_UPDATE, KSO.CONTROL_POINT_CHANGE)
+        self.optimization_utilities.AddFirstVariableToSecondVariable(KSO.SHAPE_UPDATE, KSO.SHAPE_CHANGE)
 
 # ==============================================================================

@@ -11,12 +11,12 @@
 #define  KRATOS_EIGENVECTOR_TO_SOLUTION_STEP_VARIABLE_TRANSFER_UTILITY
 
 // System includes
-#include <iterator>
+//#include <iterator>
 
 // External includes
 
 // Project includes
-#include "includes/define.h"
+//#include "includes/define.h"
 #include "includes/model_part.h"
 
 // Application includes
@@ -83,7 +83,7 @@ public:
             Matrix& rNodeEigenvectors = itNode->GetValue(EIGENVECTOR_MATRIX);
             std::size_t j=0;
             for (auto itDof = std::begin(rNodeDofs); itDof != std::end(rNodeDofs); itDof++)
-                itDof->GetSolutionStepValue(step) = rNodeEigenvectors(iEigenMode,j++);
+                (*itDof)->GetSolutionStepValue(step) = rNodeEigenvectors(iEigenMode,j++);
         }
     }
 

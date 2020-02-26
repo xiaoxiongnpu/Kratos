@@ -17,25 +17,19 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <unordered_map>
 
-// ------------------------------------------------------------------------------
-// External includes
-// ------------------------------------------------------------------------------
-#include <boost/python.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
+#include <pybind11/pybind11.h>
 
 // ------------------------------------------------------------------------------
 // Project includes
 // ------------------------------------------------------------------------------
 #include "includes/define.h"
-#include "processes/process.h"
-#include "includes/node.h"
-#include "includes/element.h"
 #include "includes/model_part.h"
-#include "includes/kratos_flags.h"
+#include "includes/key_hash.h"
 #include "shape_optimization_application.h"
+
+#include "spatial_containers/spatial_containers.h"
 
 // ==============================================================================
 
@@ -73,33 +67,12 @@ public:
     ///@name Type Definitions
     ///@{
 
+    // For better reading
     typedef array_1d<double,3> array_3d;
     typedef ModelPart::ConditionsContainerType ConditionsArrayType;
 
     /// Pointer definition of GeometryUtilities
     KRATOS_CLASS_POINTER_DEFINITION(GeometryUtilities);
-
-	// Structs needed for operations related to surface extraction
-	struct KeyComparor
-	{
-		bool operator()(const vector<unsigned int>& lhs, const vector<unsigned int>& rhs) const
-		{
-			if(lhs.size() != rhs.size())
-				return false;
-
-			for(unsigned int i=0; i<lhs.size(); i++)
-				if(lhs[i] != rhs[i]) return false;
-
-			return true;
-		}
-	};
-	struct KeyHasher
-	{
-		std::size_t operator()(const vector<int>& k) const
-		{
-			return boost::hash_range(k.begin(), k.end());
-		}
-	};
 
     ///@}
     ///@name Life Cycle
@@ -132,6 +105,10 @@ public:
         KRATOS_TRY;
 
         const unsigned int domain_size = mrModelPart.GetProcessInfo().GetValue(DOMAIN_SIZE);
+        KRATOS_ERROR_IF(mrModelPart.NumberOfConditions() == 0) <<
+            "> Normal calculation requires surface or line conditions to be defined!" << std::endl;
+        KRATOS_ERROR_IF((domain_size == 3 && mrModelPart.ConditionsBegin()->GetGeometry().size() == 2)) <<
+            "> Normal calculation of 2-noded conditions in 3D domains is not possible!" << std::endl;
         CalculateAreaNormals(mrModelPart.Conditions(),domain_size);
         CalculateUnitNormals();
 
@@ -143,80 +120,155 @@ public:
     {
         KRATOS_TRY;
 
-        // We loop over all nodes and compute the part of the sensitivity which is in direction to the surface normal
+        ProjectNodalVariableOnDirection(rNodalVariable, NORMALIZED_SURFACE_NORMAL);
+
+        KRATOS_CATCH("");
+    }
+
+    void ProjectNodalVariableOnDirection( const Variable<array_3d> &rNodalVariable, const Variable<array_3d> &rDirectionVariable)
+    {
+        KRATOS_TRY;
+
         for (ModelPart::NodeIterator node_i = mrModelPart.NodesBegin(); node_i != mrModelPart.NodesEnd(); ++node_i)
         {
             array_3d &nodal_variable = node_i->FastGetSolutionStepValue(rNodalVariable);
-            array_3d &node_normal = node_i->FastGetSolutionStepValue(NORMALIZED_SURFACE_NORMAL);
+            array_3d &node_normal = node_i->FastGetSolutionStepValue(rDirectionVariable);
 
-            // We compute dFdX_n = (dFdX \cdot n) * n
-            double surface_sens = inner_prod(nodal_variable,node_normal);
-            nodal_variable = surface_sens * node_normal;
+            const double magnitude = inner_prod(nodal_variable, node_normal);
+            noalias(nodal_variable) = magnitude * node_normal;
         }
 
         KRATOS_CATCH("");
     }
 
+    void ProjectNodalVariableOnTangentPlane( const Variable<array_3d> &rNodalVariable, const Variable<array_3d> &rPlaneNormalVariable)
+    {
+        KRATOS_TRY;
+
+        for (ModelPart::NodeIterator node_i = mrModelPart.NodesBegin(); node_i != mrModelPart.NodesEnd(); ++node_i)
+        {
+            array_3d &nodal_variable = node_i->FastGetSolutionStepValue(rNodalVariable);
+            array_3d &node_normal = node_i->FastGetSolutionStepValue(rPlaneNormalVariable);
+
+            const double magnitude = inner_prod(nodal_variable, node_normal);
+            nodal_variable -= magnitude * node_normal;
+        }
+
+        KRATOS_CATCH("");
+    }
     // --------------------------------------------------------------------------
-    void ExtractSurfaceNodes( std::string const& NewSubModelPartName )
+    void ExtractBoundaryNodes( std::string const& rBoundarySubModelPartName )
     {
     	KRATOS_TRY;
 
-    	if(mrModelPart.HasSubModelPart(NewSubModelPartName))
-    	{
-    		std::cout << "> Specified name for sub-model part already defined. Skipping extraction of surface nodes!" << std::endl;
-    		return;
-    	}
+        ModelPart& r_boundary_model_part = mrModelPart.GetSubModelPart(rBoundarySubModelPartName);
 
-    	// Create new sub-model part within the given main model part that shall list all surface nodes
-    	mrModelPart.CreateSubModelPart(NewSubModelPartName);
+        KRATOS_ERROR_IF(r_boundary_model_part.Nodes().size() != 0) << "ExtractBoundaryNodes: The boundary model part already has nodes!" << std::endl;
 
     	// Some type-definitions
-    	typedef boost::unordered_map<vector<unsigned int>, unsigned int, KeyHasher, KeyComparor > hashmap;
+        typedef std::unordered_map<vector<unsigned int>, unsigned int, KeyHasherRange<vector<unsigned int>>, KeyComparorRange<vector<unsigned int>> > hashmap;
 
     	// Create map to ask for number of faces for the given set of node ids representing one face in the model part
-    	hashmap n_faces_map;
+    	hashmap n_boundaries_map;
+
+        unsigned int domain_size = static_cast<unsigned int>(mrModelPart.GetProcessInfo()[DOMAIN_SIZE]);
 
     	// Fill map that counts number of faces for given set of nodes
-    	for (ModelPart::ElementIterator itElem = mrModelPart.ElementsBegin(); itElem != mrModelPart.ElementsEnd(); itElem++)
+    	for (auto& elem_i : mrModelPart.Elements())
     	{
-    		Element::GeometryType::GeometriesArrayType faces = itElem->GetGeometry().Faces();
+            KRATOS_ERROR_IF(elem_i.GetGeometry().Dimension() < domain_size) << "ExtractBoundaryNodes: This function does only work"
+                <<" for solid elements in 3D and surface elements in 2D!" << std::endl;
 
-    		for(unsigned int face=0; face<faces.size(); face++)
-    		{
-    			// Create vector that stores all node is of current face
-    			vector<unsigned int> ids(faces[face].size());
+            Element::GeometryType::GeometriesArrayType boundaries;
+            if (domain_size==3)
+                boundaries = elem_i.GetGeometry().Faces();
+            else if (domain_size == 2)
+                boundaries = elem_i.GetGeometry().Edges();
 
-    			// Store node ids
-    			for(unsigned int i=0; i<faces[face].size(); i++)
-    				ids[i] = faces[face][i].Id();
+            for(unsigned int boundary=0; boundary<boundaries.size(); boundary++)
+            {
+                // Create vector that stores all node is of current face
+                DenseVector<unsigned int> ids(boundaries[boundary].size());
 
-    			//*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
-    			std::sort(ids.begin(), ids.end());
+                // Store node ids
+                for(unsigned int i=0; i<boundaries[boundary].size(); i++)
+                    ids[i] = boundaries[boundary][i].Id();
 
-    			// Fill the map
-    			n_faces_map[ids] += 1;
-    		}
+                //*** THE ARRAY OF IDS MUST BE ORDERED!!! ***
+                std::sort(ids.begin(), ids.end());
+
+                // Fill the map
+                n_boundaries_map[ids] += 1;
+            }
     	}
 
     	// Vector to store all nodes on surface. Node ids may be listed several times
-    	std::vector<std::size_t> temp_surface_node_ids;
+    	std::vector<std::size_t> temp_boundary_node_ids;
 
     	// Add surface nodes to sub-model part
-    	for(hashmap::const_iterator it=n_faces_map.begin(); it!=n_faces_map.end(); it++)
+    	for(auto it=n_boundaries_map.begin(); it!=n_boundaries_map.end(); it++)
     	{
     		// If given node set represents face that is not overlapping with a face of another element, add it as skin element
     		if(it->second == 1)
     		{
     			for(unsigned int i=0; i<it->first.size(); i++)
-    				temp_surface_node_ids.push_back(it->first[i]);
+    				temp_boundary_node_ids.push_back(it->first[i]);
     		}
     	}
 
     	// Add nodes and remove double entries
-    	mrModelPart.GetSubModelPart(NewSubModelPartName).AddNodes(temp_surface_node_ids);
+    	r_boundary_model_part.AddNodes(temp_boundary_node_ids);
 
     	KRATOS_CATCH("");
+    }
+
+    // --------------------------------------------------------------------------
+    void ComputeDistancesToBoundingModelPart(
+        ModelPart& rBoundingModelPart,
+        pybind11::list& rSignedDistances,
+        pybind11::list& rDirections )
+    {
+        KRATOS_TRY;
+
+        typedef Node < 3 > NodeType;
+        typedef NodeType::Pointer NodeTypePointer;
+        typedef std::vector<NodeType::Pointer> NodeVector;
+        typedef std::vector<NodeType::Pointer>::iterator NodeIterator;
+        typedef std::vector<double>::iterator DoubleVectorIterator;
+        typedef Bucket< 3, NodeType, NodeVector, NodeTypePointer, NodeIterator, DoubleVectorIterator > BucketType;
+        typedef Tree< KDTreePartition<BucketType> > KDTree;
+
+        KRATOS_ERROR_IF(rBoundingModelPart.NumberOfElements() != 0) <<
+            "ComputeDistancesToBoundingModelPart: Model part must only contain conditions!" << std::endl;
+
+        NodeVector all_bounding_nodes;
+        all_bounding_nodes.reserve(rBoundingModelPart.Nodes().size());
+        for (ModelPart::NodesContainerType::iterator node_it = rBoundingModelPart.NodesBegin(); node_it != rBoundingModelPart.NodesEnd(); ++node_it)
+        {
+            all_bounding_nodes.push_back(*(node_it.base()));
+        }
+        const size_t bucket_size = 100;
+        KDTree search_tree(all_bounding_nodes.begin(), all_bounding_nodes.end(), bucket_size);
+
+        GeometryUtilities(rBoundingModelPart).ComputeUnitSurfaceNormals();
+
+        for (auto& r_node : mrModelPart.Nodes()){
+
+            double distance;
+            NodeTypePointer p_neighbor = search_tree.SearchNearestPoint(r_node, distance);
+
+            const array_3d delta = r_node.Coordinates() - p_neighbor->Coordinates();
+            const array_3d& bounding_normal = p_neighbor->FastGetSolutionStepValue(NORMALIZED_SURFACE_NORMAL);
+            const double projected_length = inner_prod(delta, bounding_normal);
+
+            rSignedDistances.append(projected_length);
+
+            rDirections.append(bounding_normal[0]);
+            rDirections.append(bounding_normal[1]);
+            rDirections.append(bounding_normal[2]);
+        }
+
+        KRATOS_CATCH("");
     }
 
     // --------------------------------------------------------------------------
@@ -355,7 +407,7 @@ private:
                 else if (cond_i.GetGeometry().PointsNumber() == 4)
                     CalculateNormal3DQuad(cond_i,An,v1,v2);
                 else
-                    KRATOS_ERROR << "> Calculation of surface normal not implemented for the given surface conditions!";
+                    KRATOS_ERROR << "Calculation of surface normal not implemented for the given surface conditions!";
             }
         }
 
@@ -432,7 +484,12 @@ private:
         {
             const array_1d<double,3>& area_normal = node_i.FastGetSolutionStepValue(NORMAL);
             array_3d& normalized_normal = node_i.FastGetSolutionStepValue(NORMALIZED_SURFACE_NORMAL);
-            noalias(normalized_normal) = area_normal/norm_2(area_normal);
+
+            const double norm2 = norm_2(area_normal);
+            KRATOS_ERROR_IF(norm2<1e-10) << "CalculateUnitNormals: Norm2 of normal for node "
+                << node_i.Id() << " is < 1e-10!" << std::endl;
+
+            noalias(normalized_normal) = area_normal/norm2;
         }
     }
 

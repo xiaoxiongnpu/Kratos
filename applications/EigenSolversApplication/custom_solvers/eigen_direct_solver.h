@@ -15,78 +15,53 @@
 // External includes
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-#include <Eigen/SparseQR>
-#include <Eigen/OrderingMethods>
-#if defined EIGEN_USE_MKL_ALL
-#include <Eigen/PardisoSupport>
-#endif
 
 // Project includes
 #include "includes/define.h"
-#include "linear_solvers/direct_solver.h"
 #include "custom_utilities/ublas_wrapper.h"
+#include "factories/standard_linear_solver_factory.h"
+#include "includes/ublas_complex_interface.h"
+#include "includes/ublas_interface.h"
+#include "linear_solvers/direct_solver.h"
+#include "spaces/ublas_space.h"
 
+namespace Kratos {
 
-namespace Kratos
+template <typename Scalar>
+struct SpaceType;
+
+template <>
+struct SpaceType<double>
 {
-
-struct SolverType
-{
-    using TSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int>;
+    using Global = UblasSpace<double, CompressedMatrix, Vector>;
+    using Local = UblasSpace<double, Matrix, Vector>;
 };
 
-struct SparseLU : SolverType
+template <>
+struct SpaceType<std::complex<double>>
 {
-    using TSolver = Eigen::SparseLU<TSparseMatrix>;
-
-    static constexpr auto Name = "SparseLU";
+    using Global = UblasSpace<std::complex<double>, ComplexCompressedMatrix, ComplexVector>;
+    using Local = UblasSpace<std::complex<double>, ComplexMatrix, ComplexVector>;
 };
-
-struct SparseQR : SolverType
-{
-    using TSolver = Eigen::SparseQR<TSparseMatrix, Eigen::COLAMDOrdering<int>>;
-
-    static constexpr auto Name = "SparseQR";
-};
-
-#if defined EIGEN_USE_MKL_ALL
-struct PardisoLLT : SolverType
-{
-    using TSolver = Eigen::PardisoLLT<TSparseMatrix>;
-
-    static constexpr auto Name = "PardisoLLT";
-};
-
-struct PardisoLDLT : SolverType
-{
-    using TSolver = Eigen::PardisoLDLT<TSparseMatrix>;
-
-    static constexpr auto Name = "PardisoLDLT";
-};
-
-struct PardisoLU : SolverType
-{
-    using TSolver = Eigen::PardisoLU<TSparseMatrix>;
-
-    static constexpr auto Name = "PardisoLU";
-};
-#endif
 
 template <
-    class TSolver,
-    class TSparseSpaceType,
-    class TDenseSpaceType,
+    class TSolverType,
+    class TSparseSpaceType = typename SpaceType<typename TSolverType::Scalar>::Global,
+    class TDenseSpaceType = typename SpaceType<typename TSolverType::Scalar>::Local,
     class TReordererType = Reorderer<TSparseSpaceType, TDenseSpaceType>>
 class EigenDirectSolver
     : public DirectSolver<TSparseSpaceType, TDenseSpaceType, TReordererType>
 {
-    typename TSolver::TSolver m_solver;
+private:
+    TSolverType m_solver;
 
     EigenDirectSolver &operator=(const EigenDirectSolver &Other);
 
     EigenDirectSolver(const EigenDirectSolver &Other);
 
-  public:
+    UblasWrapper<typename TSolverType::Scalar> m_a_wrapper;
+
+public:
     KRATOS_CLASS_POINTER_DEFINITION(EigenDirectSolver);
 
     typedef DirectSolver<TSparseSpaceType, TDenseSpaceType, TReordererType> BaseType;
@@ -95,11 +70,18 @@ class EigenDirectSolver
 
     typedef typename TSparseSpaceType::VectorType VectorType;
 
+    typedef typename TSparseSpaceType::DataType DataType;
+
     typedef typename TDenseSpaceType::MatrixType DenseMatrixType;
+
+    typedef StandardLinearSolverFactory<TSparseSpaceType, TDenseSpaceType, EigenDirectSolver> FactoryType;
 
     EigenDirectSolver() {}
 
-    EigenDirectSolver(Parameters settings) : BaseType(settings) {}
+    EigenDirectSolver(Parameters settings) : BaseType(settings)
+    {
+        m_solver.Initialize(settings);
+    }
 
     ~EigenDirectSolver() override {}
 
@@ -114,13 +96,13 @@ class EigenDirectSolver
      */
     void InitializeSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
     {
-        UblasWrapper<> a_wrapper(rA);
+        m_a_wrapper = UblasWrapper<DataType>(rA);
 
-        const auto& a = a_wrapper.matrix();
+        const auto& a = m_a_wrapper.matrix();
 
-        m_solver.compute(a);
+        const bool success = m_solver.Compute(a);
 
-        KRATOS_ERROR_IF(m_solver.info() != Eigen::Success) << "Decomposition failed!" << std::endl;
+        KRATOS_ERROR_IF(!success) << "Decomposition failed!" << std::endl;
     }
 
     /**
@@ -132,12 +114,12 @@ class EigenDirectSolver
      */
     void PerformSolutionStep(SparseMatrixType& rA, VectorType& rX, VectorType& rB) override
     {
-        Eigen::Map<Eigen::VectorXd> x(rX.data().begin(), rX.size());
-        Eigen::Map<Eigen::VectorXd> b(rB.data().begin(), rB.size());
-        
-        x = m_solver.solve(b);
+        Eigen::Map<Eigen::Matrix<DataType, Eigen::Dynamic, 1>> x(rX.data().begin(), rX.size());
+        Eigen::Map<Eigen::Matrix<DataType, Eigen::Dynamic, 1>> b(rB.data().begin(), rB.size());
 
-        KRATOS_ERROR_IF(m_solver.info() != Eigen::Success) << "Solving failed!" << std::endl;
+        const bool success = m_solver.Solve(b, x);
+
+        KRATOS_ERROR_IF(!success) << "Solving failed!\n" << m_solver.GetSolverErrorMessages() << std::endl;
     }
 
     /**
@@ -172,7 +154,7 @@ class EigenDirectSolver
      */
     void PrintInfo(std::ostream &rOStream) const override
     {
-        rOStream << "EigenDirectSolver<" << TSolver::Name << "> finished.";
+        m_solver.PrintInfo(rOStream);
     }
 
     /**
@@ -181,19 +163,24 @@ class EigenDirectSolver
     void PrintData(std::ostream &rOStream) const override
     {
     }
+
+    static StandardLinearSolverFactory<TSparseSpaceType, TDenseSpaceType, EigenDirectSolver> Factory()
+    {
+        return StandardLinearSolverFactory<TSparseSpaceType, TDenseSpaceType, EigenDirectSolver>();
+    }
 }; // class EigenDirectSolver
 
 /**
  * input stream function
  */
 template<
-    class TSolver,
+    class TSolverType,
     class TSparseSpaceType,
     class TDenseSpaceType,
     class TReordererType>
 inline std::istream &operator>>(
     std::istream &rIStream,
-    EigenDirectSolver<TSolver, TSparseSpaceType, TDenseSpaceType, TReordererType> &rThis)
+    EigenDirectSolver<TSolverType, TSparseSpaceType, TDenseSpaceType, TReordererType> &rThis)
 {
     return rIStream;
 }
@@ -202,14 +189,14 @@ inline std::istream &operator>>(
  * output stream function
  */
 template<
-    class TSolver,
+    class TSolverType,
     class TSparseSpaceType,
     class TDenseSpaceType,
     class TReordererType
     >
 inline std::ostream &operator<<(
     std::ostream &rOStream,
-    const EigenDirectSolver<TSolver, TSparseSpaceType, TDenseSpaceType, TReordererType> &rThis)
+    const EigenDirectSolver<TSolverType, TSparseSpaceType, TDenseSpaceType, TReordererType> &rThis)
 {
     rThis.PrintInfo(rOStream);
     rOStream << std::endl;

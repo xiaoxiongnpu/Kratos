@@ -6,13 +6,11 @@
 //  License:		 BSD License
 //					 license: structural_mechanics_application/license.txt
 //
-//  Main authors:    
+//  Main authors:    Quirin Aumann
 //
 
 #if !defined(KRATOS_SPRING_DAMPER_ELEMENT_3D2N_H_INCLUDED )
 #define  KRATOS_SPRING_DAMPER_ELEMENT_3D2N_H_INCLUDED
-
-// TODO: Add rotational stiffness
 
 // System includes
 
@@ -48,7 +46,7 @@ public:
     ///@name Type Definitions
     ///@{
     /// Counted pointer of SpringDamperElement3D2N
-    KRATOS_CLASS_POINTER_DEFINITION( SpringDamperElement3D2N);
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION( SpringDamperElement3D2N);
     ///@}
 
 public:
@@ -77,18 +75,28 @@ public:
     ///@}
     ///@name Operations
     ///@{
+
     /**
-     * Returns the currently selected integration method
-     * @return current integration method selected
-     */
-    /**
-     * creates a new total lagrangian updated element pointer
-     * @param NewId: the ID of the new element
-     * @param ThisNodes: the nodes of the new element
-     * @param pProperties: the properties assigned to the new element
-     * @return a Pointer to the new element
+     * @brief Creates a new element
+     * @param NewId The Id of the new created element
+     * @param ThisNodes The array containing nodes
+     * @param pProperties The pointer to property
+     * @return The pointer to the created element
      */
     Element::Pointer Create(IndexType NewId, NodesArrayType const& ThisNodes, PropertiesType::Pointer pProperties) const override;
+
+    /**
+     * @brief Creates a new element
+     * @param NewId The Id of the new created element
+     * @param pGeom The pointer to the geometry of the element
+     * @param pProperties The pointer to property
+     * @return The pointer to the created element
+     */
+    Element::Pointer Create(
+        IndexType NewId,
+        GeometryType::Pointer pGeom,
+        PropertiesType::Pointer pProperties
+        ) const override;
 
     /**
      * clones the selected element variables, creating a new one
@@ -133,27 +141,6 @@ public:
       * Must be called before any calculation is done
       */
     void Initialize() override;
-
-    /**
-     * Called at the beginning of each solution step
-     */
-    void InitializeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called for non-linear analysis at the beginning of the iteration process
-     */
-    void InitializeNonLinearIteration(ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * this is called for non-linear analysis at the beginning of the iteration process
-     */
-    void FinalizeNonLinearIteration(ProcessInfo& rCurrentProcessInfo) override;
-
-    /**
-     * Called at the end of eahc solution step
-     */
-    void FinalizeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
-
 
     //************* COMPUTING  METHODS
 
@@ -235,6 +222,10 @@ public:
 protected:
     ///@name Protected static Member Variables
     ///@{
+    static constexpr int msNumberOfNodes = 2;
+    static constexpr int msDimension = 3;
+    static constexpr unsigned int msLocalSize = msNumberOfNodes * msDimension;
+    static constexpr unsigned int msElementSize = msLocalSize * 2;
     ///@}
     ///@name Protected member Variables
     ///@{
@@ -249,13 +240,6 @@ protected:
     ///@}
     ///@name Protected Operations
     ///@{
-
-
-    /**
-     * Clear Nodal Forces
-     */
-    void ClearNodalForces ();
-
     ///@}
     ///@name Protected  Access
     ///@{

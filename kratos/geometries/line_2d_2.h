@@ -10,8 +10,9 @@
 //  Main authors:    Riccardo Rossi
 //                   Janosch Stascheit
 //                   Felix Nagel
-//  contributors:    Hoang Giang Bui
+//  Contributors:    Hoang Giang Bui
 //                   Josep Maria Carbonell
+//                   Vicente Mataix Ferrandiz
 //
 
 #if !defined(KRATOS_LINE_2D_2_H_INCLUDED )
@@ -25,7 +26,7 @@
 #include "geometries/geometry.h"
 #include "integration/line_gauss_legendre_integration_points.h"
 #include "integration/line_collocation_integration_points.h"
-
+#include "utilities/geometrical_projection_utilities.h"
 
 namespace Kratos
 {
@@ -50,7 +51,15 @@ namespace Kratos
 ///@{
 
 /**
-*/
+ * @class Line2D2
+ * @ingroup KratosCore
+ * @brief An two node 2D line geometry with linear shape functions
+ * @details The node ordering corresponds with:
+ *      0----------1 --> u
+ * @author Riccardo Rossi
+ * @author Janosch Stascheit
+ * @author Felix Nagel
+ */
 template<class TPointType>
 
 class Line2D2 : public Geometry<TPointType>
@@ -62,9 +71,13 @@ public:
 
     /// Geometry as base class.
     typedef Geometry<TPointType> BaseType;
+    using Geometry<TPointType>::ShapeFunctionsValues;
 
     /// Pointer definition of Line2D2
     KRATOS_CLASS_POINTER_DEFINITION( Line2D2 );
+
+    /// Type of edge geometry
+    typedef Line2D2<TPointType> EdgeType;
 
     /** Integration methods implemented in geometry.
     */
@@ -168,7 +181,7 @@ public:
     }
 
 
-    Line2D2( const PointsArrayType& ThisPoints )
+    explicit Line2D2( const PointsArrayType& ThisPoints )
         : BaseType( ThisPoints, &msGeometryData )
     {
         if ( BaseType::PointsNumber() != 2 )
@@ -200,7 +213,7 @@ public:
     obvious that any change to this new geometry's point affect
     source geometry's points too.
     */
-    template<class TOtherPointType> Line2D2( Line2D2<TOtherPointType> const& rOther )
+    template<class TOtherPointType> explicit Line2D2( Line2D2<TOtherPointType> const& rOther )
         : BaseType( rOther )
     {
     }
@@ -282,13 +295,21 @@ public:
     //     return p_clone;
     // }
 
-    //lumping factors for the calculation of the lumped mass matrix
-    Vector& LumpingFactors( Vector& rResult ) const override
+    /**
+     * @brief Lumping factors for the calculation of the lumped mass matrix
+     * @param rResult Vector containing the lumping factors
+     * @param LumpingMethod The lumping method considered. The three methods available are:
+     *      - The row sum method
+     *      - Diagonal scaling
+     *      - Evaluation of M using a quadrature involving only the nodal points and thus automatically yielding a diagonal matrix for standard element shape function
+     */
+    Vector& LumpingFactors(
+        Vector& rResult,
+        const typename BaseType::LumpingMethods LumpingMethod = BaseType::LumpingMethods::ROW_SUM
+        )  const override
     {
         if(rResult.size() != 2)
-        {
-               rResult.resize( 2, false );
-        }
+	    rResult.resize( 2, false );
 
         rResult[0] = 0.5;
         rResult[1] = 0.5;
@@ -352,30 +373,12 @@ public:
     */
     double DomainSize() const override
     {
-        const TPointType& FirstPoint = BaseType::GetPoint(0);
-        const TPointType& SecondPoint = BaseType::GetPoint(1);
-        const double lx = FirstPoint.X() - SecondPoint.X();
-        const double ly = FirstPoint.Y() - SecondPoint.Y();
-
-        const double length = lx * lx + ly * ly;
-
-        return std::sqrt( length );
+        return Length();
     }
-
-//      virtual void Bounding_Box(BoundingBox<TPointType, BaseType>& rResult) const
-//              {
-//                 //rResult.Geometry() = *(this);
-//                 BaseType::Bounding_Box(rResult.LowPoint(), rResult.HighPoint());
-//              }
-
-
-
-
 
     ///@}
     ///@name Jacobian
     ///@{
-
 
     /** Jacobians for given  method. This method
     calculate jacobians matrices in all integrations points of
@@ -575,7 +578,8 @@ public:
     */
     JacobiansType& InverseOfJacobian( JacobiansType& rResult, IntegrationMethod ThisMethod ) const override
     {
-        KRATOS_ERROR << "Jacobian is not square" << std::endl;
+        rResult[0] = ZeroMatrix( 1, 1 );
+        rResult[0]( 0, 0 ) = 2.0 * MathUtils<double>::Norm3(( this->GetPoint( 1 ) ) - ( this->GetPoint( 0 ) ) );
         return rResult;
     }
 
@@ -598,8 +602,9 @@ public:
     */
     Matrix& InverseOfJacobian( Matrix& rResult, IndexType IntegrationPointIndex, IntegrationMethod ThisMethod ) const override
     {
-        KRATOS_ERROR << "Jacobian is not square" << std::endl;
-        return rResult;
+        rResult = ZeroMatrix( 1, 1 );
+        rResult( 0, 0 ) = 2.0 * MathUtils<double>::Norm3(( this->GetPoint( 1 ) ) - ( this->GetPoint( 0 ) ) );
+        return( rResult );
     }
 
     /** Inverse of jacobian in given point. This method calculate inverse of jacobian
@@ -615,48 +620,87 @@ public:
     */
     Matrix& InverseOfJacobian( Matrix& rResult, const CoordinatesArrayType& rPoint ) const override
     {
-        KRATOS_ERROR << "Jacobian is not square" << std::endl;
+        rResult = ZeroMatrix( 1, 1 );
+        rResult( 0, 0 ) = 2.0 * MathUtils<double>::Norm3(( this->GetPoint( 1 ) ) - ( this->GetPoint( 0 ) ) );
         return rResult;
     }
 
-    /** EdgesNumber
-    @return SizeType containes number of this geometry edges.
-    */
+    ///@}
+    ///@name Edge
+    ///@{
+
+    /**
+     * @brief This method gives you number of all edges of this geometry.
+     * @details For example, for a hexahedron, this would be 12
+     * @return SizeType containes number of this geometry edges.
+     * @see EdgesNumber()
+     * @see Edges()
+     * @see GenerateEdges()
+     * @see FacesNumber()
+     * @see Faces()
+     * @see GenerateFaces()
+     */
     SizeType EdgesNumber() const override
     {
-        return 2;
+        return 1;
     }
 
+    /**
+     * @brief This method gives you all edges of this geometry.
+     * @details This method will gives you all the edges with one dimension less than this geometry.
+     * For example a triangle would return three lines as its edges or a tetrahedral would return four triangle as its edges but won't return its six edge lines by this method.
+     * @return GeometriesArrayType containes this geometry edges.
+     * @see EdgesNumber()
+     * @see Edge()
+     */
+    GeometriesArrayType GenerateEdges() const override
+    {
+        GeometriesArrayType edges = GeometriesArrayType();
+        edges.push_back( Kratos::make_shared<EdgeType>( this->pGetPoint( 0 ), this->pGetPoint( 1 ) ) );
+        return edges;
+    }
 
-    /** FacesNumber
-    @return SizeType containes number of this geometry edges/faces.
-    */
+    ///@}
+    ///@name Face
+    ///@{
+
+    /**
+     * @brief Returns the number of faces of the current geometry.
+     * @details This is only implemented for 3D geometries, since 2D geometries only have edges but no faces
+     * @see EdgesNumber
+     * @see Edges
+     * @see Faces
+     */
     SizeType FacesNumber() const override
     {
-      return EdgesNumber();
+        return 0;
     }
 
-
-
     //Connectivities of faces required
-    void NumberNodesInFaces (boost::numeric::ublas::vector<unsigned int>& NumberNodesInFaces) const override
+    void NumberNodesInFaces (DenseVector<unsigned int>& NumberNodesInFaces) const override
     {
         if(NumberNodesInFaces.size() != 2 )
             NumberNodesInFaces.resize(2,false);
+
         // Lines have 1 node in edges/faces
         NumberNodesInFaces[0]=1;
         NumberNodesInFaces[1]=1;
 
     }
 
-    void NodesInFaces (boost::numeric::ublas::matrix<unsigned int>& NodesInFaces) const override
+    void NodesInFaces (DenseMatrix<unsigned int>& NodesInFaces) const override
     {
+        // faces in columns
         if(NodesInFaces.size1() != 2 || NodesInFaces.size2() != 2)
             NodesInFaces.resize(2,2,false);
 
-        NodesInFaces(0,0)=0;//face or other node
+        //face 1
+        NodesInFaces(0,0)=0;//contrary node to the face
         NodesInFaces(1,0)=1;
 
+        //face 2
+        NodesInFaces(0,1)=1;//contrary node to the face
+        NodesInFaces(1,1)=0;
     }
 
     ///@}
@@ -792,12 +836,11 @@ public:
     }
 
     /**
-     * It computes the area normal of the geometry
-     * @param rPointLocalCoordinates Refernce to the local coordinates of the
-     * point in where the unit normal is to be computed
-     * @return The area normal in the given point
+     * @brief It returns a vector that is normal to its corresponding geometry in the given local point
+     * @param rPointLocalCoordinates Reference to the local coordinates of the point in where the normal is to be computed
+     * @return The normal in the given point
      */
-    array_1d<double, 3> AreaNormal(const CoordinatesArrayType& rPointLocalCoordinates) const override
+    array_1d<double, 3> Normal(const CoordinatesArrayType& rPointLocalCoordinates) const override
     {
         // We define the normal
         array_1d<double,3> normal;
@@ -853,75 +896,161 @@ public:
     }
 
     /**
-     * Returns whether given arbitrary point is inside the Geometry and the respective
+     * @brief Returns whether given arbitrary point is inside the Geometry and the respective
      * local point for the given global point
      * @param rPoint The point to be checked if is inside o note in global coordinates
      * @param rResult The local coordinates of the point
      * @param Tolerance The  tolerance that will be considered to check if the point is inside or not
      * @return True if the point is inside, false otherwise
      */
-    virtual bool IsInside(
+    bool IsInside(
         const CoordinatesArrayType& rPoint,
         CoordinatesArrayType& rResult,
         const double Tolerance = std::numeric_limits<double>::epsilon()
-        ) override
+        ) const override
     {
-        PointLocalCoordinates( rResult, rPoint );
+        // We compute the distance, if it is not in the pane we
+        const Point point_to_project(rPoint);
+        Point point_projected;
+        const double distance = GeometricalProjectionUtilities::FastProjectOnLine2D(*this, point_to_project, point_projected);
 
-        if ( std::abs( rResult[0] ) <= (1.0 + Tolerance) )
-        {
+        // We check if we are on the plane
+        if (std::abs(distance) > std::numeric_limits<double>::epsilon()) {
+            if (std::abs(distance) > 1.0e-6 * Length()) {
+                KRATOS_WARNING_FIRST_N("Line2D2", 10) << "The point of coordinates X: " << rPoint[0] << "\tY: " << rPoint[1] << " it is in a distance: " << std::abs(distance) << std::endl;
+                return false;
+            }
+        }
+
+        PointLocalCoordinates( rResult, point_projected );
+
+        if ( std::abs( rResult[0] ) <= (1.0 + Tolerance) ) {
             return true;
         }
 
         return false;
     }
 
+    /** Test the intersection with another geometry
+     *  Test if this geometry intersects with other line_2d_2
+     *
+     * @param  rOtherGeometry Geometry to intersect with
+     * @return True if the geometries intersect, False in any other case.
+     */
+    bool HasIntersection(const BaseType& rOtherGeometry) override
+    {
+        const double tolerance = std::numeric_limits<double>::epsilon();
+        // We get the local points
+        const TPointType& first_point  = BaseType::GetPoint(0); //p1
+        const TPointType& second_point = BaseType::GetPoint(1); //p2
+
+        // We get the other line's points
+        const TPointType& first_point_other  = *rOtherGeometry(0); //p3
+        const TPointType& second_point_other = *rOtherGeometry(1); //p4
+
+        // parametric coordinate of intersection on current line
+        const double numerator   = ( (first_point[0]-first_point_other[0])*(first_point_other[1] - second_point_other[1]) - (first_point[1]-first_point_other[1])*(first_point_other[0]-second_point_other[0]) );
+        const double denominator = ( (first_point[0]-second_point[0])*(first_point_other[1] - second_point_other[1]) - (first_point[1]-second_point[1])*(first_point_other[0]-second_point_other[0]) );
+        if (std::abs(denominator) < tolerance) // this means parallel lines.
+            return false;
+        const double t = numerator  /  denominator;
+
+        return (0.0-tolerance<=t) && (t<=1.0+tolerance);
+    }
+
+    /** Test intersection of the geometry with a box (AABB)
+     * Tests the intersection of the geometry with
+     * a 3D box defined by rLowPoint and rHighPoint
+     *
+     * @param  rLowPoint  Lower point of the box to test the intersection
+     * @param  rHighPoint Higher point of the box to test the intersection
+     * @return            True if the geometry intersects the box, False in any other case.
+     */
+    bool HasIntersection(const Point& rLowPoint, const Point& rHighPoint) override
+    {
+        const double tolerance = std::numeric_limits<double>::epsilon();
+        // We get the local points
+        const TPointType& first_point  = BaseType::GetPoint(0);
+        const TPointType& second_point = BaseType::GetPoint(1);
+
+        if (    // If one of the point is inside the box then there is an intersection. If none is inside then we check further.
+                ( (first_point[0] >= rLowPoint[0] && first_point[0] <= rHighPoint[0])
+                    && (first_point[1] >= rLowPoint[1] && first_point[1] <= rHighPoint[1]) ) // IF the first point is inside the box
+                ||
+                  ( (second_point[0] >= rLowPoint[0] && second_point[0] <= rHighPoint[0])
+                    && (second_point[1] >= rLowPoint[1] && second_point[1] <= rHighPoint[1]) ) // IF the second point is inside the box
+            )
+            return true;
+
+        const double high_x = rHighPoint[0];
+        const double high_y = rHighPoint[1];
+        const double low_x = rLowPoint[0];
+        const double low_y = rLowPoint[1];
+
+        const double denominator = ( second_point[0] - first_point[0] );
+        const double numerator = (second_point[1] - first_point[1]);
+        const double slope = std::abs(denominator) > tolerance ? std::abs(numerator) > tolerance ? numerator / denominator : 1.0e-12 : 1.0e12;
+
+        // Intersection with left vertical line of the box that is x = low_x
+        const double y_1 = slope*( low_x - first_point[0] ) + first_point[1];
+        if(y_1 >= low_y - tolerance && y_1 <= high_y+tolerance) // If y intersection is between two y bounds there is an intersection
+            return true;
+        // Intersection with right vertical line of the box that is x = high_x
+        const double y_2 = slope*( high_x - first_point[0] ) + first_point[1];
+        if(y_2 >= low_y - tolerance && y_2 <= high_y+tolerance) // If y intersection is between two y bounds there is an intersection
+            return true;
+        // Intersection with bottom horizontal line of the box that is y = low_y
+        const double x_1 = first_point[0] + ( (low_y - first_point[1]) / slope );
+        if(x_1 >= low_x-tolerance && x_1 <= high_x+tolerance) // If x intersection is between two x bounds there is an intersection
+            return true;
+        // Intersection with top horizontal line of the box that is y = high_y
+        const double x_2 = first_point[0] + ( (high_y - first_point[1]) / slope );
+        if(x_2 >= low_x-tolerance && x_2 <= high_x+tolerance) // If x intersection is between two x bounds there is an intersection
+            return true;
+
+
+        return false;
+    }
+
+
     /**
-     * Returns the local coordinates of a given arbitrary point
+     * @brief Returns the local coordinates of a given arbitrary point
      * @param rResult The vector containing the local coordinates of the point
      * @param rPoint The point in global coordinates
      * @return The vector containing the local coordinates of the point
      */
-    virtual CoordinatesArrayType& PointLocalCoordinates(
-            CoordinatesArrayType& rResult,
-            const CoordinatesArrayType& rPoint
-            ) override
+    CoordinatesArrayType& PointLocalCoordinates(
+        CoordinatesArrayType& rResult,
+        const CoordinatesArrayType& rPoint
+        ) const override
     {
         rResult.clear();
 
-        const TPointType& FirstPoint  = BaseType::GetPoint(0);
-        const TPointType& SecondPoint = BaseType::GetPoint(1);
+        const TPointType& r_first_point  = BaseType::GetPoint(0);
+        const TPointType& r_second_point = BaseType::GetPoint(1);
 
         // Project point
-        const double Tolerance = 1e-14; // Tolerance
+        const double tolerance = 1e-14; // Tolerance
 
-        const double Length = std::sqrt((SecondPoint[0] - FirstPoint[0]) * (SecondPoint[0] - FirstPoint[0])
-                    + (SecondPoint[1] - FirstPoint[1]) * (SecondPoint[1] - FirstPoint[1]));
+        const double length = Length();
 
-        const double Length1 = std::sqrt((rPoint[0] - FirstPoint[0]) * (rPoint[0] - FirstPoint[0])
-                    + (rPoint[1] - FirstPoint[1]) * (rPoint[1] - FirstPoint[1]));
+        const double length_1 = std::sqrt( std::pow(rPoint[0] - r_first_point[0], 2)
+                    + std::pow(rPoint[1] - r_first_point[1], 2));
 
-        const double Length2 = std::sqrt((rPoint[0] - SecondPoint[0]) * (rPoint[0] - SecondPoint[0])
-                    + (rPoint[1] - SecondPoint[1]) * (rPoint[1] - SecondPoint[1]));
+        const double length_2 = std::sqrt( std::pow(rPoint[0] - r_second_point[0], 2)
+                    + std::pow(rPoint[1] - r_second_point[1], 2));
 
-        if (Length1 <= (Length + Tolerance) && Length2 <= (Length + Tolerance))
-        {
-            rResult[0] = 2.0 * Length1/(Length + Tolerance) - 1.0;
-        }
-        else if (Length1 > (Length + Tolerance))
-        {
-            rResult[0] = 2.0 * Length1/(Length + Tolerance) - 1.0; // NOTE: The same value as before, but it will be > than 1
-        }
-        else if (Length2 > (Length + Tolerance))
-        {
-            rResult[0] = 1.0 - 2.0 * Length2/(Length + Tolerance);
-        }
-        else
-        {
+        if (length_1 <= (length + tolerance) && length_2 <= (length + tolerance)) {
+            rResult[0] = 2.0 * length_1/(length + tolerance) - 1.0;
+        } else if (length_1 > (length + tolerance)) {
+            rResult[0] = 2.0 * length_1/(length + tolerance) - 1.0; // NOTE: The same value as before, but it will be > than 1
+        } else if (length_2 > (length + tolerance)) {
+            rResult[0] = 1.0 - 2.0 * length_2/(length + tolerance);
+        } else {
             rResult[0] = 2.0; // Out of the line!!!
         }
 
-        return( rResult );
+        return rResult ;
     }
 
     ///@}
@@ -973,6 +1102,8 @@ private:
     ///@{
 
     static const GeometryData msGeometryData;
+
+    static const GeometryDimension msGeometryDimension;
 
     ///@}
     ///@name Member Variables
@@ -1027,13 +1158,13 @@ private:
         const IntegrationPointsContainerType& all_integration_points = AllIntegrationPoints();
         const IntegrationPointsArrayType& IntegrationPoints = all_integration_points[ThisMethod];
         ShapeFunctionsGradientsType DN_De( IntegrationPoints.size() );
-        std::fill( DN_De.begin(), DN_De.end(), Matrix( 2, 1 ) );
 
         for ( unsigned int it_gp = 0; it_gp < IntegrationPoints.size(); it_gp++ )
         {
-            // double e = IntegrationPoints[it_gp].X();
-            DN_De[it_gp]( 0, 0 ) = -0.5;
-            DN_De[it_gp]( 1, 0 ) =  0.5;
+            Matrix aux_mat = ZeroMatrix(2, 1);
+            aux_mat(0, 0) = -0.5;
+            aux_mat(1, 0) =  0.5;
+            DN_De[it_gp] = aux_mat;
         }
 
         return DN_De;
@@ -1152,13 +1283,16 @@ inline std::ostream& operator << ( std::ostream& rOStream,
 
 
 template<class TPointType>
-const GeometryData Line2D2<TPointType>::msGeometryData( 2,
-        2,
-        1,
+const GeometryData Line2D2<TPointType>::msGeometryData(
+        &msGeometryDimension,
         GeometryData::GI_GAUSS_1,
         Line2D2<TPointType>::AllIntegrationPoints(),
         Line2D2<TPointType>::AllShapeFunctionsValues(),
         AllShapeFunctionsLocalGradients() );
+
+template<class TPointType>
+const GeometryDimension Line2D2<TPointType>::msGeometryDimension(
+    2, 2, 1);
 
 }  // namespace Kratos.
 

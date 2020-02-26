@@ -4,16 +4,13 @@
 //   _|\_\_|  \__,_|\__|\___/ ____/
 //                   Multi-Physics
 //
-//  License:		 BSD License
-//					 Kratos default license: kratos/license.txt
+//  License:         BSD License
+//                   Kratos default license: kratos/license.txt
 //
 //  Main authors:    Pooyan Dadvand
 //
 
 // System includes
-#include <string>
-#include <iostream>
-#include <vector>
 
 // External includes
 
@@ -21,46 +18,11 @@
 #include "includes/define.h"
 #include "includes/variables.h"
 #include "includes/kernel.h"
-#include "includes/node.h"
-#include "includes/element.h"
-#include "includes/condition.h"
-#include "includes/constitutive_law.h"
-#include "includes/geometrical_object.h"
-
-#include "geometries/line_2d.h"
-#include "geometries/line_2d_2.h"
-#include "geometries/line_2d_3.h"
-#include "geometries/line_3d_2.h"
-#include "geometries/line_3d_3.h"
-#include "geometries/point.h"
-#include "geometries/point_2d.h"
-#include "geometries/point_3d.h"
-#include "geometries/sphere_3d_1.h"
-#include "geometries/triangle_2d_3.h"
-#include "geometries/triangle_2d_6.h"
-#include "geometries/triangle_3d_3.h"
-#include "geometries/triangle_3d_6.h"
-#include "geometries/quadrilateral_2d_4.h"
-#include "geometries/quadrilateral_2d_8.h"
-#include "geometries/quadrilateral_2d_9.h"
-#include "geometries/quadrilateral_3d_4.h"
-#include "geometries/quadrilateral_3d_8.h"
-#include "geometries/quadrilateral_3d_9.h"
-#include "geometries/tetrahedra_3d_4.h"
-#include "geometries/tetrahedra_3d_10.h"
-#include "geometries/prism_3d_6.h"
-#include "geometries/prism_3d_15.h"
-#include "geometries/hexahedra_3d_8.h"
-#include "geometries/hexahedra_3d_20.h"
-#include "geometries/hexahedra_3d_27.h"
-
-#include "includes/deprecated_variables.h"
 #include "includes/convection_diffusion_settings.h"
 #include "includes/radiation_settings.h"
 
-#include "includes/kratos_flags.h"
-
 namespace Kratos {
+typedef Node<3> NodeType;
 typedef array_1d<double, 3> Vector3;
 
 //Create Variables by type:
@@ -125,6 +87,10 @@ KRATOS_CREATE_VARIABLE(double, FACE_HEAT_FLUX)
 KRATOS_CREATE_VARIABLE(double, DENSITY)
 KRATOS_CREATE_VARIABLE(double, YOUNG_MODULUS)
 KRATOS_CREATE_VARIABLE(double, POISSON_RATIO)
+KRATOS_CREATE_VARIABLE(double, SHEAR_MODULUS_GAMMA12)
+KRATOS_CREATE_VARIABLE(double, SHEAR_MODULUS_GAMMA12_2)
+KRATOS_CREATE_VARIABLE(double, SHEAR_MODULUS_GAMMA12_3)
+KRATOS_CREATE_VARIABLE(double, SHEAR_MODULUS_GAMMA12_4)
 KRATOS_CREATE_VARIABLE(double, THICKNESS)
 KRATOS_CREATE_VARIABLE(double, EQUIVALENT_YOUNG_MODULUS)
 
@@ -134,10 +100,15 @@ KRATOS_CREATE_VARIABLE(double, KINETIC_ENERGY)
 KRATOS_CREATE_VARIABLE(double, INTERNAL_ENERGY)
 KRATOS_CREATE_VARIABLE(double, STRAIN_ENERGY)
 KRATOS_CREATE_VARIABLE(double, EXTERNAL_ENERGY)
+KRATOS_CREATE_VARIABLE(double, TOTAL_ENERGY)
+
+KRATOS_CREATE_VARIABLE(double, VOLUMETRIC_STRAIN)
 
 KRATOS_CREATE_VARIABLE(double, THERMAL_EXPANSION_COEFFICIENT)
 KRATOS_CREATE_VARIABLE(double, STABILIZATION_FACTOR)
 KRATOS_CREATE_VARIABLE(double, DETERMINANT_F)
+
+KRATOS_CREATE_VARIABLE(double, GRADIENT_PENALTY_COEFFICIENT)
 
 //sheme info :: pass to elements
 KRATOS_CREATE_VARIABLE(double, NEWMARK_BETA)
@@ -164,6 +135,8 @@ KRATOS_CREATE_VARIABLE(double, PARTITION_INDEX)
 KRATOS_CREATE_VARIABLE(double, TEMPERATURE_OLD_IT)
 KRATOS_CREATE_VARIABLE(double, VISCOSITY)
 KRATOS_CREATE_VARIABLE(double, ERROR_RATIO)
+KRATOS_CREATE_VARIABLE(double, ENERGY_NORM_OVERALL )
+KRATOS_CREATE_VARIABLE(double, ERROR_OVERALL )
 KRATOS_CREATE_VARIABLE(double, RHS_WATER)
 KRATOS_CREATE_VARIABLE(double, RHS_AIR)
 KRATOS_CREATE_VARIABLE(double, WEIGHT_FATHER_NODES)
@@ -193,24 +166,32 @@ KRATOS_CREATE_VARIABLE(double, LAGRANGE_TEMPERATURE)
 KRATOS_CREATE_VARIABLE(Vector, INITIAL_STRAIN)
 KRATOS_CREATE_VARIABLE(double, COEFFICIENT_THERMAL_EXPANSION)
 KRATOS_CREATE_VARIABLE(double, CHARACTERISTIC_LENGTH_MULTIPLIER)
-//ALEApplication
+//MeshMovingApplication
 KRATOS_CREATE_VARIABLE(double, AUX_MESH_VAR)
 
-//AdjointFluidApplication
-KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(ADJOINT_VELOCITY)
-KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(ADJOINT_ACCELERATION)
-KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(AUX_ADJOINT_ACCELERATION)
-KRATOS_CREATE_VARIABLE(double, ADJOINT_PRESSURE)
+//Adjoint
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_1 )
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_2 )
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_3 )
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS( AUX_ADJOINT_VECTOR_1 )
+KRATOS_CREATE_VARIABLE(double, ADJOINT_SCALAR_1 )
+KRATOS_CREATE_VARIABLE(double, SCALAR_SENSITIVITY )
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(SHAPE_SENSITIVITY)
 KRATOS_CREATE_VARIABLE(double, NORMAL_SENSITIVITY)
 KRATOS_CREATE_VARIABLE(double, NUMBER_OF_NEIGHBOUR_ELEMENTS)
 KRATOS_CREATE_VARIABLE(bool, UPDATE_SENSITIVITIES)
+KRATOS_CREATE_VARIABLE(AdjointExtensions::Pointer, ADJOINT_EXTENSIONS )
 
 //for Electric application
 
 // For MeshingApplication
-KRATOS_CREATE_VARIABLE(double, NODAL_ERROR)
+KRATOS_CREATE_VARIABLE(double, NODAL_ERROR )
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(NODAL_ERROR_COMPONENTS)
+KRATOS_CREATE_VARIABLE(double, ELEMENT_ERROR )
+KRATOS_CREATE_VARIABLE(double, ELEMENT_H )
+KRATOS_CREATE_VARIABLE(Vector, RECOVERED_STRESS )
+KRATOS_CREATE_VARIABLE(double, ERROR_INTEGRATION_POINT )
+KRATOS_CREATE_VARIABLE(double, CONTACT_PRESSURE )
 
 //for PFEM fluids application:
 KRATOS_CREATE_VARIABLE(double, NODAL_AREA)
@@ -240,6 +221,7 @@ KRATOS_CREATE_VARIABLE(double, SOUND_VELOCITY)
 KRATOS_CREATE_VARIABLE(double, AIR_SOUND_VELOCITY)
 KRATOS_CREATE_VARIABLE(double, WATER_SOUND_VELOCITY)
 KRATOS_CREATE_VARIABLE(double, NODAL_MASS)
+KRATOS_CREATE_SYMMETRIC_3D_TENSOR_VARIABLE_WITH_COMPONENTS(NODAL_INERTIA_TENSOR)
 KRATOS_CREATE_VARIABLE(double, AUX_INDEX)
 KRATOS_CREATE_VARIABLE(double, EXTERNAL_PRESSURE)
 KRATOS_CREATE_VARIABLE(double, VELOCITY_PERIOD)
@@ -309,7 +291,7 @@ KRATOS_CREATE_VARIABLE(double, AMBIENT_TEMPERATURE)
 //for General kratos application:
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(ROTATION)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(DELTA_ROTATION)
-KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(TORQUE)
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(REACTION_MOMENT)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(ANGULAR_VELOCITY)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(ANGULAR_ACCELERATION)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(VELOCITY_LAPLACIAN)
@@ -328,6 +310,7 @@ KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(STEP_DISPLACEMENT)
 
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(VOLUME_ACCELERATION)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(FORCE)
+KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(TORQUE)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(MOMENT)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(FACE_LOAD)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(NORMAL)
@@ -379,7 +362,7 @@ KRATOS_CREATE_VARIABLE(Vector, TANGENTIAL_STRESS)
 KRATOS_CREATE_VARIABLE(Vector, STRESSES)
 KRATOS_CREATE_VARIABLE(Vector, STRAIN)
 
-KRATOS_CREATE_VARIABLE(vector<int>, NEIGHBOURS_INDICES)
+KRATOS_CREATE_VARIABLE(DenseVector<int>, NEIGHBOURS_INDICES)
 
 //ALE Application
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(DETERMINANT)
@@ -433,20 +416,15 @@ KRATOS_CREATE_VARIABLE(Matrix, INERTIA)
 
 //for General kratos application:
 KRATOS_CREATE_VARIABLE(ConstitutiveLaw::Pointer, CONSTITUTIVE_LAW)
-//NEIGHBOUR_NODES defined in node.h
-KRATOS_CREATE_VARIABLE(WeakPointerVector<Node<3> >, NEIGHBOUR_NODES)
-//FATHER_NODES defined in node.h
-KRATOS_CREATE_VARIABLE(WeakPointerVector<Node<3> >, FATHER_NODES)
+
 //NEIGHBOR_ELEMENTS defined in element.h
-KRATOS_CREATE_VARIABLE(WeakPointerVector<Element>, NEIGHBOUR_ELEMENTS)
+KRATOS_CREATE_VARIABLE(GlobalPointersVector<Element>, NEIGHBOUR_ELEMENTS)
 //NEIGHBOR_CONDITIONS defined in condition.h
-KRATOS_CREATE_VARIABLE(WeakPointerVector<Condition>, NEIGHBOUR_CONDITIONS)
+KRATOS_CREATE_VARIABLE(GlobalPointersVector<Condition>, NEIGHBOUR_CONDITIONS)
 
 //for Structural application:
-KRATOS_CREATE_VARIABLE(
-    WeakPointerVector<GeometricalObject>, NEIGHBOUR_EMBEDDED_FACES)
-KRATOS_CREATE_VARIABLE(
-    ConvectionDiffusionSettings::Pointer, CONVECTION_DIFFUSION_SETTINGS)
+KRATOS_CREATE_VARIABLE(GlobalPointersVector<GeometricalObject>, NEIGHBOUR_EMBEDDED_FACES)
+KRATOS_CREATE_VARIABLE(ConvectionDiffusionSettings::Pointer, CONVECTION_DIFFUSION_SETTINGS)
 KRATOS_CREATE_VARIABLE(RadiationSettings::Pointer, RADIATION_SETTINGS)
 
 KRATOS_CREATE_VARIABLE(PeriodicVariablesContainer, PERIODIC_VARIABLES)
@@ -464,127 +442,11 @@ KRATOS_CREATE_VARIABLE(double, SEARCH_RADIUS)
 
 KRATOS_CREATE_VARIABLE(double, INTEGRATION_WEIGHT)
 KRATOS_CREATE_3D_VARIABLE_WITH_COMPONENTS(INTEGRATION_COORDINATES)
+KRATOS_CREATE_VARIABLE(TableStreamUtility::Pointer, TABLE_UTILITY )
 
 //------------------------------------------------------------------------------//
 //------------------------------------------------------------------------------//
 //------------------------------------------------------------------------------//
-
-KratosApplication::KratosApplication(const std::string ApplicationName)
-    : mApplicationName(ApplicationName),
-      //point conditions
-      mPointCondition2D1N(
-          0, Condition::GeometryType::Pointer(new Point2D<Node<3> >(
-                 Condition::GeometryType::PointsArrayType(1)))),
-      mPointCondition3D1N(
-          0, Condition::GeometryType::Pointer(new Point3D<Node<3> >(
-                 Condition::GeometryType::PointsArrayType(1)))),
-      //line conditions
-      mLineCondition2D2N(
-          0, Element::GeometryType::Pointer(new Line2D2<Node<3> >(
-                 Element::GeometryType::PointsArrayType(2)))),
-      mLineCondition2D3N(
-          0, Element::GeometryType::Pointer(new Line2D3<Node<3> >(
-                 Element::GeometryType::PointsArrayType(3)))),
-      mLineCondition3D2N(
-          0, Element::GeometryType::Pointer(new Line3D2<Node<3> >(
-                 Element::GeometryType::PointsArrayType(2)))),
-      mLineCondition3D3N(
-          0, Element::GeometryType::Pointer(new Line3D3<Node<3> >(
-                 Element::GeometryType::PointsArrayType(3)))),
-      //surface conditions
-      mSurfaceCondition3D3N(
-          0, Element::GeometryType::Pointer(new Triangle3D3<Node<3> >(
-                 Element::GeometryType::PointsArrayType(3)))),
-      mSurfaceCondition3D6N(
-          0, Element::GeometryType::Pointer(new Triangle3D6<Node<3> >(
-                 Element::GeometryType::PointsArrayType(6)))),
-      mSurfaceCondition3D4N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D4<Node<3> >(
-                 Element::GeometryType::PointsArrayType(4)))),
-      mSurfaceCondition3D8N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D8<Node<3> >(
-                 Element::GeometryType::PointsArrayType(8)))),
-      mSurfaceCondition3D9N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D9<Node<3> >(
-                 Element::GeometryType::PointsArrayType(9)))),
-
-      //deprecated conditions start
-      mCondition2D(0, Element::GeometryType::Pointer(new Geometry<Node<3> >(
-                          Element::GeometryType::PointsArrayType(2)))),
-      mCondition2D2N(0, Element::GeometryType::Pointer(new Line2D2<Node<3> >(
-                            Element::GeometryType::PointsArrayType(2)))),
-      mCondition2D3N(0, Element::GeometryType::Pointer(new Line2D3<Node<3> >(
-                            Element::GeometryType::PointsArrayType(3)))),
-      mCondition3D(0,
-          Element::GeometryType::Pointer(new Triangle3D3<
-              Node<3> >(Element::GeometryType::PointsArrayType(
-              3)))),  // Note: Could be interesting to change the name to mCondition3D3N (conflict with quadratic line)
-      mCondition3D2N(0, Element::GeometryType::Pointer(new Line3D2<Node<3> >(
-                            Element::GeometryType::PointsArrayType(2)))),
-      mCondition3D3N(0, Element::GeometryType::Pointer(new Line3D3<Node<3> >(
-                            Element::GeometryType::PointsArrayType(3)))),
-      mCondition3D6N(
-          0, Element::GeometryType::Pointer(new Triangle3D6<Node<3> >(
-                 Element::GeometryType::PointsArrayType(6)))),
-      mCondition3D4N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D4<Node<3> >(
-                 Element::GeometryType::PointsArrayType(4)))),
-      mCondition3D8N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D8<Node<3> >(
-                 Element::GeometryType::PointsArrayType(8)))),
-      mCondition3D9N(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D9<Node<3> >(
-                 Element::GeometryType::PointsArrayType(9)))),
-      //deprecated conditions end
-
-      mPeriodicCondition(
-          0, Element::GeometryType::Pointer(new Line2D2<Node<3> >(
-                 Element::GeometryType::PointsArrayType(2)))),
-      mPeriodicConditionEdge(
-          0, Element::GeometryType::Pointer(new Quadrilateral3D4<Node<3> >(
-                 Element::GeometryType::PointsArrayType(4)))),
-      mPeriodicConditionCorner(
-          0, Element::GeometryType::Pointer(new Hexahedra3D8<Node<3> >(
-                 Element::GeometryType::PointsArrayType(8)))),
-      mElement2D2N(0, Element::GeometryType::Pointer(new Line2D2<Node<3> >(
-                          Element::GeometryType::PointsArrayType(2)))),
-      mElement2D3N(0, Element::GeometryType::Pointer(new Triangle2D3<Node<3> >(
-                          Element::GeometryType::PointsArrayType(3)))),
-      mElement2D4N(
-          0, Element::GeometryType::Pointer(new Quadrilateral2D4<Node<3> >(
-                 Element::GeometryType::PointsArrayType(4)))),
-      mElement3D2N(0, Element::GeometryType::Pointer(new Line3D2<Node<3> >(
-                          Element::GeometryType::PointsArrayType(2)))),
-      mElement3D3N(0, Element::GeometryType::Pointer(new Triangle3D3<Node<3> >(
-                          Element::GeometryType::PointsArrayType(3)))),
-      mElement3D4N(
-          0, Element::GeometryType::Pointer(new Tetrahedra3D4<Node<3> >(
-                 Element::GeometryType::PointsArrayType(4)))),
-      mElement3D6N(0, Element::GeometryType::Pointer(new Prism3D6<Node<3> >(
-                          Element::GeometryType::PointsArrayType(6)))),
-      mElement3D8N(0, Element::GeometryType::Pointer(new Hexahedra3D8<Node<3> >(
-                          Element::GeometryType::PointsArrayType(8)))),
-      mElement3D10N(
-          0, Element::GeometryType::Pointer(new Tetrahedra3D10<Node<3> >(
-                 Element::GeometryType::PointsArrayType(10)))),
-      mpVariableData(KratosComponents<VariableData>::pGetComponents()),
-      mpIntVariables(KratosComponents<Variable<int> >::pGetComponents()),
-      mpUnsignedIntVariables(
-          KratosComponents<Variable<unsigned int> >::pGetComponents()),
-      mpDoubleVariables(KratosComponents<Variable<double> >::pGetComponents()),
-      mpArray1DVariables(
-          KratosComponents<Variable<array_1d<double, 3> > >::pGetComponents()),
-      mpQuaternionVariables(
-          KratosComponents<Variable<Quaternion<double> > >::pGetComponents()),
-      mpVectorVariables(KratosComponents<Variable<Vector> >::pGetComponents()),
-      mpMatrixVariables(KratosComponents<Variable<Matrix> >::pGetComponents()),
-      mpArray1DVariableComponents(
-          KratosComponents<VariableComponent<VectorComponentAdaptor<
-              array_1d<double, 3> > > >::pGetComponents()),
-      mpElements(KratosComponents<Element>::pGetComponents()),
-      mpConditions(KratosComponents<Condition>::pGetComponents()),
-      mpRegisteredObjects(&(Serializer::GetRegisteredObjects())),
-      mpRegisteredObjectsName(&(Serializer::GetRegisteredObjectsName())) {}
 
 void KratosApplication::RegisterVariables() {
     KratosApplication::RegisterDeprecatedVariables();
@@ -595,8 +457,7 @@ void KratosApplication::RegisterVariables() {
     KratosApplication::RegisterDEMVariables();      //TODO: move to application
     KratosApplication::RegisterFSIVariables();      //TODO: move to application
     KratosApplication::RegisterMATVariables();      //TODO: move to application
-    KratosApplication::
-        RegisterLegacyStructuralAppVariables();  //TODO: move to application
+    KratosApplication::RegisterGlobalPointerVariables();
 
     // Variables that should be moved to applications (but have too many dependencies)
     KRATOS_REGISTER_VARIABLE(FRACTIONAL_STEP)
@@ -648,7 +509,7 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(DELTA_ROTATION)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(STEP_ROTATION)
     //reaction
-    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(TORQUE)
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(REACTION_MOMENT)
     //movement time derivatives
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(ANGULAR_VELOCITY)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(ANGULAR_ACCELERATION)
@@ -678,6 +539,7 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(VOLUME_ACCELERATION)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(FORCE)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(MOMENT)
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(TORQUE)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(FACE_LOAD)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(NORMAL)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(TANGENT_XI)
@@ -719,6 +581,10 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(DENSITY)
     KRATOS_REGISTER_VARIABLE(YOUNG_MODULUS)
     KRATOS_REGISTER_VARIABLE(POISSON_RATIO)
+    KRATOS_REGISTER_VARIABLE(SHEAR_MODULUS_GAMMA12)
+    KRATOS_REGISTER_VARIABLE(SHEAR_MODULUS_GAMMA12_2)
+    KRATOS_REGISTER_VARIABLE(SHEAR_MODULUS_GAMMA12_3)
+    KRATOS_REGISTER_VARIABLE(SHEAR_MODULUS_GAMMA12_4)
     KRATOS_REGISTER_VARIABLE(THICKNESS)
     KRATOS_REGISTER_VARIABLE(EQUIVALENT_YOUNG_MODULUS)
     KRATOS_REGISTER_VARIABLE(THERMAL_EXPANSION_COEFFICIENT)
@@ -731,8 +597,10 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(MATERIAL_STIFFNESS_MATRIX)
     KRATOS_REGISTER_VARIABLE(GEOMETRIC_STIFFNESS_MATRIX)
     KRATOS_REGISTER_VARIABLE(DETERMINANT_F)
+    KRATOS_REGISTER_VARIABLE(GRADIENT_PENALTY_COEFFICIENT)
 
     //STRAIN MEASURES
+    KRATOS_REGISTER_VARIABLE(VOLUMETRIC_STRAIN)
     KRATOS_REGISTER_VARIABLE(GREEN_LAGRANGE_STRAIN_TENSOR)
 
     //STRESS MEASURES
@@ -745,8 +613,6 @@ void KratosApplication::RegisterVariables() {
     //GEOMETRICAL
     KRATOS_REGISTER_VARIABLE(NODAL_H)
 
-    KRATOS_REGISTER_VARIABLE(NEIGHBOUR_NODES)
-    KRATOS_REGISTER_VARIABLE(FATHER_NODES)
     KRATOS_REGISTER_VARIABLE(NEIGHBOUR_ELEMENTS)
     KRATOS_REGISTER_VARIABLE(NEIGHBOUR_CONDITIONS)
 
@@ -755,6 +621,7 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(INTERNAL_ENERGY)
     KRATOS_REGISTER_VARIABLE(STRAIN_ENERGY)
     KRATOS_REGISTER_VARIABLE(EXTERNAL_ENERGY)
+    KRATOS_REGISTER_VARIABLE(TOTAL_ENERGY)
 
     // LAGRANGE MULTIPLIER
     KRATOS_REGISTER_VARIABLE(SCALAR_LAGRANGE_MULTIPLIER)
@@ -786,6 +653,8 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(TEMPERATURE_OLD_IT)
     KRATOS_REGISTER_VARIABLE(VISCOSITY)
     KRATOS_REGISTER_VARIABLE(ERROR_RATIO)
+    KRATOS_REGISTER_VARIABLE(ENERGY_NORM_OVERALL)
+    KRATOS_REGISTER_VARIABLE(ERROR_OVERALL)
     KRATOS_REGISTER_VARIABLE(RHS_WATER)
     KRATOS_REGISTER_VARIABLE(RHS_AIR)
     KRATOS_REGISTER_VARIABLE(WEIGHT_FATHER_NODES)
@@ -853,19 +722,28 @@ void KratosApplication::RegisterVariables() {
     //--------------- ALE Application -------------------//
 
     //--------------- Adjoint Fluid Application -------------------//
-    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(ADJOINT_VELOCITY)
-    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(ADJOINT_ACCELERATION)
-    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(AUX_ADJOINT_ACCELERATION)
-    KRATOS_REGISTER_VARIABLE(ADJOINT_PRESSURE)
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_1 )
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_2 )
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS( ADJOINT_VECTOR_3 )
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS( AUX_ADJOINT_VECTOR_1 )
+    KRATOS_REGISTER_VARIABLE(ADJOINT_SCALAR_1 )
+    KRATOS_REGISTER_VARIABLE(SCALAR_SENSITIVITY )
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(SHAPE_SENSITIVITY)
     KRATOS_REGISTER_VARIABLE(NORMAL_SENSITIVITY)
     KRATOS_REGISTER_VARIABLE(NUMBER_OF_NEIGHBOUR_ELEMENTS)
     KRATOS_REGISTER_VARIABLE(UPDATE_SENSITIVITIES)
+    KRATOS_REGISTER_VARIABLE(ADJOINT_EXTENSIONS)
+
 
     //--------------- Meshing ApplicationApplication -------------------//
 
     KRATOS_REGISTER_VARIABLE(NODAL_ERROR)
-    KRATOS_REGISTER_VARIABLE(NODAL_ERROR_COMPONENTS)
+    KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(NODAL_ERROR_COMPONENTS)
+    KRATOS_REGISTER_VARIABLE(ELEMENT_ERROR )
+    KRATOS_REGISTER_VARIABLE(ELEMENT_H )
+    KRATOS_REGISTER_VARIABLE(RECOVERED_STRESS )
+    KRATOS_REGISTER_VARIABLE(ERROR_INTEGRATION_POINT )
+    KRATOS_REGISTER_VARIABLE(CONTACT_PRESSURE )
 
     //--------------- PFEM fluids Application -------------------//
 
@@ -893,14 +771,13 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(CONVECTION_COEFFICIENT)
 
     KRATOS_REGISTER_VARIABLE(SCALE)
-    KRATOS_REGISTER_VARIABLE(IS_JACK_LINK)
-    KRATOS_REGISTER_VARIABLE(IMPOSED_PRESSURE)
 
     KRATOS_REGISTER_VARIABLE(SOUND_VELOCITY)
     KRATOS_REGISTER_VARIABLE(AIR_SOUND_VELOCITY)
     KRATOS_REGISTER_VARIABLE(WATER_SOUND_VELOCITY)
 
     KRATOS_REGISTER_VARIABLE(NODAL_MASS)
+    KRATOS_REGISTER_VARIABLE(NODAL_INERTIA_TENSOR)
     KRATOS_REGISTER_VARIABLE(AUX_INDEX)
     KRATOS_REGISTER_VARIABLE(EXTERNAL_PRESSURE)
     KRATOS_REGISTER_VARIABLE(BDF_COEFFICIENTS)
@@ -1009,208 +886,6 @@ void KratosApplication::RegisterVariables() {
     KRATOS_REGISTER_VARIABLE(INTEGRATION_WEIGHT)
     KRATOS_REGISTER_3D_VARIABLE_WITH_COMPONENTS(INTEGRATION_COORDINATES)
 
-    //Register objects with general definition
-    Serializer::Register("Node", Node<3>());
-    Serializer::Register("Dof", Dof<double>());
-    Serializer::Register("Element", Element());
-    Serializer::Register("Condition", Condition());
-    Serializer::Register("Properties", Properties());
-    Serializer::Register("GeometricalObject", GeometricalObject());
-
-    //Register objects with specific definition ( non essential, must be deleted in future )
-    Serializer::Register("Node3D", Node<3>());
-    Serializer::Register("DofDouble", Dof<double>());
-
-    //Register specific conditions ( must be completed : conditions defined in kratos_application.h)
-
-    //point conditions
-    KRATOS_REGISTER_CONDITION("PointCondition2D1N", mPointCondition2D1N);
-    KRATOS_REGISTER_CONDITION("PointCondition3D1N", mPointCondition3D1N);
-    //line conditions
-    KRATOS_REGISTER_CONDITION("LineCondition2D2N", mLineCondition2D2N);
-    KRATOS_REGISTER_CONDITION("LineCondition2D3N", mLineCondition2D3N);
-    KRATOS_REGISTER_CONDITION("LineCondition3D2N", mLineCondition3D2N);
-    KRATOS_REGISTER_CONDITION("LineCondition3D3N", mLineCondition3D3N);
-    //surface conditions
-    KRATOS_REGISTER_CONDITION("SurfaceCondition3D3N", mSurfaceCondition3D3N);
-    KRATOS_REGISTER_CONDITION("SurfaceCondition3D6N", mSurfaceCondition3D6N);
-    KRATOS_REGISTER_CONDITION("SurfaceCondition3D4N", mSurfaceCondition3D4N);
-    KRATOS_REGISTER_CONDITION("SurfaceCondition3D8N", mSurfaceCondition3D8N);
-    KRATOS_REGISTER_CONDITION("SurfaceCondition3D9N", mSurfaceCondition3D9N);
-
-    //deprecated conditions start
-    KRATOS_REGISTER_CONDITION("Condition2D", mCondition2D);
-    KRATOS_REGISTER_CONDITION("Condition2D2N", mCondition2D2N);
-    KRATOS_REGISTER_CONDITION("Condition2D3N", mCondition2D3N);
-    KRATOS_REGISTER_CONDITION("Condition3D",
-        mCondition3D);  // Note: The name could be changed to Condition3D3N (conflict with the quadratic line)
-    KRATOS_REGISTER_CONDITION("Condition3D2N", mCondition3D2N);
-    KRATOS_REGISTER_CONDITION("Condition3D3N", mCondition3D3N);
-    KRATOS_REGISTER_CONDITION("Condition3D6N", mCondition3D6N);
-    KRATOS_REGISTER_CONDITION("Condition3D4N", mCondition3D4N);
-    KRATOS_REGISTER_CONDITION("Condition3D8N", mCondition3D8N);
-    KRATOS_REGISTER_CONDITION("Condition3D9N", mCondition3D9N);
-    //deprecated conditions start
-
-    KRATOS_REGISTER_CONDITION("PeriodicCondition", mPeriodicCondition)
-    KRATOS_REGISTER_CONDITION("PeriodicConditionEdge", mPeriodicConditionEdge)
-    KRATOS_REGISTER_CONDITION(
-        "PeriodicConditionCorner", mPeriodicConditionCorner)
-
-    //Register specific elements ( must be completed : elements defined in kratos_appliction.h)
-    KRATOS_REGISTER_ELEMENT("Element2D2N", mElement2D2N)
-    KRATOS_REGISTER_ELEMENT("Element2D3N", mElement2D3N)
-    KRATOS_REGISTER_ELEMENT("Element2D4N", mElement2D4N)
-    KRATOS_REGISTER_ELEMENT("Element3D2N", mElement3D2N)
-    KRATOS_REGISTER_ELEMENT("Element3D3N", mElement3D3N)
-    KRATOS_REGISTER_ELEMENT("Element3D4N", mElement3D4N)
-    KRATOS_REGISTER_ELEMENT("Element3D6N", mElement3D6N)
-    KRATOS_REGISTER_ELEMENT("Element3D8N", mElement3D8N)
-    KRATOS_REGISTER_ELEMENT("Element3D10N", mElement3D10N)
-    //Register general geometries:
-
-    //Points:
-    Serializer::Register("Point", Point());
-
-    Point2D<Node<3> > Point2DPrototype(
-        Element::GeometryType::PointsArrayType(1));
-    Serializer::Register("Point2D", Point2DPrototype);
-
-    Point3D<Node<3> > Point3DPrototype(
-        Element::GeometryType::PointsArrayType(1));
-    Serializer::Register("Point3D", Point3DPrototype);
-
-    //Sphere
-    Sphere3D1<Node<3> > Sphere3D1Prototype(
-        Element::GeometryType::PointsArrayType(1));
-    Serializer::Register("Sphere3D1", Sphere3D1Prototype);
-
-    //Lines:
-    Line2D<Node<3> > Line2DPrototype(Element::GeometryType::PointsArrayType(2));
-    Serializer::Register("Line2D", Line2DPrototype);
-
-    Line2D2<Node<3> > Line2D2Prototype(
-        Element::GeometryType::PointsArrayType(2));
-    Serializer::Register("Line2D2", Line2D2Prototype);
-
-    Line2D3<Node<3> > Line2D3Prototype(
-        Element::GeometryType::PointsArrayType(3));
-    Serializer::Register("Line2D3", Line2D3Prototype);
-
-    Line3D2<Node<3> > Line3D2Prototype(
-        Element::GeometryType::PointsArrayType(2));
-    Serializer::Register("Line3D2", Line3D2Prototype);
-
-    Line3D3<Node<3> > Line3D3Prototype(
-        Element::GeometryType::PointsArrayType(3));
-    Serializer::Register("Line3D3", Line3D3Prototype);
-
-    //Triangles:
-    Triangle2D3<Node<3> > Triangle2D3Prototype(
-        Element::GeometryType::PointsArrayType(3));
-    Serializer::Register("Triangle2D3", Triangle2D3Prototype);
-
-    Triangle2D6<Node<3> > Triangle2D6Prototype(
-        Element::GeometryType::PointsArrayType(6));
-    Serializer::Register("Triangle2D6", Triangle2D6Prototype);
-
-    Triangle3D3<Node<3> > Triangle3D3Prototype(
-        Element::GeometryType::PointsArrayType(3));
-    Serializer::Register("Triangle3D3", Triangle3D3Prototype);
-
-    Triangle3D6<Node<3> > Triangle3D6Prototype(
-        Element::GeometryType::PointsArrayType(6));
-    Serializer::Register("Triangle3D6", Triangle3D6Prototype);
-
-    //Quadrilaterals:
-    Quadrilateral2D4<Node<3> > Quadrilateral2D4Prototype(
-        Element::GeometryType::PointsArrayType(4));
-    Serializer::Register("Quadrilateral2D4", Quadrilateral2D4Prototype);
-
-    Quadrilateral2D8<Node<3> > Quadrilateral2D8Prototype(
-        Element::GeometryType::PointsArrayType(8));
-    Serializer::Register("Quadrilateral2D8", Quadrilateral2D8Prototype);
-
-    Quadrilateral2D9<Node<3> > Quadrilateral2D9Prototype(
-        Element::GeometryType::PointsArrayType(9));
-    Serializer::Register("Quadrilateral2D9", Quadrilateral2D9Prototype);
-
-    Quadrilateral3D4<Node<3> > Quadrilateral3D4Prototype(
-        Element::GeometryType::PointsArrayType(4));
-    Serializer::Register("Quadrilateral3D4", Quadrilateral3D4Prototype);
-
-    Quadrilateral3D8<Node<3> > Quadrilateral3D8Prototype(
-        Element::GeometryType::PointsArrayType(8));
-    Serializer::Register("Quadrilateral3D8", Quadrilateral3D8Prototype);
-
-    Quadrilateral3D9<Node<3> > Quadrilateral3D9Prototype(
-        Element::GeometryType::PointsArrayType(9));
-    Serializer::Register("Quadrilateral3D9", Quadrilateral3D9Prototype);
-
-    //Tetrahedra:
-    Tetrahedra3D4<Node<3> > Tetrahedra3D4Prototype(
-        Element::GeometryType::PointsArrayType(4));
-    Serializer::Register("Tetrahedra3D4", Tetrahedra3D4Prototype);
-
-    Tetrahedra3D10<Node<3> > Tetrahedra3D10Prototype(
-        Element::GeometryType::PointsArrayType(10));
-    Serializer::Register("Tetrahedra3D10", Tetrahedra3D10Prototype);
-
-    //Prisms:
-    Prism3D6<Node<3> > Prism3D6Prototype(
-        Element::GeometryType::PointsArrayType(6));
-    Serializer::Register("Prism3D6", Prism3D6Prototype);
-
-    Prism3D15<Node<3> > Prism3D15Prototype(
-        Element::GeometryType::PointsArrayType(15));
-    Serializer::Register("Prism3D15", Prism3D15Prototype);
-
-    //Hexahedra:
-    Hexahedra3D8<Node<3> > Hexahedra3D8Prototype(
-        Element::GeometryType::PointsArrayType(8));
-    Serializer::Register("Hexahedra3D8", Hexahedra3D8Prototype);
-
-    Hexahedra3D20<Node<3> > Hexahedra3D20Prototype(
-        Element::GeometryType::PointsArrayType(20));
-    Serializer::Register("Hexahedra3D20", Hexahedra3D20Prototype);
-
-    Hexahedra3D27<Node<3> > Hexahedra3D27Prototype(
-        Element::GeometryType::PointsArrayType(27));
-    Serializer::Register("Hexahedra3D27", Hexahedra3D27Prototype);
-
-    // Register flags:
-    KRATOS_REGISTER_FLAG(STRUCTURE);
-    KRATOS_REGISTER_FLAG(FLUID);
-    KRATOS_REGISTER_FLAG(THERMAL);
-    KRATOS_REGISTER_FLAG(VISITED);
-    KRATOS_REGISTER_FLAG(SELECTED);
-    KRATOS_REGISTER_FLAG(BOUNDARY);
-    KRATOS_REGISTER_FLAG(INLET);
-    KRATOS_REGISTER_FLAG(OUTLET);
-    KRATOS_REGISTER_FLAG(SLIP);
-    KRATOS_REGISTER_FLAG(INTERFACE);
-    KRATOS_REGISTER_FLAG(CONTACT);
-    KRATOS_REGISTER_FLAG(TO_SPLIT);
-    KRATOS_REGISTER_FLAG(TO_ERASE);
-    KRATOS_REGISTER_FLAG(TO_REFINE);
-    KRATOS_REGISTER_FLAG(NEW_ENTITY);
-    KRATOS_REGISTER_FLAG(OLD_ENTITY);
-    KRATOS_REGISTER_FLAG(ACTIVE);
-    KRATOS_REGISTER_FLAG(MODIFIED);
-    KRATOS_REGISTER_FLAG(RIGID);
-    KRATOS_REGISTER_FLAG(SOLID);
-    KRATOS_REGISTER_FLAG(MPI_BOUNDARY);
-    KRATOS_REGISTER_FLAG(INTERACTION);
-    KRATOS_REGISTER_FLAG(ISOLATED);
-    KRATOS_REGISTER_FLAG(MASTER);
-    KRATOS_REGISTER_FLAG(SLAVE);
-    KRATOS_REGISTER_FLAG(INSIDE);
-    KRATOS_REGISTER_FLAG(FREE_SURFACE);
-    KRATOS_REGISTER_FLAG(BLOCKED);
-    KRATOS_REGISTER_FLAG(MARKER);
-    KRATOS_REGISTER_FLAG(PERIODIC);
-
-    // Register ConstitutiveLaw BaseClass
-    KRATOS_REGISTER_CONSTITUTIVE_LAW("ConstitutiveLaw", mConstitutiveLaw);
+    KRATOS_REGISTER_VARIABLE(TABLE_UTILITY)
 }
 }  // namespace Kratos.

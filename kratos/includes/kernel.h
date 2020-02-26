@@ -64,13 +64,13 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     ///@{
 
     /// Default constructor.
-    /** The default constructor creates a list of registerd variables in variables.cpp
-        by calling the RegisterVariables method of application class.
+    /** The default constructor creates a list of registered variables and classes in kratos_core.cpp
+        by calling the RegisterKratosCore method of application class.
 
         @see KratosApplication
 
     */
-    Kernel();
+    Kernel(bool IsDistributedRun = false);
 
     /// Copy constructor.
     /** This constructor is empty
@@ -96,20 +96,10 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     */
     void ImportApplication(KratosApplication::Pointer pNewApplication);
 
-    /// Assign sequential key to the registered variables.
-    /** This method assigns a sequential key to all registerd variables in kratos and all added applications.
-        It is very important to call this function after adding ALL necessary applications using ImportApplication
-        methods before calling this function. Otherwise it leads to uninitialized variables with key 0!
-        @see ImportApplication
-        @see InitializeApplication
+    /// To be deprecated becuase variables have their own hash key.
+    /** The keys of Variables are not sequencial anymore, so this method will be deprecated
     */
-    void Initialize() {
-        unsigned int j = 0;
-        for (KratosComponents<VariableData>::ComponentsContainerType::iterator
-                 i = KratosComponents<VariableData>::GetComponents().begin();
-             i != KratosComponents<VariableData>::GetComponents().end(); i++)
-            i->second->SetKey(++j);
-    }
+    void Initialize() { }
 
     /// Initializes and synchronizes the list of variables, elements and conditions in each application.
     /** This method gives the application the list of all variables, elements and condition which is registered
@@ -120,6 +110,8 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     void InitializeApplication(KratosApplication& NewApplication) {}
 
     bool IsImported(std::string ApplicationName) const;
+
+    static bool IsDistributedRun();
 
     ///@}
     ///@name Input and output
@@ -137,6 +129,12 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     static std::unordered_set<std::string>&
     GetApplicationsList();
 
+    static std::string Version();
+
+    static std::string BuildType();
+
+    void PrintParallelismSupportInfo() const;
+
     ///@}
    protected:
    private:
@@ -144,6 +142,8 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     ///@{
 
         KratosApplication::Pointer mpKratosCoreApplication;
+
+    static bool mIsDistributedRun;
 
     ///@}
     ///@name Member Variables
@@ -153,7 +153,7 @@ class KRATOS_API(KRATOS_CORE) Kernel {
     ///@name Private Operations
     ///@{
 
-    void RegisterVariables();
+    void RegisterKratosCore();
 
     ///@}
     ///@name Un accessible methods

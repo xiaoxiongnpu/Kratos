@@ -10,21 +10,25 @@
 //  Main authors:    Riccardo Rossi
 //                   Janosch Stascheit
 //                   Felix Nagel
-//  contributors:    Hoang Giang Bui
+//  Contributors:    Hoang Giang Bui
 //                   Josep Maria Carbonell
+//                   Vicente Mataix Ferrandiz
 //
 
 #if !defined(KRATOS_TRIANGLE_3D_3_H_INCLUDED )
 #define  KRATOS_TRIANGLE_3D_3_H_INCLUDED
 
 // System includes
+#include <iomanip>
 
 // External includes
 
 // Project includes
+#include "geometries/plane_3d.h"
 #include "geometries/line_3d_2.h"
 #include "integration/triangle_gauss_legendre_integration_points.h"
 #include "integration/triangle_collocation_integration_points.h"
+#include "utilities/geometrical_projection_utilities.h"
 
 namespace Kratos
 {
@@ -48,11 +52,25 @@ namespace Kratos
 ///@{
 
 /**
- * A four node quadrilateral geometry. While the shape functions are only defined in
- * 2D it is possible to define an arbitrary orientation in space. Thus it can be used for
- * defining surfaces on 3D elements.
+ * @class Triangle3D3
+ * @ingroup KratosCore
+ * @brief A three node 3D triangle geometry with linear shape functions
+ * @details While the shape functions are only defined in 2D it is possible to define an arbitrary orientation in space. Thus it can be used for defining surfaces on 3D elements.
+ * The node ordering corresponds with:
+ *      v
+ *      ^
+ *      |
+ *      2
+ *      |`\
+ *      |  `\
+ *      |    `\
+ *      |      `\
+ *      |        `\
+ *      0----------1 --> u
+ * @author Riccardo Rossi
+ * @author Janosch Stascheit
+ * @author Felix Nagel
  */
-
 template<class TPointType> class Triangle3D3
     : public Geometry<TPointType>
 {
@@ -72,6 +90,11 @@ public:
      * Type of edge geometry
      */
     typedef Line3D2<TPointType> EdgeType;
+
+    /**
+     * Type of face geometry
+     */
+    typedef Triangle3D3<TPointType> FaceType;
 
     /**
      * Pointer definition of Triangle3D3
@@ -213,7 +236,7 @@ public:
         this->Points().push_back( pThirdPoint );
     }
 
-    Triangle3D3( const PointsArrayType& ThisPoints )
+    explicit Triangle3D3( const PointsArrayType& ThisPoints )
         : BaseType( ThisPoints, &msGeometryData )
     {
         if ( this->PointsNumber() != 3 )
@@ -246,7 +269,7 @@ public:
      * obvious that any change to this new geometry's point affect
      * source geometry's points too.
      */
-    template<class TOtherPointType> Triangle3D3( Triangle3D3<TOtherPointType> const& rOther )
+    template<class TOtherPointType> explicit Triangle3D3( Triangle3D3<TOtherPointType> const& rOther )
         : BaseType( rOther )
     {
     }
@@ -349,8 +372,18 @@ public:
         return rResult;
     }
 
-    //lumping factors for the calculation of the lumped mass matrix
-    Vector& LumpingFactors( Vector& rResult ) const override
+    /**
+     * @brief Lumping factors for the calculation of the lumped mass matrix
+     * @param rResult Vector containing the lumping factors
+     * @param LumpingMethod The lumping method considered. The three methods available are:
+     *      - The row sum method
+     *      - Diagonal scaling
+     *      - Evaluation of M using a quadrature involving only the nodal points and thus automatically yielding a diagonal matrix for standard element shape function
+     */
+    Vector& LumpingFactors(
+        Vector& rResult,
+        const typename BaseType::LumpingMethods LumpingMethod = BaseType::LumpingMethods::ROW_SUM
+        )  const override
     {
         rResult.resize( 3, false );
         std::fill( rResult.begin(), rResult.end(), 1.00 / 3.00 );
@@ -554,8 +587,14 @@ public:
         return (std::abs(V[index]) > std::abs(V[2])) ? index : 2;
 	}
 
-	bool HasIntersection(const GeometryType& ThisGeometry) override
-	{
+    /**
+     * @brief Test the intersection with another geometry
+     * @details decomposes in smaller triangles
+     * @param  ThisGeometry Geometry to intersect with
+     * @return True if the geometries intersect, False in any other case.
+     */
+    bool HasIntersection(const GeometryType& ThisGeometry) override
+    {
         // Based on code develop by Moller: http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/opttritri.txt
         // and the article "A Fast Triangle-Triangle Intersection Test", Journal of Graphics Tools, 2(2), 1997:
         // http://web.stanford.edu/class/cs277/resources/papers/Moller1997b.pdf
@@ -626,7 +665,7 @@ public:
         if (isect1[1]<isect2[0] || isect2[1]<isect1[0]) return false;
         return true;
 
-	}
+    }
 
     /**
      * Check if an axis-aliged bounding box (AABB) intersects a triangle
@@ -808,12 +847,11 @@ public:
     }
 
     /**
-     * It computes the area normal of the geometry
-     * @param rPointLocalCoordinates Local coordinates of the point
-     * in where the area normal is to be computed
-     * @return The area normal in the given point
+     * @brief It returns a vector that is normal to its corresponding geometry in the given local point
+     * @param rPointLocalCoordinates Reference to the local coordinates of the point in where the normal is to be computed
+     * @return The normal in the given point
      */
-    array_1d<double, 3> AreaNormal(const CoordinatesArrayType& rPointLocalCoordinates) const override
+    array_1d<double, 3> Normal(const CoordinatesArrayType& rPointLocalCoordinates) const override
     {
         const array_1d<double, 3> tangent_xi  = this->GetPoint(1) - this->GetPoint(0);
         const array_1d<double, 3> tangent_eta = this->GetPoint(2) - this->GetPoint(0);
@@ -825,27 +863,44 @@ public:
     }
 
     /**
-     * Returns whether given arbitrary point is inside the Geometry and the respective
-     * local point for the given global point
-     * @param rPoint: The point to be checked if is inside o note in global coordinates
-     * @param rResult: The local coordinates of the point
-     * @param Tolerance: The  tolerance that will be considered to check if the point is inside or not
+     * @brief Returns whether given arbitrary point is inside the Geometry and the respective local point for the given global point
+     * @param rPoint The point to be checked if is inside o note in global coordinates
+     * @param rResult The local coordinates of the point
+     * @param Tolerance The  tolerance that will be considered to check if the point is inside or not
      * @return True if the point is inside, false otherwise
      */
     bool IsInside(
         const CoordinatesArrayType& rPoint,
         CoordinatesArrayType& rResult,
         const double Tolerance = std::numeric_limits<double>::epsilon()
-        ) override
+        ) const override
     {
-        PointLocalCoordinates( rResult, rPoint );
+        // We compute the normal to check the normal distances between the point and the triangles, so we can discard that is on the triangle
+        const auto center = this->Center();
+        const array_1d<double, 3> normal = this->UnitNormal(center);
 
-        if ( (rResult[0] >= (0.0-Tolerance)) && (rResult[0] <= (1.0+Tolerance)) )
-        {
-            if ( (rResult[1] >= (0.0-Tolerance)) && (rResult[1] <= (1.0+Tolerance)) )
-            {
-                if ( (rResult[0] + rResult[1]) <= (1.0+Tolerance) )
-                {
+        // We compute the distance, if it is not in the plane we project
+        const Point point_to_project(rPoint);
+        double distance;
+        CoordinatesArrayType point_projected;
+        point_projected = GeometricalProjectionUtilities::FastProject( center, point_to_project, normal, distance);
+
+        // We check if we are on the plane
+        if (std::abs(distance) > std::numeric_limits<double>::epsilon()) {
+            if (std::abs(distance) > 1.0e-6 * Length()) {
+                KRATOS_WARNING_FIRST_N("Triangle3D3", 10) << "The " << rPoint << " is in a distance: " << std::abs(distance) << std::endl;
+                return false;
+            }
+
+            // Not in the plane, but allowing certain distance, projecting
+            noalias(point_projected) = rPoint - normal * distance;
+        }
+
+        PointLocalCoordinates( rResult, point_projected );
+
+        if ( (rResult[0] >= (0.0-Tolerance)) && (rResult[0] <= (1.0+Tolerance)) ) {
+            if ( (rResult[1] >= (0.0-Tolerance)) && (rResult[1] <= (1.0+Tolerance)) ) {
+                if ( (rResult[0] + rResult[1]) <= (1.0+Tolerance) ) {
                     return true;
                 }
             }
@@ -855,83 +910,65 @@ public:
     }
 
     /**
-     * Returns the local coordinates of a given arbitrary point
-     * @param rResult: The vector containing the local coordinates of the point
-     * @param rPoint: The point in global coordinates
+     * @brief Returns the local coordinates of a given arbitrary point
+     * @param rResult The vector containing the local coordinates of the point
+     * @param rPoint The point in global coordinates
      * @return The vector containing the local coordinates of the point
      */
     CoordinatesArrayType& PointLocalCoordinates(
         CoordinatesArrayType& rResult,
         const CoordinatesArrayType& rPoint
-        ) override
+        ) const override
     {
-        boost::numeric::ublas::bounded_matrix<double,3,3> X;
-        boost::numeric::ublas::bounded_matrix<double,3,2> DN;
-        for(unsigned int i=0; i<this->size();i++)
-        {
-            X(0,i ) = this->GetPoint( i ).X();
-            X(1,i ) = this->GetPoint( i ).Y();
-            X(2,i ) = this->GetPoint( i ).Z();
+        // Initialize
+        noalias(rResult) = ZeroVector(3);
+
+        // Tangent vectors
+        array_1d<double, 3> tangent_xi  = this->GetPoint(1) - this->GetPoint(0);
+        tangent_xi /= norm_2(tangent_xi);
+        array_1d<double, 3> tangent_eta = this->GetPoint(2) - this->GetPoint(0);
+        tangent_eta /= norm_2(tangent_eta);
+
+        // The center of the geometry
+        const auto center = this->Center();
+
+        // Computation of the rotation matrix
+        BoundedMatrix<double, 3, 3> rotation_matrix = ZeroMatrix(3, 3);
+        for (IndexType i = 0; i < 3; ++i) {
+            rotation_matrix(0, i) = tangent_xi[i];
+            rotation_matrix(1, i) = tangent_eta[i];
         }
 
-        double tol = 1.0e-8;
-        int maxiter = 1000;
+        // Destination point rotated
+        CoordinatesArrayType aux_point_to_rotate, destination_point_rotated;
+        noalias(aux_point_to_rotate) = rPoint - center.Coordinates();
+        noalias(destination_point_rotated) = prod(rotation_matrix, aux_point_to_rotate) + center.Coordinates();
 
-        Matrix J = ZeroMatrix( 2, 2 );
-        Matrix invJ = ZeroMatrix( 2, 2 );
-
-        //starting with xi = 0
-        rResult = ZeroVector( 3 );
-        Vector DeltaXi = ZeroVector( 2 );
-        array_1d<double,3> CurrentGlobalCoords;
-
-
-        //Newton iteration:
-        for ( int k = 0; k < maxiter; k++ )
-        {
-            noalias(CurrentGlobalCoords) = ZeroVector( 3 );
-            this->GlobalCoordinates( CurrentGlobalCoords, rResult );
-
-            noalias( CurrentGlobalCoords ) = rPoint - CurrentGlobalCoords;
-
-
-            //derivatives of shape functions
-            Matrix shape_functions_gradients;
-            shape_functions_gradients = ShapeFunctionsLocalGradients(shape_functions_gradients, rResult );
-            noalias(DN) = prod(X,shape_functions_gradients);
-
-            noalias(J) = prod(trans(DN),DN);
-            Vector res = prod(trans(DN),CurrentGlobalCoords);
-
-            //deteminant of Jacobian
-            const double det_j = J( 0, 0 ) * J( 1, 1 ) - J( 0, 1 ) * J( 1, 0 );
-
-            //filling matrix
-            invJ( 0, 0 ) = ( J( 1, 1 ) ) / ( det_j );
-            invJ( 1, 0 ) = -( J( 1, 0 ) ) / ( det_j );
-            invJ( 0, 1 ) = -( J( 0, 1 ) ) / ( det_j );
-            invJ( 1, 1 ) = ( J( 0, 0 ) ) / ( det_j );
-
-
-            DeltaXi( 0 ) = invJ( 0, 0 ) * res[0] + invJ( 0, 1 ) * res[1];
-            DeltaXi( 1 ) = invJ( 1, 0 ) * res[0] + invJ( 1, 1 ) * res[1];
-
-            rResult[0] += DeltaXi[0];
-            rResult[1] += DeltaXi[1];
-            rResult[2] = 0.0;
-
-            if ( k>0 && norm_2( DeltaXi ) > 30 )
-            {
-                KRATOS_ERROR << "Computation of local coordinates failed at iteration " << k << std::endl;
-            }
-
-            if ( norm_2( DeltaXi ) < tol )
-            {
-                break;
-            }
+        // Points of the geometry
+        array_1d<CoordinatesArrayType, 3> points_rotated;
+        for (IndexType i = 0; i < 3; ++i) {
+            noalias(aux_point_to_rotate) = this->GetPoint(i).Coordinates() - center.Coordinates();
+            noalias(points_rotated[i]) = prod(rotation_matrix, aux_point_to_rotate) + center.Coordinates();
         }
 
-        return( rResult );
+        // Compute the Jacobian matrix and its determinant
+        BoundedMatrix<double, 2, 2> J;
+        J(0,0) = points_rotated[1][0] - points_rotated[0][0];
+        J(0,1) = points_rotated[2][0] - points_rotated[0][0];
+        J(1,0) = points_rotated[1][1] - points_rotated[0][1];
+        J(1,1) = points_rotated[2][1] - points_rotated[0][1];
+        const double det_J = J(0,0)*J(1,1) - J(0,1)*J(1,0);
+
+        // Compute eta and xi
+        const double eta = (J(1,0)*(points_rotated[0][0] - destination_point_rotated[0]) +
+                            J(0,0)*(destination_point_rotated[1] - points_rotated[0][1])) / det_J;
+        const double xi  = (J(1,1)*(destination_point_rotated[0] - points_rotated[0][0]) +
+                            J(0,1)*(points_rotated[0][1] - destination_point_rotated[1])) / det_J;
+
+        rResult(0) = xi;
+        rResult(1) = eta;
+
+        return rResult;
     }
 
     ///@}
@@ -1236,35 +1273,35 @@ public:
         return rResult;
     }
 
-    /** EdgesNumber
-    @return SizeType containes number of this geometry edges.
-    */
+    ///@}
+    ///@name Edge
+    ///@{
+
+    /**
+     * @brief This method gives you number of all edges of this geometry.
+     * @details For example, for a hexahedron, this would be 12
+     * @return SizeType containes number of this geometry edges.
+     * @see EdgesNumber()
+     * @see Edges()
+     * @see GenerateEdges()
+     * @see FacesNumber()
+     * @see Faces()
+     * @see GenerateFaces()
+     */
     SizeType EdgesNumber() const override
     {
         return 3;
     }
 
-
-    /** FacesNumber
-    @return SizeType containes number of this geometry edges/faces.
-    */
-    SizeType FacesNumber() const override
-    {
-      return EdgesNumber();
-    }
-
-    /** This method gives you all edges of this geometry. This
-    method will gives you all the edges with one dimension less
-    than this geometry. for example a triangle would return
-    three lines as its edges or a tetrahedral would return four
-    triangle as its edges but won't return its six edge
-    lines by this method.
-
-    @return GeometriesArrayType containes this geometry edges.
-    @see EdgesNumber()
-    @see Edge()
-    */
-    GeometriesArrayType Edges( void ) override
+    /**
+     * @brief This method gives you all edges of this geometry.
+     * @details This method will gives you all the edges with one dimension less than this geometry.
+     * For example a triangle would return three lines as its edges or a tetrahedral would return four triangle as its edges but won't return its six edge lines by this method.
+     * @return GeometriesArrayType containes this geometry edges.
+     * @see EdgesNumber()
+     * @see Edge()
+     */
+    GeometriesArrayType GenerateEdges() const override
     {
         GeometriesArrayType edges = GeometriesArrayType();
 
@@ -1274,9 +1311,40 @@ public:
         return edges;
     }
 
+    ///@}
+    ///@name Face
+    ///@{
+
+    /**
+     * @brief Returns the number of faces of the current geometry.
+     * @details This is only implemented for 3D geometries, since 2D geometries only have edges but no faces
+     * @see EdgesNumber
+     * @see Edges
+     * @see Faces
+     */
+    SizeType FacesNumber() const override
+    {
+        return 1;
+    }
+
+    /**
+     * @brief Returns all faces of the current geometry.
+     * @details This is only implemented for 3D geometries, since 2D geometries only have edges but no faces
+     * @return GeometriesArrayType containes this geometry faces.
+     * @see EdgesNumber
+     * @see GenerateEdges
+     * @see FacesNumber
+     */
+    GeometriesArrayType GenerateFaces() const override
+    {
+        GeometriesArrayType faces = GeometriesArrayType();
+
+        faces.push_back( Kratos::make_shared<FaceType>( this->pGetPoint( 0 ), this->pGetPoint( 1 ), this->pGetPoint( 2 )) );
+        return faces;
+    }
 
     //Connectivities of faces required
-    void NumberNodesInFaces (boost::numeric::ublas::vector<unsigned int>& NumberNodesInFaces) const override
+    void NumberNodesInFaces (DenseVector<unsigned int>& NumberNodesInFaces) const override
     {
         if(NumberNodesInFaces.size() != 3 )
             NumberNodesInFaces.resize(3,false);
@@ -1287,20 +1355,22 @@ public:
 
     }
 
-    void NodesInFaces (boost::numeric::ublas::matrix<unsigned int>& NodesInFaces) const override
+    void NodesInFaces (DenseMatrix<unsigned int>& NodesInFaces) const override
     {
+        // faces in columns
         if(NodesInFaces.size1() != 3 || NodesInFaces.size2() != 3)
             NodesInFaces.resize(3,3,false);
 
-        NodesInFaces(0,0)=0;//face or other node
+        //face 1
+        NodesInFaces(0,0)=0;//contrary node to the face
         NodesInFaces(1,0)=1;
         NodesInFaces(2,0)=2;
-
-        NodesInFaces(0,1)=1;//face or other node
+        //face 2
+        NodesInFaces(0,1)=1;//contrary node to the face
         NodesInFaces(1,1)=2;
         NodesInFaces(2,1)=0;
-
-        NodesInFaces(0,2)=2;//face or other node
+        //face 3
+        NodesInFaces(0,2)=2;//contrary node to the face
         NodesInFaces(1,2)=0;
         NodesInFaces(2,2)=1;
 
@@ -1325,9 +1395,6 @@ public:
     ///@name Shape Function
     ///@{
 
-    /**
-     * TODO: implemented but not yet tested
-     */
     /**
      * Calculates the value of a given shape function at a given point.
      *
@@ -1381,9 +1448,6 @@ public:
         return rResult;
     }
 
-    /**
-     * TODO: implemented but not yet tested
-     */
     /**
      * Calculates the Gradients of the shape functions.
      * Calculates the gradients of the shape functions with regard to
@@ -1637,7 +1701,7 @@ public:
 
         for ( IndexType i = 0; i < rResult.size(); i++ )
         {
-            boost::numeric::ublas::vector<Matrix> temp( this->PointsNumber() );
+            DenseVector<Matrix> temp( this->PointsNumber() );
             rResult[i].swap( temp );
         }
 
@@ -1678,8 +1742,10 @@ protected:
 private:
     ///@name Static Member Variables
     ///@{
+
     static const GeometryData msGeometryData;
 
+    static const GeometryDimension msGeometryDimension;
 
     ///@}
     ///@name Serialization
@@ -1714,9 +1780,6 @@ private:
     ///@{
 
     /**
-     * TODO: implemented but not yet tested
-     */
-    /**
      * Calculates the values of all shape function in all integration points.
      * Integration points are expected to be given in local coordinates
      * @param ThisMethod the current integration method
@@ -1750,9 +1813,6 @@ private:
         return shape_function_values;
     }
 
-    /**
-     * TODO: implemented but not yet tested
-     */
     /**
      * Calculates the local gradients of all shape functions
      * in all integration points.
@@ -2159,7 +2219,7 @@ private:
         noalias(edge2) = vert0 - vert2;
 
         // Bullet 3:
-        // test the 12 tests first (this was faster)
+        // test the 9 tests first (this was faster)
         abs_ex = std::abs(edge0[0]);
         abs_ey = std::abs(edge0[1]);
         abs_ez = std::abs(edge0[2]);
@@ -2192,11 +2252,11 @@ private:
         if(min_max.first>rBoxHalfSize[0] || min_max.second<-rBoxHalfSize[0]) return false;
 
         // test in Y-direction
-        min_max = std::minmax({vert0[0], vert1[0], vert2[0]});
+        min_max = std::minmax({vert0[1], vert1[1], vert2[1]});
         if(min_max.first>rBoxHalfSize[1] || min_max.second<-rBoxHalfSize[1]) return false;
 
         // test in Z-direction
-        min_max = std::minmax({vert0[0], vert1[0], vert2[0]});
+        min_max = std::minmax({vert0[2], vert1[2], vert2[2]});
         if(min_max.first>rBoxHalfSize[2] || min_max.second<-rBoxHalfSize[2]) return false;
 
         // Bullet 2:
@@ -2244,7 +2304,7 @@ private:
 
     /** AxisTestX
      * This method returns true if there is a separating axis
-     * 
+     *
      * @param rEdgeY, rEdgeZ: i-edge corrdinates
      * @param rAbsEdgeY, rAbsEdgeZ: i-edge abs coordinates
      * @param rVertA: i   vertex
@@ -2271,7 +2331,7 @@ private:
 
     /** AxisTestY
      * This method returns true if there is a separating axis
-     * 
+     *
      * @param rEdgeX, rEdgeZ: i-edge corrdinates
      * @param rAbsEdgeX, rAbsEdgeZ: i-edge fabs coordinates
      * @param rVertA: i   vertex
@@ -2298,7 +2358,7 @@ private:
 
     /** AxisTestZ
      * This method returns true if there is a separating axis
-     * 
+     *
      * @param rEdgeX, rEdgeY: i-edge corrdinates
      * @param rAbsEdgeX, rAbsEdgeY: i-edge fabs coordinates
      * @param rVertA: i   vertex
@@ -2322,33 +2382,6 @@ private:
         if(min_max.first>rad || min_max.second<-rad) return true;
         else return false;
     }
-
-
-	// TODO: I should move this class to a separate file but is out of scope of this branch
-	class Plane3D {
-	public:
-		using VectorType = array_1d<double, 3>;
-		using PointType = Point;
-
-		Plane3D(VectorType const& TheNormal, double DistanceToOrigin) :mNormal(TheNormal), mD(DistanceToOrigin) {}
-		Plane3D() = delete;
-		Plane3D(PointType const& Point1, PointType const& Point2, PointType const& Point3) {
-			VectorType v1 = Point2 - Point1;
-			VectorType v2 = Point3 - Point1;
-			MathUtils<double>::CrossProduct(mNormal, v1, v2);
-			mD = -inner_prod(mNormal, Point1);
-		}
-		VectorType const& GetNormal() { return mNormal; }
-		double GetDistance() { return mD; }
-		double CalculateSignedDistance(PointType const& ThePoint) {
-			return inner_prod(mNormal, ThePoint) + mD;
-		}
-
-	private:
-		VectorType mNormal;
-		double mD;
-	};
-
 
     ///@}
     ///@name Private  Access
@@ -2406,12 +2439,17 @@ template<class TPointType> inline std::ostream& operator << (
 
 template<class TPointType> const
 GeometryData Triangle3D3<TPointType>::msGeometryData(
-    2, 3, 2,
+    &msGeometryDimension,
     GeometryData::GI_GAUSS_1,
     Triangle3D3<TPointType>::AllIntegrationPoints(),
     Triangle3D3<TPointType>::AllShapeFunctionsValues(),
     AllShapeFunctionsLocalGradients()
 );
+
+template<class TPointType>
+const GeometryDimension Triangle3D3<TPointType>::msGeometryDimension(
+    2, 3, 2);
+
 }// namespace Kratos.
 
 #endif // KRATOS_QUADRILATERAL_3D_4_H_INCLUDED  defined

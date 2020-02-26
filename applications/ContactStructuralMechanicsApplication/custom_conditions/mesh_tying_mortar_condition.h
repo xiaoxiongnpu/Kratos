@@ -35,21 +35,12 @@ namespace Kratos
 ///@name Type Definitions
 ///@{
 
-    typedef Point                                                PointType;
-    typedef Node<3>                                               NodeType;
-    typedef Geometry<NodeType>                                GeometryType;
-
-    // Type definition for integration methods
-    typedef GeometryType::IntegrationPointsArrayType IntegrationPointsType;
-
-    // Type definition of the components of an array_1d
-    typedef VariableComponent<VectorComponentAdaptor<array_1d<double, 3> > > array_1d_component_type;
+    /// The definition of the size type
+    typedef std::size_t SizeType;
 
 ///@}
 ///@name  Enum's
 ///@{
-
-    enum TensorValue {ScalarValue = 1, Vector2DValue = 2, Vector2DPScalarValue = 3, Vector3DValue = 3, Vector3DPScalarValue = 4 };
 
 ///@}
 ///@name  Functions
@@ -67,9 +58,11 @@ namespace Kratos
  * The method has been taken from the Alexander Popps thesis:
  * Popp, Alexander: Mortar Methods for Computational Contact Mechanics and General Interface Problems, Technische Universität München, jul 2012
  * @author Vicente Mataix Ferrandiz
+ * @tparam TDim The dimension of work
+ * @tparam TNumNodesElem The number of nodes of the slave
+ * @tparam TNumNodesElemMaster The number of nodes of the master
  */
-
-template< const unsigned int TDim, const unsigned int TNumNodesElem, TensorValue TTensor>
+template< const SizeType TDim, const SizeType TNumNodesElem, const SizeType TNumNodesElemMaster = TNumNodesElem>
 class KRATOS_API(CONTACT_STRUCTURAL_MECHANICS_APPLICATION) MeshTyingMortarCondition
     : public PairedCondition
 {
@@ -78,40 +71,71 @@ public:
     ///@{
 
     /// Counted pointer of MeshTyingMortarCondition
-    KRATOS_CLASS_POINTER_DEFINITION( MeshTyingMortarCondition );
-    typedef PairedCondition                                                              BaseType;
+    KRATOS_CLASS_INTRUSIVE_POINTER_DEFINITION( MeshTyingMortarCondition );
 
-    typedef typename BaseType::VectorType                                              VectorType;
+    /// Base class definitions
+    typedef PairedCondition                                                               BaseType;
 
-    typedef typename BaseType::MatrixType                                              MatrixType;
+    /// Vector type definition
+    typedef typename BaseType::VectorType                                               VectorType;
 
-    typedef typename BaseType::IndexType                                                IndexType;
+    /// Matrix type definition
+    typedef typename BaseType::MatrixType                                               MatrixType;
 
-    typedef typename BaseType::GeometryType::Pointer                          GeometryPointerType;
+    /// Index type definition
+    typedef typename BaseType::IndexType                                                 IndexType;
 
-    typedef typename BaseType::NodesArrayType                                      NodesArrayType;
+    /// Geometry pointer definition
+    typedef typename BaseType::GeometryType::Pointer                           GeometryPointerType;
 
-    typedef typename BaseType::PropertiesType::Pointer                      PropertiesPointerType;
+    /// Nodes array type definition
+    typedef typename BaseType::NodesArrayType                                       NodesArrayType;
 
-    typedef typename std::vector<array_1d<PointType,TDim>>                 ConditionArrayListType;
+    /// Properties pointer definition
+    typedef typename BaseType::PropertiesType::Pointer                       PropertiesPointerType;
 
-    typedef Line2D2<Point>                                                               LineType;
+    /// Point definition
+    typedef Point                                                                        PointType;
 
-    typedef Triangle3D3<Point>                                                       TriangleType;
+    /// Node type definition
+    typedef Node<3>                                                                       NodeType;
 
-    typedef typename std::conditional<TDim == 2, LineType, TriangleType >::type DecompositionType;
+    /// Geoemtry type definition
+    typedef Geometry<NodeType>                                                        GeometryType;
 
-    static constexpr unsigned int NumNodes = (TNumNodesElem == 3 || (TDim == 2 && TNumNodesElem == 4)) ? 2 : TNumNodesElem == 4 ? 3 : 4;
+    // Type definition for integration methods
+    typedef GeometryType::IntegrationPointsArrayType                         IntegrationPointsType;
 
-    static constexpr unsigned int MatrixSize = TTensor * (3 * NumNodes);
+    // Type definition of the components of an array_1d
+    typedef VariableComponent<VectorComponentAdaptor<array_1d<double, 3> > > Array1DComponentsType;
 
-    typedef MortarKinematicVariables<NumNodes>                                   GeneralVariables;
+    typedef typename std::vector<array_1d<PointType,TDim>>                  ConditionArrayListType;
 
-    typedef DualLagrangeMultiplierOperators<NumNodes>                                      AeData;
+    typedef Line2D2<Point>                                                                LineType;
 
-    typedef MortarOperator<NumNodes>                                      MortarConditionMatrices;
+    typedef Triangle3D3<Point>                                                        TriangleType;
 
-    typedef ExactMortarIntegrationUtility<TDim, NumNodes, false>               IntegrationUtility;
+    typedef typename std::conditional<TDim == 2, LineType, TriangleType >::type  DecompositionType;
+
+    static constexpr SizeType NumNodes = (TNumNodesElem == 3 || (TDim == 2 && TNumNodesElem == 4)) ? 2 : TNumNodesElem == 4 ? 3 : 4;
+
+    static constexpr SizeType NumNodesMaster = (TNumNodesElemMaster == 3 || (TDim == 2 && TNumNodesElemMaster == 4)) ? 2 : TNumNodesElemMaster == 4 ? 3 : 4;
+
+    typedef BoundedMatrix<double, NumNodes, NumNodes>                                  MatrixDualLM;
+
+    typedef MortarKinematicVariables<NumNodes, NumNodesMaster>                     GeneralVariables;
+
+    typedef DualLagrangeMultiplierOperators<NumNodes, NumNodesMaster>                        AeData;
+
+    typedef MortarOperator<NumNodes, NumNodesMaster>                        MortarConditionMatrices;
+
+    typedef ExactMortarIntegrationUtility<TDim, NumNodes, false, NumNodesMaster> IntegrationUtility;
+
+    ///@}
+    ///@name  Enum's
+    ///@{
+
+    enum TensorValue {ScalarValue = 1, Vector2DValue = 2, Vector3DValue = 3};
 
     ///@}
     ///@name Life Cycle
@@ -119,16 +143,14 @@ public:
 
     /// Default constructor
     MeshTyingMortarCondition()
-        : PairedCondition(),
-          mIntegrationOrder(2)
+        : PairedCondition()
     {}
 
     // Constructor 1
     MeshTyingMortarCondition(
         IndexType NewId,
         GeometryType::Pointer pGeometry
-        ) :PairedCondition(NewId, pGeometry),
-           mIntegrationOrder(2)
+        ) :PairedCondition(NewId, pGeometry)
     {}
 
     // Constructor 2
@@ -136,8 +158,7 @@ public:
         IndexType NewId,
         GeometryType::Pointer pGeometry,
         PropertiesType::Pointer pProperties
-        ) :PairedCondition( NewId, pGeometry, pProperties ),
-           mIntegrationOrder(2)
+        ) :PairedCondition( NewId, pGeometry, pProperties )
     {}
 
     // Constructor 3
@@ -147,8 +168,7 @@ public:
         PropertiesType::Pointer pProperties,
         GeometryType::Pointer pMasterGeometry
         )
-        :PairedCondition( NewId, pGeometry, pProperties, pMasterGeometry),
-         mIntegrationOrder(2)
+        :PairedCondition( NewId, pGeometry, pProperties, pMasterGeometry)
     {}
 
     ///Copy constructor
@@ -156,13 +176,6 @@ public:
 
     /// Destructor.
     ~MeshTyingMortarCondition() override;
-
-    /**
-     * Flags related to the element computation
-     */
-
-    KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_RHS_VECTOR );
-    KRATOS_DEFINE_LOCAL_FLAG( COMPUTE_LHS_MATRIX );
 
     ///@}
     ///@name Operators
@@ -338,10 +351,8 @@ public:
         ) override;
 
     /**
-     * This function provides the place to perform checks on the completeness of the input.
-     * It is designed to be called only once (or anyway, not often) typically at the beginning
-     * of the calculations, so to verify that nothing is missing from the input
-     * or that no common error is found.
+     * @brief This function provides the place to perform checks on the completeness of the input.
+     * @details It is designed to be called only once (or anyway, not often) typically at the beginning of the calculations, so to verify that nothing is missing from the input or that no common error is found.
      * @param rCurrentProcessInfo The current process information
      */
     int Check( const ProcessInfo& rCurrentProcessInfo ) override;
@@ -358,6 +369,28 @@ public:
     ///@name Input and output
     ///@{
 
+    /// Turn back information as a string.
+    std::string Info() const override
+    {
+        std::stringstream buffer;
+        buffer << "MeshTyingMortarCondition #" << this->Id();
+        return buffer.str();
+    }
+
+    /// Print information about this object.
+    void PrintInfo(std::ostream& rOStream) const override
+    {
+        rOStream << "MeshTyingMortarCondition #" << this->Id();
+    }
+
+    /// Print object's data.
+    void PrintData(std::ostream& rOStream) const override
+    {
+        PrintInfo(rOStream);
+        this->GetParentGeometry().PrintData(rOStream);
+        this->GetPairedGeometry().PrintData(rOStream);
+    }
+
     ///@}
     ///@name Friends
     ///@{
@@ -371,63 +404,55 @@ protected:
     /**
      * This data will be used to compute teh derivatives
      */
+    template< const TensorValue TTensor >
     struct DofData
     {
     public:
 
         // Auxiliar types
-        typedef bounded_matrix<double, NumNodes, TTensor>  Type1;
-        typedef bounded_matrix<double, NumNodes, NumNodes> Type2;
+        typedef BoundedMatrix<double, NumNodes, TTensor>  MatrixUnknownSlave;
+        typedef BoundedMatrix<double, NumNodesMaster, TTensor>  MatrixUnknownMaster;
 
         // The DoF
-        Type1 LagrangeMultipliers, u1, u2;
-
-        // Ae
-        Type2 Ae;
+        MatrixUnknownSlave LagrangeMultipliers, u1;
+        MatrixUnknownMaster u2;
 
         // Default destructor
         ~DofData()= default;
 
         /**
          * Updating the Slave pair
-         * @param GeometryInput The pointer of the current master
+         * @param rGeometryInput The pointer of the current master
          */
-        void Initialize(const GeometryType& GeometryInput)
+        void Initialize(const GeometryType& rGeometryInput)
         {
             // The current Lagrange Multipliers
             u1 = ZeroMatrix(NumNodes, TTensor);
-            u2 = ZeroMatrix(NumNodes, TTensor);
+            u2 = ZeroMatrix(NumNodesMaster, TTensor);
             LagrangeMultipliers = ZeroMatrix(NumNodes, TTensor);
         }
 
-        // Initialize the Ae components
-        void InitializeAeComponents()
-        {
-            Ae = ZeroMatrix(NumNodes, NumNodes);
-        }
-
         /**
-         * Updating the Master pair
-         * @param GeometryInput The pointer of the current master
+         * @brief Updating the Master pair
+         * @param rGeometryInput The pointer of the current master
+         * @param rDoubleVariables The list of double variables
+         * @param rArray1DVariables The list of components array1d
          */
-        void UpdateMasterPair(const GeometryType& GeometryInput)
+        void UpdateMasterPair(
+            const GeometryType& rGeometryInput,
+            std::vector<Variable<double>>& rDoubleVariables,
+            std::vector<Variable<array_1d<double, 3>>>& rArray1DVariables
+            )
         {
             /* DoF */
-            if (TTensor == 1)
-            {
-                for (unsigned int i_node = 0; i_node < NumNodes; ++i_node)
-                {
-                    const double value = GeometryInput[i_node].FastGetSolutionStepValue(TEMPERATURE);
-                    u2(i_node, 0) = value;
+            if (TTensor == 1) {
+                for (IndexType i_node = 0; i_node < NumNodesMaster; ++i_node) {
+                    u2(i_node, 0) = rGeometryInput[i_node].FastGetSolutionStepValue(rDoubleVariables[0]);
                 }
-            }
-            else
-            {
-                for (unsigned int i_node = 0; i_node < NumNodes; ++i_node)
-                {
-                    const array_1d<double, 3>& value = GeometryInput[i_node].FastGetSolutionStepValue(DISPLACEMENT);
-                    for (unsigned int i_dof = 0; i_dof < TTensor; ++i_dof)
-                    {
+            } else {
+                for (IndexType i_node = 0; i_node < NumNodesMaster; ++i_node) {
+                    const array_1d<double, 3>& value = rGeometryInput[i_node].FastGetSolutionStepValue(rArray1DVariables[0]);
+                    for (IndexType i_dof = 0; i_dof < TTensor; ++i_dof) {
                         u2(i_node, i_dof) = value[i_dof];
                     }
                 }
@@ -440,11 +465,11 @@ protected:
     ///@name Protected member Variables
     ///@{
 
-    Flags  mCalculationFlags;                              // Calculation flags
+    MortarConditionMatrices mrThisMortarConditionMatrices;         /// The mortar operators
 
-    MortarConditionMatrices mrThisMortarConditionMatrices; // The mortar operators
+    std::vector<Variable<double>> mDoubleVariables;                /// The list of double variables
 
-    unsigned int mIntegrationOrder;                        // The integration order to consider
+    std::vector<Variable<array_1d<double, 3>>> mArray1DVariables;  /// The list of components array1d
 
     ///@}
     ///@name Protected Operators
@@ -500,22 +525,47 @@ protected:
     void CalculateConditionSystem(
         MatrixType& rLeftHandSideMatrix,
         VectorType& rRightHandSideVector,
-        const ProcessInfo& CurrentProcessInfo
+        const ProcessInfo& rCurrentProcessInfo,
+        const bool ComputeLHS = true,
+        const bool ComputeRHS = true
         );
 
     /**
      * Initialize Contact data
      */
-    void InitializeDofData(DofData& rDofData);
+    template< const TensorValue TTensor >
+    void InitializeDofData(DofData<TTensor>& rDofData)
+    {
+        // Slave element info
+        rDofData.Initialize(GetParentGeometry());
+
+        if (TTensor == ScalarValue) {
+            for (IndexType i_node = 0; i_node < NumNodes; i_node++) {
+                const double value = GetParentGeometry()[i_node].FastGetSolutionStepValue(mDoubleVariables[0]);
+                const double lm = GetParentGeometry()[i_node].FastGetSolutionStepValue(SCALAR_LAGRANGE_MULTIPLIER);
+                rDofData.u1(i_node, 0) = value;
+                rDofData.LagrangeMultipliers(i_node, 0) = lm;
+            }
+        } else {
+            for (IndexType i_node = 0; i_node < NumNodes; i_node++) {
+                const array_1d<double, 3>& value = GetParentGeometry()[i_node].FastGetSolutionStepValue(mArray1DVariables[0]);
+                const array_1d<double, 3>& lm = GetParentGeometry()[i_node].FastGetSolutionStepValue(VECTOR_LAGRANGE_MULTIPLIER);
+                for (IndexType i_dof = 0; i_dof < TDim; i_dof++) {
+                    rDofData.u1(i_node, i_dof) = value[i_dof];
+                    rDofData.LagrangeMultipliers(i_node, i_dof) = lm[i_dof];
+                }
+            }
+        }
+    }
 
     /**
      * Calculate Ae matrix
      */
     bool CalculateAe(
-        const array_1d<double, 3>& NormalMaster,
-        DofData& rDofData,
+        const array_1d<double, 3>& rNormalMaster,
+        MatrixDualLM& rAe,
         GeneralVariables& rVariables,
-        ConditionArrayListType& ConditionsPointsSlave,
+        ConditionArrayListType& rConditionsPointsSlave,
         IntegrationMethod ThisIntegrationMethod
         );
 
@@ -524,11 +574,11 @@ protected:
      */
     void CalculateKinematics(
         GeneralVariables& rVariables,
-        const DofData& rDofData,
-        const array_1d<double, 3>& NormalMaster,
-        const PointType& LocalPointDecomp,
-        const PointType& LocalPointParent,
-        GeometryPointType& GeometryDecomp,
+        const MatrixDualLM& rAe,
+        const array_1d<double, 3>& rNormalMaster,
+        const PointType& rLocalPointDecomp,
+        const PointType& rLocalPointParent,
+        GeometryPointType& rGeometryDecomp,
         const bool DualLM = false
         );
 
@@ -536,21 +586,30 @@ protected:
     /**************** METHODS TO CALCULATE MORTAR CONDITION MATRICES ****************/
     /********************************************************************************/
 
-    /*
-     * Calculates the local contibution of the LHS
+    /**
+     * @brief Calculates the local contibution of the LHS
+     * @param rLocalLHS The local LHS to compute
+     * @param rMortarConditionMatrices The mortar operators to be considered
+     * @param rDofData The class containing all the information needed in order to compute the jacobian
      */
-
-    bounded_matrix<double, MatrixSize, MatrixSize> CalculateLocalLHS(
+    template< const TensorValue TTensor >
+    void CalculateLocalLHS(
+        Matrix& rLocalLHS,
         const MortarConditionMatrices& rMortarConditionMatrices,
-        const DofData& rDofData
+        const DofData<TTensor>& rDofData
         );
 
-    /*
-     * Calculates the local contibution of the LHS
+    /**
+     * @brief Calculates the local contibution of the LHS
+     * @param rLocalRHS The local RHS to compute
+     * @param rMortarConditionMatrices The mortar operators to be considered
+     * @param rDofData The class containing all the information needed in order to compute the jacobian
      */
-    array_1d<double, MatrixSize> CalculateLocalRHS(
+    template< const TensorValue TTensor >
+    void CalculateLocalRHS(
+        Vector& rLocalRHS,
         const MortarConditionMatrices& rMortarConditionMatrices,
-        const DofData& rDofData
+        const DofData<TTensor>& rDofData
         );
 
     /***********************************************************************************/
@@ -562,8 +621,8 @@ protected:
      */
     void MasterShapeFunctionValue(
         GeneralVariables& rVariables,
-        const array_1d<double, 3>& NormalMaster,
-        const PointType& LocalPoint
+        const array_1d<double, 3>& rNormalMaster,
+        const PointType& rLocalPoint
         );
 
     /******************************************************************/
@@ -577,13 +636,14 @@ protected:
     IntegrationMethod GetIntegrationMethod() override
     {
         // Setting the auxiliar integration points
-        switch (mIntegrationOrder) {
-        case 1: return GeometryData::GI_GAUSS_1;
-        case 2: return GeometryData::GI_GAUSS_2;
-        case 3: return GeometryData::GI_GAUSS_3;
-        case 4: return GeometryData::GI_GAUSS_4;
-        case 5: return GeometryData::GI_GAUSS_5;
-        default: return GeometryData::GI_GAUSS_2;
+        const IndexType integration_order = GetProperties().Has(INTEGRATION_ORDER_CONTACT) ? GetProperties().GetValue(INTEGRATION_ORDER_CONTACT) : 2;
+        switch (integration_order) {
+            case 1: return GeometryData::GI_GAUSS_1;
+            case 2: return GeometryData::GI_GAUSS_2;
+            case 3: return GeometryData::GI_GAUSS_3;
+            case 4: return GeometryData::GI_GAUSS_4;
+            case 5: return GeometryData::GI_GAUSS_5;
+            default: return GeometryData::GI_GAUSS_2;
         }
     }
 

@@ -6,94 +6,43 @@
 //  License:		 BSD License
 //					 license: StructuralMechanicsApplication/license.txt
 //
-//  Main authors:    Vicente Mataix
+//  Main authors:    Vicente Mataix Ferrandiz
 //
 
 // System includes
 
 // External includes
-#include <boost/python.hpp>
 
 // Project includes
-#include "includes/define.h"
-#include "processes/process.h"
+#include "includes/define_python.h"
 #include "custom_python/add_custom_utilities_to_python.h"
 
 #include "spaces/ublas_space.h"
 #include "linear_solvers/linear_solver.h"
 
-//Utilities
-#include "custom_utilities/tree_contact_search.h"
-#include "custom_utilities/process_factory_utility.h"
-#include "custom_utilities/sparse_matrix_multiplication_utility.h"
+// Utilities
+#include "custom_python/process_factory_utility.h"
+#include "custom_utilities/contact_utilities.h"
+#include "custom_utilities/active_set_utilities.h"
+#include "custom_utilities/interface_preprocess.h"
+#include "custom_utilities/self_contact_utilities.h"
 
 namespace Kratos
 {
 namespace Python
 {
-void  AddCustomUtilitiesToPython()
+namespace py = pybind11;
+
+void  AddCustomUtilitiesToPython(pybind11::module& m)
 {
-    using namespace boost::python;
-
-    // Tree contact search
-    class_<TreeContactSearch<2, 2>>("TreeContactSearch2D2N", init<ModelPart&>())
-    .def(init<ModelPart&, Parameters>())
-    .def("InitializeMortarConditions",&TreeContactSearch<2, 2>::InitializeMortarConditions)
-    .def("ClearScalarMortarConditions",&TreeContactSearch<2, 2>::ClearScalarMortarConditions)
-    .def("ClearComponentsMortarConditions",&TreeContactSearch<2, 2>::ClearComponentsMortarConditions)
-    .def("ClearALMFrictionlessMortarConditions",&TreeContactSearch<2, 2>::ClearALMFrictionlessMortarConditions)
-    .def("CreatePointListMortar",&TreeContactSearch<2, 2>::CreatePointListMortar)
-    .def("UpdatePointListMortar",&TreeContactSearch<2, 2>::UpdatePointListMortar)
-    .def("UpdateMortarConditions",&TreeContactSearch<2, 2>::UpdateMortarConditions)
-    .def("ResetContactOperators",&TreeContactSearch<2, 2>::ResetContactOperators)
-    .def("CheckMortarConditions",&TreeContactSearch<2, 2>::CheckMortarConditions)
-    .def("InvertSearch",&TreeContactSearch<2, 2>::InvertSearch)
-    ;
-    class_<TreeContactSearch<3, 3>>("TreeContactSearch3D3N", init<ModelPart&>())
-    .def(init<ModelPart&, Parameters>())
-    .def("InitializeMortarConditions",&TreeContactSearch<3, 3>::InitializeMortarConditions)
-    .def("ClearScalarMortarConditions",&TreeContactSearch<3, 3>::ClearScalarMortarConditions)
-    .def("ClearComponentsMortarConditions",&TreeContactSearch<3, 3>::ClearComponentsMortarConditions)
-    .def("ClearALMFrictionlessMortarConditions",&TreeContactSearch<3, 3>::ClearALMFrictionlessMortarConditions)
-    .def("CreatePointListMortar",&TreeContactSearch<3, 3>::CreatePointListMortar)
-    .def("UpdatePointListMortar",&TreeContactSearch<3, 3>::UpdatePointListMortar)
-    .def("UpdateMortarConditions",&TreeContactSearch<3, 3>::UpdateMortarConditions)
-    .def("ResetContactOperators",&TreeContactSearch<3, 3>::ResetContactOperators)
-    .def("CheckMortarConditions",&TreeContactSearch<3, 3>::CheckMortarConditions)
-    .def("InvertSearch",&TreeContactSearch<3, 3>::InvertSearch)
-    ;
-    class_<TreeContactSearch<3, 4>>("TreeContactSearch3D4N", init<ModelPart&>())
-    .def(init<ModelPart&, Parameters>())
-    .def("InitializeMortarConditions",&TreeContactSearch<3, 4>::InitializeMortarConditions)
-    .def("ClearScalarMortarConditions",&TreeContactSearch<3, 4>::ClearScalarMortarConditions)
-    .def("ClearComponentsMortarConditions",&TreeContactSearch<3, 4>::ClearComponentsMortarConditions)
-    .def("ClearALMFrictionlessMortarConditions",&TreeContactSearch<3, 4>::ClearALMFrictionlessMortarConditions)
-    .def("CreatePointListMortar",&TreeContactSearch<3, 4>::CreatePointListMortar)
-    .def("UpdatePointListMortar",&TreeContactSearch<3, 4>::UpdatePointListMortar)
-    .def("UpdateMortarConditions",&TreeContactSearch<3, 4>::UpdateMortarConditions)
-    .def("ResetContactOperators",&TreeContactSearch<3, 4>::ResetContactOperators)
-    .def("CheckMortarConditions",&TreeContactSearch<3, 4>::CheckMortarConditions)
-    .def("InvertSearch",&TreeContactSearch<3, 4>::InvertSearch)
-    ;
-
-    // Adding search related enums
-    enum_<SearchTreeType>("SearchTreeType")
-    .value("KdtreeInRadius", KdtreeInRadius)
-    .value("KdtreeInBox", KdtreeInBox)
-    .value("Kdop", Kdop)
-    ;
-
-    enum_<CheckGap>("CheckGap")
-    .value("NoCheck", NoCheck)
-    .value("DirectCheck", DirectCheck)
-    .value("MappingCheck", MappingCheck)
-    ;
-
     // Process Factory utility
-    class_<ProcessFactoryUtility>("ProcessFactoryUtility", init<boost::python::list&>())
-    .def(init< >())
+    py::class_<ProcessFactoryUtility, typename ProcessFactoryUtility::Pointer>(m, "ProcessFactoryUtility")
+    .def(py::init<>())
+    .def(py::init<py::list&>())
+    .def(py::init<py::object&>())
     .def("AddProcess",&ProcessFactoryUtility::AddProcess)
     .def("AddProcesses",&ProcessFactoryUtility::AddProcesses)
+    .def("ExecuteMethod",&ProcessFactoryUtility::ExecuteMethod)
     .def("ExecuteInitialize",&ProcessFactoryUtility::ExecuteInitialize)
     .def("ExecuteBeforeSolutionLoop",&ProcessFactoryUtility::ExecuteBeforeSolutionLoop)
     .def("ExecuteInitializeSolutionStep",&ProcessFactoryUtility::ExecuteInitializeSolutionStep)
@@ -101,14 +50,38 @@ void  AddCustomUtilitiesToPython()
     .def("ExecuteBeforeOutputStep",&ProcessFactoryUtility::ExecuteBeforeOutputStep)
     .def("ExecuteAfterOutputStep",&ProcessFactoryUtility::ExecuteAfterOutputStep)
     .def("ExecuteFinalize",&ProcessFactoryUtility::ExecuteFinalize)
+    .def("IsOutputStep",&ProcessFactoryUtility::IsOutputStep)
+    .def("PrintOutput",&ProcessFactoryUtility::PrintOutput)
     .def("Clear",&ProcessFactoryUtility::Clear)
     ;
 
-    // Sparse matrix multiplication utility
-    class_<SparseMatrixMultiplicationUtility>("SparseMatrixMultiplicationUtility", init<>())
-    .def("MatrixMultiplicationSaad",&SparseMatrixMultiplicationUtility::MatrixMultiplicationSaad<CompressedMatrix, CompressedMatrix, CompressedMatrix>)
-    .def("MatrixMultiplicationRMerge",&SparseMatrixMultiplicationUtility::MatrixMultiplicationRMerge<CompressedMatrix, CompressedMatrix, CompressedMatrix>)
-    .def("MatrixAdd",&SparseMatrixMultiplicationUtility::MatrixAdd<CompressedMatrix, CompressedMatrix>)
+    // Contact utilities
+    py::class_<ContactUtilities, typename ContactUtilities::Pointer>(m, "ContactUtilities")
+    .def(py::init<>())
+    .def("CalculateRelativeSizeMesh",&ContactUtilities::CalculateRelativeSizeMesh)
+    .def("CalculateMaxNodalH",&ContactUtilities::CalculateMaxNodalH)
+    .def("CalculateMeanNodalH",&ContactUtilities::CalculateMeanNodalH)
+    .def("CalculateMinimalNodalH",&ContactUtilities::CalculateMinimalNodalH)
+    .def("CheckActivity",&ContactUtilities::CheckActivity)
+    .def("ComputeExplicitContributionConditions",&ContactUtilities::ComputeExplicitContributionConditions)
+    .def("ActivateConditionWithActiveNodes",&ContactUtilities::ActivateConditionWithActiveNodes)
+    ;
+
+    // Active set utilities
+    auto active_set_utilities = m.def_submodule("ActiveSetUtilities");
+    active_set_utilities.def("ComputePenaltyFrictionlessActiveSet",&ActiveSetUtilities::ComputePenaltyFrictionlessActiveSet);
+    active_set_utilities.def("ComputePenaltyFrictionalActiveSet",&ActiveSetUtilities::ComputePenaltyFrictionalActiveSet);
+
+    // Self-contact utilities
+    auto self_contact_utilities = m.def_submodule("SelfContactUtilities");
+    self_contact_utilities.def("ComputeSelfContactPairing",&SelfContactUtilities::ComputeSelfContactPairing);
+    self_contact_utilities.def("FullAssignmentOfPairs",&SelfContactUtilities::FullAssignmentOfPairs);
+    self_contact_utilities.def("NotPredefinedMasterSlave",&SelfContactUtilities::NotPredefinedMasterSlave);
+
+    // Interface preprocess
+    py::class_<InterfacePreprocessCondition, typename InterfacePreprocessCondition::Pointer>(m, "InterfacePreprocessCondition")
+    .def(py::init<ModelPart&>())
+    .def("GenerateInterfacePart",&InterfacePreprocessCondition::GenerateInterfacePart)
     ;
 }
 

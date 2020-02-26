@@ -22,8 +22,7 @@
 
 
 // External includes
-// TODO: I should change this to std::unordered_map when we switch to c++11
-#include "boost/unordered_map.hpp"
+#include <unordered_map>
 
 // Project includes
 #include "includes/define.h"
@@ -62,7 +61,7 @@ namespace Kratos
     deleting.
  */
 template<class TDataType,
-         class THashType = boost::hash<TDataType>,
+         class THashType = std::hash<TDataType>,
          class TGetKeyType = SetIdentityFunction<TDataType>,
          class TPointerType = Kratos::shared_ptr<TDataType> >
 class PointerHashMapSet
@@ -86,8 +85,7 @@ public:
     typedef TPointerType pointer_type;
     typedef TDataType& reference;
     typedef const TDataType& const_reference;
-	// TODO: I should change this to std::unordered_map when we switch to c++11
-	typedef boost::unordered_map<key_type, TPointerType, hasher> ContainerType;
+	typedef std::unordered_map<key_type, TPointerType, hasher> ContainerType;
 
     typedef typename ContainerType::size_type size_type;
     typedef typename ContainerType::iterator ptr_iterator;
@@ -180,12 +178,14 @@ public:
 
     TDataType& operator[](const key_type& Key)
     {
-		return *(mData[Key].second);
+		KRATOS_DEBUG_ERROR_IF(mData.find(Key) == mData.end()) << "The key: " << Key << " is not available in the map" << std::endl;
+		return *(mData.find(Key)->second);
     }
 
     pointer_type& operator()(const key_type& Key)
     {
-		return mData[Key].second;
+		KRATOS_DEBUG_ERROR_IF(mData.find(Key) == mData.end()) << "The key: " << Key << " is not available in the map" << std::endl;
+		return mData.find(Key)->second;
 	}
 
     bool operator==( const PointerHashMapSet& r ) const // nothrow
@@ -286,14 +286,14 @@ public:
 
     iterator insert(TPointerType pData)
     {
-		std::string key=KeyOf(*pData);
-		typename ContainerType::value_type item(key, pData);
-		std::pair<typename ContainerType::iterator, bool> result = mData.insert(item);
-	// TODO: I should enable this after adding the KRATOS_ERROR to define.h. Pooyan.
-	//if(result.second != true)
-	//	KRATOS_ERROR << "Error in adding the new item" << std::endl
-		return result.first;
-	}
+        key_type key=KeyOf(*pData);
+        typename ContainerType::value_type item(key, pData);
+        std::pair<typename ContainerType::iterator, bool> result = mData.insert(item);
+        // TODO: I should enable this after adding the KRATOS_ERROR to define.h. Pooyan.
+        //if(result.second != true)
+        //	KRATOS_ERROR << "Error in adding the new item" << std::endl
+        return result.first;
+    }
 
     template <class InputIterator>
     void insert(InputIterator First, InputIterator Last)

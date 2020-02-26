@@ -3,104 +3,66 @@
 //             | |   |    |   | (    |   |   | |   (   | |
 //       _____/ \__|_|   \__,_|\___|\__|\__,_|_|  \__,_|_| MECHANICS
 //
-//  License:		 BSD License
-//					 license: structural_mechanics_application/license.txt
+//  License:         BSD License
+//                   license: structural_mechanics_application/license.txt
 //
 //  Main authors:    Riccardo Rossi
 //
 
 
 // System includes
-#include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 // External includes
 
 // Project includes
-#include "includes/define.h"
-#include "includes/constitutive_law.h"
 #include "custom_python/add_custom_constitutive_laws_to_python.h"
+
+// Elastic laws
 #include "custom_constitutive/truss_constitutive_law.h"
 #include "custom_constitutive/beam_constitutive_law.h"
-#include "custom_constitutive/linear_plane_stress.h"
-#include "custom_constitutive/linear_plane_strain.h"
 #include "custom_constitutive/elastic_isotropic_3d.h"
 #include "custom_constitutive/axisym_elastic_isotropic.h"
-#include "custom_constitutive/hyper_elastic_isotropic_kirchhoff_3d.h"
-#include "custom_constitutive/hyper_elastic_isotropic_kirchhoff_plane_stress_2d.h"
-#include "custom_constitutive/hyper_elastic_isotropic_kirchhoff_plane_strain_2d.h"
-#include "custom_constitutive/hyper_elastic_isotropic_neo_hookean_3d.h"
-#include "custom_constitutive/hyper_elastic_isotropic_neo_hookean_plane_strain_2d.h"
-#include "custom_constitutive/linear_elastic_orthotropic_2D_law.h"
+#include "custom_constitutive/linear_plane_stress.h"
+#include "custom_constitutive/linear_plane_strain.h"
+#include "custom_constitutive/user_provided_linear_elastic_law.h"
 
-#include "custom_constitutive/linear_j2_plasticity_3d.h"
-#include "custom_constitutive/linear_j2_plasticity_plane_strain_2d.h"
+namespace Kratos {
+namespace Python {
 
-namespace Kratos
+void  AddCustomConstitutiveLawsToPython(pybind11::module& m)
 {
-namespace Python
-{
+    namespace py = pybind11;
 
-using namespace boost::python;
-
-
-void  AddCustomConstitutiveLawsToPython()
-{
-
-    class_< TrussConstitutiveLaw, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "TrussConstitutiveLaw", init<>() )
+    py::class_< TrussConstitutiveLaw, typename TrussConstitutiveLaw::Pointer, ConstitutiveLaw >
+    (m, "TrussConstitutiveLaw").def(py::init<>() )
     ;
 
-    class_< BeamConstitutiveLaw, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "BeamConstitutiveLaw", init<>() )
+    py::class_< BeamConstitutiveLaw, typename BeamConstitutiveLaw::Pointer, ConstitutiveLaw >
+    (m, "BeamConstitutiveLaw").def(py::init<>() )
     ;
 
-    class_< LinearPlaneStress, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "LinearElasticPlaneStress2DLaw", init<>() )
-    ;
-    
-    class_< LinearPlaneStrain, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "LinearElasticPlaneStrain2DLaw", init<>() )
+    py::class_< LinearPlaneStress, typename LinearPlaneStress::Pointer, ConstitutiveLaw >
+    (m, "LinearElasticPlaneStress2DLaw").def(py::init<>() )
     ;
 
-    class_< ElasticIsotropic3D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "LinearElastic3DLaw", init<>() )
+    py::class_< LinearPlaneStrain, typename LinearPlaneStrain::Pointer, ConstitutiveLaw >
+    (m, "LinearElasticPlaneStrain2DLaw").def(py::init<>() )
     ;
 
-    class_< AxisymElasticIsotropic, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "LinearElasticAxisym2DLaw", init<>() )
+    py::class_< ElasticIsotropic3D, typename ElasticIsotropic3D::Pointer, ConstitutiveLaw >
+    (m, "LinearElastic3DLaw").def(py::init<>() )
     ;
 
-    class_< HyperElasticIsotropicKirchhoff3D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "KirchhoffSaintVenant3DLaw", init<>() )
+    py::class_< AxisymElasticIsotropic, typename AxisymElasticIsotropic::Pointer, ConstitutiveLaw >
+    (m, "LinearElasticAxisym2DLaw").def(py::init<>() )
     ;
 
-    class_< HyperElasticIsotropicKirchhoffPlaneStress2D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "KirchhoffSaintVenantPlaneStress2DLaw", init<>() )
+    py::class_< UserProvidedLinearElasticLaw<2>, typename UserProvidedLinearElasticLaw<2>::Pointer, ConstitutiveLaw >
+    (m, "UserProvidedLinearElastic2DLaw").def(py::init<>() )
     ;
 
-    class_< HyperElasticIsotropicKirchhoffPlaneStrain2D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "KirchhoffSaintVenantPlaneStrain2DLaw", init<>() )
-    ;
-
-    class_< HyperElasticIsotropicNeoHookean3D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "HyperElastic3DLaw", init<>() )
-    ;
-    
-    class_< HyperElasticIsotropicNeoHookeanPlaneStrain2D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ( "HyperElasticPlaneStrain2DLaw", init<>() )
-    ;
-
-    class_< LinearElasticOrthotropic2DLaw, bases< ConstitutiveLaw >, boost::noncopyable >
-    ("LinearElasticOrthotropic2DLaw", init<>())
-    ;
-
-    class_< LinearJ2PlasticityPlaneStrain2D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ("LinearJ2PlasticityPlaneStrain2DLaw", init<>())
-    ;
-
-    class_< LinearJ2Plasticity3D, bases< ConstitutiveLaw >, boost::noncopyable >
-    ("LinearJ2Plasticity3DLaw", init<>())
+    py::class_< UserProvidedLinearElasticLaw<3>, typename UserProvidedLinearElasticLaw<3>::Pointer, ConstitutiveLaw >
+    (m, "UserProvidedLinearElastic3DLaw").def(py::init<>() )
     ;
 }
 

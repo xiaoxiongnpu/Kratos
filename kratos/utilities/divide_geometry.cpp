@@ -54,10 +54,8 @@ namespace Kratos
 
         const array_1d<double, 3> point_coords = this->Coordinates();
         std::stringstream coordinates_buffer;
-        for (unsigned int i = 0; i < 3; ++i) {
-            coordinates_buffer << std::to_string(point_coords(i)) << " ";
-        }
-        rOStream << "\tCoordinates: " << coordinates_buffer.str() << std::endl;
+        coordinates_buffer << "\tCoordinates: ( " << point_coords(0) << " , " << point_coords(1) << " , " << point_coords(2) << " )";
+        rOStream << coordinates_buffer.str() << std::endl;
     };
 
     /// DivideGeometry implementation
@@ -86,8 +84,10 @@ namespace Kratos
         rOStream << "Base class for geometries splitting operations constructed with:\n";
         rOStream << "   Geometry type: " << mrInputGeometry.Info() << "\n";
         std::stringstream distances_buffer;
+        std::ostringstream stm;
         for (unsigned int i = 0; i < mrNodalDistances.size(); ++i) {
-            distances_buffer << std::to_string(mrNodalDistances(i)) << " ";
+            stm << mrNodalDistances(i);
+            distances_buffer << stm.str()<< " ";
         }
         rOStream << "   Distance values: " << distances_buffer.str();
     };

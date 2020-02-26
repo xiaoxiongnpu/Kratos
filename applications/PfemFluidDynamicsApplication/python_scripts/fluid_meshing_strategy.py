@@ -2,35 +2,35 @@ from __future__ import print_function, absolute_import, division #makes KratosMu
 
 #import kratos core and applications
 import KratosMultiphysics
-import KratosMultiphysics.PfemApplication as KratosPfem
+import KratosMultiphysics.DelaunayMeshingApplication as KratosDelaunay
 import KratosMultiphysics.PfemFluidDynamicsApplication as KratosPfemFluid
 
-# Check that KratosMultiphysics was imported in the main script
-KratosMultiphysics.CheckForPreviousImport()
+from KratosMultiphysics.DelaunayMeshingApplication import meshing_strategy
 
-import meshing_strategy
+from importlib import import_module
 
 def CreateMeshingStrategy(main_model_part, custom_settings):
     return FluidMeshingStrategy(main_model_part, custom_settings)
 
 class FluidMeshingStrategy(meshing_strategy.MeshingStrategy):
 
-    def SetMeshModelers(self):
+    def SetMeshers(self):
 
-        print("::[Fluid Meshing Strategy]:: SET MESH MODELER")
+        print("::[Fluid Meshing Strategy]:: SET MESHER")
 
-        modelers = []        
+        meshers_list = []
         if( self.settings["remesh"].GetBool() and self.settings["refine"].GetBool() ):
-            modelers.append("fluid_pre_refining_modeler")
-            #modelers.append("fluid_post_refining_modeler")
+            meshers_list.append("KratosMultiphysics.PfemFluidDynamicsApplication.fluid_pre_refining_mesher")
+            #mesher_list.append("fluid_post_refining_mesher")
         elif( self.settings["remesh"].GetBool() ):
-            modelers.append("reconnect_modeler")
+            meshers_list.append("KratosMultiphysics.DelaunayMeshingApplication.reconnect_mesher")
         elif( self.settings["transfer"].GetBool() ):
-            modelers.append("transfer_modeler")
- 
-        for modeler in modelers:
-            meshing_module =__import__(modeler)      
-            mesher = meshing_module.CreateMeshModeler(self.main_model_part,self.MeshingParameters) 
-            self.mesh_modelers.append(mesher)
-  
+            meshers_list.append("KratosMultiphysics.DelaunayMeshingApplication.transfer_mesher")
+
+        for mesher in meshers_list:
+            full_module_name = mesher
+            meshing_module = import_module(full_module_name)
+            new_mesher = meshing_module.CreateMesher(self.main_model_part,self.MeshingParameters)
+            self.meshers.append(new_mesher)
+
     #

@@ -20,6 +20,7 @@
 
 // Project includes
 #include "includes/model_part.h"
+#include "containers/data_value_container.h"
 
 // Application includes
 #include "custom_io/hdf5_file.h"
@@ -64,12 +65,19 @@ class TestModelPartFactory
             std::vector<std::string> const& rConditions = {},
             std::vector<std::string> const& rNodalVariables = {});
 
+        static void AssignNonHistoricalNodalTestData(ModelPart& rTestModelPart,
+                                                     std::vector<std::string> const& rNodalVariables = {});
+
+        static void AssignDataValueContainer(DataValueContainer& rData,
+                                             Flags& rFlags,
+                                             std::vector<std::string> const& rVariables = {});
+
     private:
         explicit TestModelPartFactory(ModelPart& rTestModelPart);
 
-        std::size_t AddNodes(std::size_t NumNodes);
-
         void AddNodalVariables(std::vector<std::string> const& rNodalVariables);
+
+        std::size_t AddNodes(std::size_t NumNodes);
 
         void SetBufferSize(std::size_t BufferSize);
 
@@ -80,6 +88,14 @@ class TestModelPartFactory
         std::size_t AddConditions(std::string const& rCondition, std::size_t NumConds);
 
         void AddSubModelParts();
+
+        void AddEmptySubModelPart();
+
+        void AddElementsSubModelPart();
+
+        void AddConditionsSubModelPart();
+
+        void AddElementsAndConditionsSubModelPart();
 
         ModelPart& mrTestModelPart;
 };
@@ -92,11 +108,34 @@ void CompareConditions(HDF5::ConditionsContainerType& rConditions1, HDF5::Condit
 
 void CompareModelParts(ModelPart& rModelPart1, ModelPart& rModelPart2);
 
+void CompareDataValueContainers(DataValueContainer const& rData1, Flags const& rFlags1, DataValueContainer const& rData2, Flags const& rFlags2);
+
+void CompareNonHistoricalNodalData(HDF5::NodesContainerType& rNodes1,
+                                   HDF5::NodesContainerType& rNodes2);
+
 HDF5::File::Pointer pGetTestSerialFile();
 
 HDF5::File GetTestFile();
 
 HDF5::FileSerial GetTestSerialFile();
+
+/// Silences HDF5 stderr messages for duration of local scope.
+class H5_stderr_muter
+{
+    H5E_auto2_t old_func;
+    void* old_client_data;
+
+public:
+    H5_stderr_muter()
+    {
+        H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    }
+    ~H5_stderr_muter()
+    {
+        H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+    }
+};
 
 } // namespace Testing
 } // namespace Kratos.

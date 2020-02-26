@@ -60,7 +60,7 @@ public:
     IndexedPoint();
 
     /// Auxiliar constructor
-    IndexedPoint(const unsigned int Id);
+    explicit IndexedPoint(const unsigned int Id);
 
     /// Default constructor
     IndexedPoint(const array_1d<double,3>& rCoords, const unsigned int Id);
@@ -201,7 +201,7 @@ public:
     DivideGeometry(const GeometryType& rInputGeometry, const Vector& rNodalDistances);
 
     /// Destructor
-    ~DivideGeometry();
+    virtual ~DivideGeometry();
 
     ///@}
     ///@name Access
