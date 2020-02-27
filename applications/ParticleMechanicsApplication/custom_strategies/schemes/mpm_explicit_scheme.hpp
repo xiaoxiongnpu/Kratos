@@ -282,63 +282,6 @@ public:
         const SizeType DomainSize = 3
     )
     {
-
-        //PJW
-        const double node_X = itCurrentNode->X();
-        const double node_Y = itCurrentNode->Y();
-        // PJW
-
-//         const double nodal_mass = itCurrentNode->FastGetSolutionStepValue(NODAL_MASS);
-         //
-
-//         const double nodal_displacement_damping = itCurrentNode->GetValue(NODAL_DISPLACEMENT_DAMPING);
-//         const array_1d<double, 3>& r_current_residual = itCurrentNode->FastGetSolutionStepValue(FORCE_RESIDUAL);
-
-//         array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
-//         array_1d<double, 3>& r_current_displacement = itCurrentNode->FastGetSolutionStepValue(DISPLACEMENT);
-//         array_1d<double, 3>& r_middle_velocity = itCurrentNode->FastGetSolutionStepValue(MIDDLE_VELOCITY);
-
-//         array_1d<double, 3>& r_current_acceleration = itCurrentNode->FastGetSolutionStepValue(ACCELERATION);
-
-//         const array_1d<double, 3>& r_previous_displacement = itCurrentNode->FastGetSolutionStepValue(DISPLACEMENT, 1);
-//         const array_1d<double, 3>& r_previous_middle_velocity = itCurrentNode->FastGetSolutionStepValue(MIDDLE_VELOCITY, 1);
-//         
-         //// Solution of the explicit equation:
-//         if (nodal_mass > numerical_limit)
-//             // I do this on element lvl
-//             //noalias(r_current_acceleration) = (r_current_residual - nodal_displacement_damping * r_current_velocity) / nodal_mass;
-//             noalias(r_current_acceleration) = (r_current_residual) / nodal_mass;
-//         else
-//             noalias(r_current_acceleration) = ZeroVector(3);
-
-
-//         std::array<bool, 3> fix_displacements = {false, false, false};
-
-//         fix_displacements[0] = (itCurrentNode->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
-//         fix_displacements[1] = (itCurrentNode->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
-//         if (DomainSize == 3)
-//             fix_displacements[2] = (itCurrentNode->GetDof(DISPLACEMENT_Z, DisplacementPosition + 2).IsFixed());
-
-
-//         for (IndexType j = 0; j < DomainSize; j++) {
-//             if (fix_displacements[j]) {
-//                 r_current_acceleration[j] = 0.0;
-//                 r_middle_velocity[j] = 0.0;
-//             }
-
-//             r_current_velocity[j] =  r_previous_middle_velocity[j] + (mTime.Previous - mTime.PreviousMiddle) * r_current_acceleration[j]; //+ actual_velocity;
-//             r_middle_velocity[j] = r_current_velocity[j] + (mTime.Middle - mTime.Previous) * r_current_acceleration[j];
-//             r_current_displacement[j] = r_previous_displacement[j] + mTime.Delta * r_middle_velocity[j];
-
-         //	//r_current_velocity[j] = r_middle_velocity[j]; //PJW TESTING
-
-         //	
-
-//         } // for DomainSize
-
-
-
-         //PJW integrated momentum form of explicit advance =============================
         std::array<bool, 3> fix_displacements = { false, false, false };
         fix_displacements[0] = (itCurrentNode->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
         fix_displacements[1] = (itCurrentNode->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
@@ -349,6 +292,7 @@ public:
         array_1d<double, 3>& r_current_residual = itCurrentNode->FastGetSolutionStepValue(FORCE_RESIDUAL);
 
         // Advance momenta
+        // TODO add central difference option
         for (IndexType j = 0; j < DomainSize; j++) {
             if (fix_displacements[j]) {
                 r_nodal_momenta[j] = 0.0;
@@ -358,12 +302,10 @@ public:
             {
                 r_nodal_momenta[j] += mTime.Delta * r_current_residual[j];
             }
-            
-
         } // for DomainSize
 
 
-        // We need to set updated grid velocity here if we are using USL formulation
+        // We need to set updated grid velocity here if we are using the USL formulation
         if (mStressUpdateOption == 1)
         {
             array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
@@ -377,7 +319,6 @@ public:
                 } // for DomainSize
             }
         }
-        //PJW integrated momentum form of explicit advance =============================
     }
 
 
@@ -491,7 +432,7 @@ public:
             nodal_mass = 0.0;
             nodal_momentum.clear();
             nodal_inertia.clear();
-            nodal_force.clear(); //PJW
+            nodal_force.clear();
 
             nodal_displacement.clear();
             nodal_velocity.clear();
@@ -503,6 +444,43 @@ public:
         // Extrapolate from Material Point Elements and Conditions
         Scheme<TSparseSpace, TDenseSpace>::InitializeSolutionStep(r_model_part, A, Dx, b);
 
+        // If we are updating stress first (USF), calculate nodal velocities from momenta and apply BCs
+        if (mStressUpdateOption == 0)
+        {
+            const IndexType DisplacementPosition = mr_grid_model_part.NodesBegin()->GetDofPosition(DISPLACEMENT_X);
+
+            #pragma omp parallel for
+            for (int iter = 0; iter < static_cast<int>(mr_grid_model_part.Nodes().size()); ++iter)
+            {
+                auto i = mr_grid_model_part.NodesBegin() + iter;
+                const SizeType DomainSize = CurrentProcessInfo[DOMAIN_SIZE];
+                double& nodal_mass = (i)->FastGetSolutionStepValue(NODAL_MASS);
+                array_1d<double, 3 >& nodal_momentum = (i)->FastGetSolutionStepValue(NODAL_MOMENTUM);
+                array_1d<double, 3 >& nodal_velocity = (i)->FastGetSolutionStepValue(VELOCITY);
+
+                std::array<bool, 3> fix_displacements = { false, false, false };
+                fix_displacements[0] = (i->GetDof(DISPLACEMENT_X, DisplacementPosition).IsFixed());
+                fix_displacements[1] = (i->GetDof(DISPLACEMENT_Y, DisplacementPosition + 1).IsFixed());
+                if (DomainSize == 3)
+                    fix_displacements[2] = (i->GetDof(DISPLACEMENT_Z, DisplacementPosition + 2).IsFixed());
+
+                if (nodal_mass > numerical_limit)
+                {
+                    for (IndexType j = 0; j < DomainSize; j++)
+                    {
+                        if (fix_displacements[j])
+                        {
+                            nodal_velocity[j] = 0.0;
+                        }
+                        else
+                        {
+                            nodal_velocity[j] = nodal_momentum[j] / nodal_mass;
+                        }
+
+                    }
+                }
+            }
+        }
         KRATOS_CATCH("")
     }
 
@@ -550,53 +528,6 @@ public:
             it_cond->FinalizeSolutionStep(rCurrentProcessInfo);
         }
 
-
-
-
-        /*
-        ElementsArrayType& rElements = rModelPart.Elements();
-        const ProcessInfo& rCurrentProcessInfo = rModelPart.GetProcessInfo();
-
-        if (mStressUpdateOption == 2)
-        {
-            PerformModifiedUpdateStressLastMapping(rCurrentProcessInfo, rModelPart, rElements);
-        }
-
-        int num_threads = OpenMPUtils::GetNumThreads();
-        OpenMPUtils::PartitionVector element_partition;
-        OpenMPUtils::DivideInPartitions(rElements.size(), num_threads, element_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-
-            ElementsArrayType::iterator element_begin = rElements.begin() + element_partition[k];
-            ElementsArrayType::iterator element_end = rElements.begin() + element_partition[k + 1];
-
-            for (ElementsArrayType::iterator itElem = element_begin; itElem != element_end; itElem++)
-            {
-                itElem->FinalizeSolutionStep(rCurrentProcessInfo);
-            }
-        }
-
-        ConditionsArrayType& rConditions = rModelPart.Conditions();
-
-        OpenMPUtils::PartitionVector condition_partition;
-        OpenMPUtils::DivideInPartitions(rConditions.size(), num_threads, condition_partition);
-
-        #pragma omp parallel
-        {
-            int k = OpenMPUtils::ThisThread();
-
-            ConditionsArrayType::iterator condition_begin = rConditions.begin() + condition_partition[k];
-            ConditionsArrayType::iterator condition_end = rConditions.begin() + condition_partition[k + 1];
-
-            for (ConditionsArrayType::iterator itCond = condition_begin; itCond != condition_end; itCond++)
-            {
-                itCond->FinalizeSolutionStep(rCurrentProcessInfo);
-            }
-        }
-        */
         KRATOS_CATCH("")
     }
 
@@ -662,7 +593,7 @@ public:
     {
         KRATOS_TRY
 
-            ElementsArrayType& pElements = r_model_part.Elements();
+        ElementsArrayType& pElements = r_model_part.Elements();
         ProcessInfo& CurrentProcessInfo = r_model_part.GetProcessInfo();
 
         for (ElementsArrayType::iterator it = pElements.begin(); it != pElements.end(); ++it)

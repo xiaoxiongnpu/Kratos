@@ -314,11 +314,6 @@ namespace Kratos
             TSystemVectorType mDx = TSystemVectorType();
             TSystemVectorType mb = TSystemVectorType();
 
-
-            // Initializing the parameters of the Newton-Raphson cicle
-            unsigned int iteration_number = 1;
-            BaseType::GetModelPart().GetProcessInfo()[NL_ITERATION_NUMBER] = iteration_number;
-
             pScheme->InitializeNonLinIteration(BaseType::GetModelPart(), mA, mDx, mb);
 
             // Compute residual forces on the model part

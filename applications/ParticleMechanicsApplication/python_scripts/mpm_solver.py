@@ -151,12 +151,15 @@ class MPMSolver(PythonSolver):
     def InitializeSolutionStep(self):
         self._SearchElement()
         self._GetSolutionStrategy().Initialize()
+
+        #clean nodal values and map from MPs to nodes
         self._GetSolutionStrategy().InitializeSolutionStep()
 
     def Predict(self):
         self._GetSolutionStrategy().Predict()
 
     def SolveSolutionStep(self):
+        # Calc residual, update momenta
         is_converged = self._GetSolutionStrategy().SolveSolutionStep()
         return is_converged
 

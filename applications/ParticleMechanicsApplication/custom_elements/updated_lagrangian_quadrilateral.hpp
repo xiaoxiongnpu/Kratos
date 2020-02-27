@@ -340,6 +340,11 @@ public:
     void InitializeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
 
     /**
+    * Called after InitializeSolutionStep at the start of the non-linear iteration
+    */
+    void InitializeNonLinearIteration(ProcessInfo& rCurrentProcessInfo) override;
+
+    /**
      * Called at the end of each solution step
      */
     void FinalizeSolutionStep(ProcessInfo& rCurrentProcessInfo) override;
@@ -526,6 +531,11 @@ protected:
      */
     bool mIsExplicit = false;
 
+    /**
+     * Integer for stress update option
+     */
+    bool mIsUSFStressUpdate = false;
+
 
 
     ///@}
@@ -597,7 +607,13 @@ protected:
     /**
       * Calculation of the Explicit Internal Forces Vector. Fi = div. sigma
       */
-    void CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector);
+    virtual void CalculateAndAddExplicitInternalForces(VectorType& rRightHandSideVector);
+
+    /**
+      * Calculation of the Explicit Stresses from velocity gradient.
+      */
+    virtual void CalculateExplicitStresses(const ProcessInfo& rCurrentProcessInfo,
+                                            GeneralVariables& rVariables);
 
 
     /**
