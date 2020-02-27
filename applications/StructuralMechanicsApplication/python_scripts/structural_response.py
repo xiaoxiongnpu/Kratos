@@ -96,7 +96,10 @@ class StrainEnergyResponseFunction(ResponseFunctionBase):
         self.response_function_utility.Initialize()
 
     def InitializeSolutionStep(self):
+        print("::ISS::")
         self.primal_analysis.time = self.primal_analysis._GetSolver().AdvanceInTime(self.primal_analysis.time)
+        #self.primal_analysis._GetSolver().Clear()         
+        #self.primal_analysis._GetSolver().Initialize()
         self.primal_analysis.InitializeSolutionStep()
 
     def CalculateValue(self):

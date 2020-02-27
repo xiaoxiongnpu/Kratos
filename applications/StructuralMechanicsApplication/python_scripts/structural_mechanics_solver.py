@@ -215,17 +215,34 @@ class MechanicalSolver(PythonSolver):
         if self.settings["clear_storage"].GetBool():
             self.Clear()
             self.Initialize() #required after clearing
+        # self.Clear()
+        # mechanical_solution_strategy = self._create_mechanical_solution_strategy()
+        # mechanical_solution_strategy.Initialize()
         self.get_mechanical_solution_strategy().InitializeSolutionStep()
+        #mechanical_solution_strategy.InitializeSolutionStep()
 
     def Predict(self):
         self.get_mechanical_solution_strategy().Predict()
+        #mechanical_solution_strategy.Predict()
 
     def SolveSolutionStep(self):
         model_part_nodes = self.main_model_part.Nodes
+        print("::BEFORE SSS::")
         for node in model_part_nodes:
-            #if node.Id < 6:
-            print(node.Id, node.X, node.Y, node.Z)
+            if node.Id < 6:
+                print(node.Id, node.X, node.Y, node.Z)
+            elif node.Id == 88:
+                print(node.Id, node.X, node.Y, node.Z)
+
         is_converged = self.get_mechanical_solution_strategy().SolveSolutionStep()
+        
+        print("::AFTER SSS::")
+        for node in model_part_nodes:
+            if node.Id < 6:
+                print(node.Id, node.X, node.Y, node.Z)
+            elif node.Id == 88:
+                print(node.Id, node.X, node.Y, node.Z)
+                
         if not is_converged:
             msg  = "Solver did not converge for step " + str(self.main_model_part.ProcessInfo[KratosMultiphysics.STEP]) + "\n"
             msg += "corresponding to time " + str(self.main_model_part.ProcessInfo[KratosMultiphysics.TIME]) + "\n"
@@ -234,6 +251,7 @@ class MechanicalSolver(PythonSolver):
 
     def FinalizeSolutionStep(self):
         self.get_mechanical_solution_strategy().FinalizeSolutionStep()
+        #mechanical_solution_strategy.FinalizeSolutionStep()
 
     def AdvanceInTime(self, current_time):
         dt = self.ComputeDeltaTime()
@@ -300,6 +318,7 @@ class MechanicalSolver(PythonSolver):
             self.GetComputingModelPart().NumberOfMasterSlaveConstraints() > 0):
             self._mechanical_solution_strategy = self._create_mechanical_solution_strategy()
         if not hasattr(self, '_mechanical_solution_strategy'):
+            print("::I'M CALLED:: MECHANICAL STRAGTEGY")
             self._mechanical_solution_strategy = self._create_mechanical_solution_strategy()
         return self._mechanical_solution_strategy
 
@@ -448,6 +467,13 @@ class MechanicalSolver(PythonSolver):
 
     def _create_linear_strategy(self):
         computing_model_part = self.GetComputingModelPart()
+
+        print("::COMPUTING MODELPART::")
+        model_part_nodes = computing_model_part.Nodes
+        for node in model_part_nodes:
+            if node.Id < 6:
+                print(node.Id, node.X, node.Y, node.Z)
+
         mechanical_scheme = self.get_solution_scheme()
         linear_solver = self.get_linear_solver()
         builder_and_solver = self.get_builder_and_solver()

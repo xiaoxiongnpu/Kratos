@@ -23,7 +23,8 @@
             "time_step" : 1.1
         },
         "line_search"                     : false,
-        "rotation_dofs"                   : true
+        "rotation_dofs"                   : true,
+        "clear_storage": false
     },
     "processes"        : {
         "constraints_process_list" : [{

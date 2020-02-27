@@ -71,7 +71,7 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
             y.append(node.Y)
             z.append(node.Z)
             #if node.Id < 6:
-            #print(node.Id, x[node.Id-1], y[node.Id-1], z[node.Id-1])
+            print(node.Id, x[node.Id-1], y[node.Id-1], z[node.Id-1])
        
         time_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.TIME)
         step_before_analysis = optimization_model_part.ProcessInfo.GetValue(km.STEP)
@@ -84,7 +84,7 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
             optimization_model_part.ProcessInfo.SetValue(km.TIME, time_before_analysis-1)
             optimization_model_part.ProcessInfo.SetValue(km.DELTA_TIME, 0)
 
-            print("::PRIMAL::")
+            # print("::PRIMAL::")
             # for node in response.primal_model_part.Nodes:
             #     if node.Id < 6:
             #         print(node.Id, node.X, node.Y, node.Z)
@@ -103,7 +103,7 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
             if communicator.isRequestingValueOf(identifier):
                 response.CalculateValue()
                 communicator.reportValue(identifier, response.GetValue())
-
+            
             # response gradients
             if communicator.isRequestingGradientOf(identifier):
                 response.CalculateGradient()
@@ -116,11 +116,33 @@ class KratosInternalAnalyzer( AnalyzerBaseClass ):
             optimization_model_part.ProcessInfo.SetValue(km.TIME, time_before_analysis)
             optimization_model_part.ProcessInfo.SetValue(km.DELTA_TIME, delta_time_before_analysis)
 
+            # print("::OPTI MODEL:2:")
+            # for node in model_part_nodes:
+            #     if node.Id < 6:
+            #         print(node.Id, node.X, node.Y, node.Z)
+
             self.model_part_controller.SetMeshToReferenceMesh()
+
+            # print("::OPTI MODEL:3:")
+            # for node in model_part_nodes:
+            #     if node.Id < 6:
+            #         print(node.Id, node.X, node.Y, node.Z)
+
             self.model_part_controller.SetDeformationVariablesToZero()
 
+            # print("::PRIMAL:1:")
+            # for node in response.primal_model_part.Nodes:
+            #     if node.Id < 6:
+            #         print(node.Id, node.X, node.Y, node.Z)
+
             KSO.MeshControllerUtilities(response.primal_model_part).SetMeshToReferenceMesh()
-            KSO.MeshControllerUtilities(response.primal_model_part).SetDeformationVariablesToZero()             
+
+            # print("::PRIMAL:2:")
+            # for node in response.primal_model_part.Nodes:
+            #     if node.Id < 6:
+            #         print(node.Id, node.X, node.Y, node.Z)
+            
+            KSO.MeshControllerUtilities(response.primal_model_part).SetDeformationVariablesToZero()            
 
     # --------------------------------------------------------------------------
     def FinalizeAfterOptimizationLoop( self ):

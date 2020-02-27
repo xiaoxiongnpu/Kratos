@@ -16,7 +16,8 @@
             "time_step"       : 1.1
         },
         "model_import_settings"              : {
-            "input_type"     : "use_input_model_part"
+            "input_type"       : "mdpa",
+                "input_filename"   : "structureR"
         },
         "material_import_settings"           : {
             "materials_filename" : "material.json"
@@ -74,34 +75,8 @@
                 "interval"        : [0.0,"End"]
             }
         }],
-        "list_other_processes": [
-            {
-                "python_module" : "from_json_check_result_process",
-                "kratos_module" : "KratosMultiphysics",
-                "help"          : "",
-                "process_name"  : "FromJsonCheckResultProcess",
-                "Parameters"    : {
-                    "check_variables"  : ["SHAPE_CHANGE_X","SHAPE_CHANGE_Y","SHAPE_CHANGE_Z"],
-                    "input_file_name"  : "shape_change_results.json",
-                    "model_part_name"  : "structure",
-                    "time_frequency"   : 0.0
-                }
-            }
-        ]
+        "list_other_processes": []
     },
-    "_json_output_process" : [
-        {
-            "python_module" : "json_output_process",
-            "kratos_module" : "KratosMultiphysics",
-            "help"          : "",
-            "process_name"  : "JsonOutputProcess",
-            "Parameters"    : {
-                "output_variables" : ["SHAPE_CHANGE_X","SHAPE_CHANGE_Y","SHAPE_CHANGE_Z"],
-                "output_file_name" : "shape_change_results.json",
-                "model_part_name"  : "structure",
-                "time_frequency"   : 0.0
-            }
-    }],
     "output_processes" : {
         "gid_output" : [{
             "python_module" : "gid_output_process",
@@ -110,7 +85,7 @@
             "help"          : "This process writes postprocessing files for GiD",
             "Parameters"    : {
                 "model_part_name"        : "structure",
-                "output_name"            : "structure",
+                "output_name"            : "structureR",
                 "postprocess_parameters" : {
                     "result_file_configuration" : {
                         "gidpost_flags"       : {
@@ -126,7 +101,7 @@
                         "node_output"         : false,
                         "skin_output"         : false,
                         "nodal_results"       : ["DISPLACEMENT","REACTION"],
-                        "gauss_point_results" : ["VON_MISES_STRESS"]
+                        "gauss_point_results" : []
                     },
                     "point_data_configuration"  : []
                 }
