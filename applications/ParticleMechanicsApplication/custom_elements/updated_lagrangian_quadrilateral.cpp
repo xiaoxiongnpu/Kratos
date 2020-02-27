@@ -182,7 +182,7 @@ void UpdatedLagrangianQuadrilateral::InitializeGeneralVariables (GeneralVariable
     rVariables.N = this->MPMShapeFunctionPointValues(rVariables.N, xg);
 
     // Reading shape functions local gradients
-    rVariables.DN_De = this->MPMShapeFunctionsLocalGradients( rVariables.DN_De, xg);
+    this->MPMShapeFunctionsLocalGradients( rVariables.DN_De, xg);
 
     // CurrentDisp is the variable unknown. It represents the nodal delta displacement. When it is predicted is equal to zero.
     rVariables.CurrentDisp = CalculateCurrentDisp(rVariables.CurrentDisp, rCurrentProcessInfo);
@@ -294,9 +294,6 @@ void UpdatedLagrangianQuadrilateral::CalculateElementalSystem( LocalSystemCompon
     // Set constitutive law flags:
     Flags &ConstitutiveLawOptions=Values.GetOptions();
     ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR);
-
-    // Define the stress measure
-    Variables.StressMeasure = ConstitutiveLaw::StressMeasure_Cauchy; // TODO check if this is necessary
 
 
     if (!mIsExplicit)
@@ -501,19 +498,12 @@ void UpdatedLagrangianQuadrilateral::CalculateAndAddRHS(LocalSystemComponents& r
     {
         VectorType& rRightHandSideVector = rLocalSystem.GetRightHandSideVector();
 
-        std::cout << "RHS 1.1 vec = " << rRightHandSideVector << std::endl;
-
         // Operation performed: rRightHandSideVector += ExtForce*IntToReferenceWeight
         this->CalculateAndAddExternalForces( rRightHandSideVector, rVariables, rVolumeForce, rIntegrationWeight );
-        std::cout << rVolumeForce << std::endl;
-
-        std::cout << "RHS 1.2 vec = " << rRightHandSideVector << std::endl;
 
         if (mIsExplicit)
         {
-            // TODO maybe we dont need this
             // Operation performed: rRightHandSideVector -= IntForce*IntToReferenceWeight
-
             this->CalculateAndAddExplicitInternalForces(rRightHandSideVector);
         }
         else
@@ -521,14 +511,7 @@ void UpdatedLagrangianQuadrilateral::CalculateAndAddRHS(LocalSystemComponents& r
             // Operation performed: rRightHandSideVector -= IntForce*IntToReferenceWeight
             this->CalculateAndAddInternalForces(rRightHandSideVector, rVariables, rIntegrationWeight);
         }
-
-        
-
-        std::cout << "RHS 1.3 vec = " << rRightHandSideVector << std::endl;
-
-        double asdffaf = 10;
     }
-
 }
 //************************************************************************************
 //*********************Calculate the contribution of external force*******************
@@ -591,7 +574,8 @@ void UpdatedLagrangianQuadrilateral::CalculateAndAddExplicitInternalForces(Vecto
     Matrix InvJ;
     double detJ;
     MathUtils<double>::InvertMatrix(Jacobian, InvJ, detJ);
-    Matrix DN_De = this->MPMShapeFunctionsLocalGradients(DN_De, xg); // parametric gradients
+    Matrix DN_De;
+    this->MPMShapeFunctionsLocalGradients(DN_De, xg); // parametric gradients
     mDN_DX = prod(DN_De, InvJ); // cartesian gradients
 
     const Vector& MP_Stress = this->GetValue(MP_CAUCHY_STRESS_VECTOR);
@@ -881,8 +865,6 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
     const unsigned int number_of_nodes = r_geometry.PointsNumber();
     const array_1d<double,3>& xg = this->GetValue(MP_COORD);
 
-    std::cout << "\n\n MP position = " << xg << "\n\n" << std::endl;
-
     GeneralVariables Variables;
 
     // Calculating shape function
@@ -939,8 +921,6 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
         r_geometry[i].FastGetSolutionStepValue(NODAL_MASS, 0) += Variables.N[i] * MP_mass;
         r_geometry[i].UnSetLock();
     }
-    // TODO maybe update this
-    // Explicit internal force contribution is added through 'addexplicitcontribution', called from mpm explicit strategy.
 }
 
 
@@ -1021,11 +1001,12 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
         }
     }
 
-
     // Create and initialize element variables:
     GeneralVariables Variables;
     this->InitializeGeneralVariables(Variables, rCurrentProcessInfo);
     const double& delta_time = rCurrentProcessInfo[DELTA_TIME];
+
+    //std::cout << "pStrain 1= " << Variables.StrainVector << std::endl;
 
     if (mapGridToParticles)
     {
@@ -1053,11 +1034,11 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
 
         // Set constitutive law flags:
         Flags& ConstitutiveLawOptions = Values.GetOptions();
-        ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_STRESS);
+        ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_STRESS, true);
 
         // use element provided strain incremented from velocity gradient
-        ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR);
-        ConstitutiveLawOptions.Set(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN, true);
+        ConstitutiveLawOptions.Set(ConstitutiveLaw::COMPUTE_CONSTITUTIVE_TENSOR, true);
+        ConstitutiveLawOptions.Set(ConstitutiveLaw::USE_ELEMENT_PROVIDED_STRAIN, false);
 
         // Compute explicit element kinematics, strain is incremented here.
         bool isCompressible = false; // TODO update
@@ -1067,6 +1048,7 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
             rMPStrain, rDeformationGradient, isCompressible);
         Variables.StrainVector = rMPStrain;
         Variables.F = rDeformationGradient;
+        Variables.StressVector = this->GetValue(MP_CAUCHY_STRESS_VECTOR);
 
         if (!isCompressible)
         {
@@ -1081,9 +1063,8 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
         Variables.DN_DX = mDN_DX;
         Variables.N = mN;
 
-
         // Set general variables to constitutivelaw parameters
-        this->SetGeneralVariables(Variables, Values);
+        this->SetGeneralVariables(Variables, Values);        
 
         // Calculate Material Response
         /* NOTE:
@@ -1683,8 +1664,7 @@ Matrix& UpdatedLagrangianQuadrilateral::MPMJacobian( Matrix& rResult, const arra
 
     // Derivatives of shape functions
     Matrix shape_functions_gradients;
-    shape_functions_gradients = this->MPMShapeFunctionsLocalGradients(
-                                   shape_functions_gradients, rPoint);
+    this->MPMShapeFunctionsLocalGradients(shape_functions_gradients, rPoint);
 
     const GeometryType& r_geometry = GetGeometry();
     const unsigned int number_nodes = r_geometry.PointsNumber();
@@ -1744,8 +1724,7 @@ Matrix& UpdatedLagrangianQuadrilateral::MPMJacobianDelta( Matrix& rResult, const
 
     Matrix shape_functions_gradients;
 
-    shape_functions_gradients = this->MPMShapeFunctionsLocalGradients(
-                                    shape_functions_gradients, rPoint );
+    this->MPMShapeFunctionsLocalGradients(shape_functions_gradients, rPoint );
 
     const GeometryType& r_geometry = GetGeometry();
     const unsigned int dimension = r_geometry.WorkingSpaceDimension();
@@ -1949,7 +1928,6 @@ Matrix& UpdatedLagrangianQuadrilateral::MPMShapeFunctionsLocalGradients( Matrix&
         rResult(7,1) = 0.125 *  1.0 * (1.0 + -1.0 * rPointLocal[0]) * (1.0 +  1.0 * rPointLocal[2]);
         rResult(7,2) = 0.125 *  1.0 * (1.0 +  1.0 * rPointLocal[1]) * (1.0 + -1.0 * rPointLocal[0]);
     }
-
     return rResult;
 }
 

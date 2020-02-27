@@ -348,8 +348,6 @@ public:
         array_1d<double, 3>& r_nodal_momenta = itCurrentNode->FastGetSolutionStepValue(NODAL_MOMENTUM);
         array_1d<double, 3>& r_current_residual = itCurrentNode->FastGetSolutionStepValue(FORCE_RESIDUAL);
 
-        std::cout << "momenta residual = " << r_current_residual << std::endl;
-
         // Advance momenta
         for (IndexType j = 0; j < DomainSize; j++) {
             if (fix_displacements[j]) {
@@ -887,13 +885,8 @@ public:
     {
         KRATOS_TRY
 
-            std::cout << "RHS 1 = " << RHS_Contribution << std::endl;
-
-        //PJW
         pCurrentEntity->CalculateRightHandSide(RHS_Contribution, rCurrentProcessInfo);
-        std::cout << "RHS 2 = " <<  RHS_Contribution << std::endl;
         pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, FORCE_RESIDUAL, rCurrentProcessInfo);
-        std::cout << "RHS 3 = " <<  RHS_Contribution << std::endl;
         //pCurrentEntity->AddExplicitContribution(RHS_Contribution, RESIDUAL_VECTOR, MOMENT_RESIDUAL, rCurrentProcessInfo);
 
         KRATOS_CATCH("")

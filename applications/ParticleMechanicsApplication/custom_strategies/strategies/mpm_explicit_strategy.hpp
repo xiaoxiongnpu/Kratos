@@ -226,9 +226,7 @@ namespace Kratos
         {
             KRATOS_TRY
 
-                std::cout << "\n\n STRATEGY INITIALIZE SS \n\n" << std::endl;
-
-                typename TSchemeType::Pointer pScheme = GetScheme();
+            typename TSchemeType::Pointer pScheme = GetScheme();
 
             // OPERATIONS THAT SHOULD BE DONE ONCE - internal check to avoid repetitions
             // if the operations needed were already performed this does nothing
@@ -286,22 +284,6 @@ namespace Kratos
 
                     // Initial operations ... things that are constant over the Solution Step
                     pScheme->InitializeSolutionStep(BaseType::GetModelPart(), mA, mDx, mb);
-
-                    // TODO check if this is actually needed
-                    /*
-                    //#pragma omp parallel for firstprivate(dummy_vector), schedule(guided,512)
-                    for (int i = 0; i < static_cast<int>(r_elements.size()); ++i) {
-                        // Getting nodal mass and inertia from element
-                        // this function needs to be implemented in the respective
-                        // element to provide nodal masses
-                        auto it_elem = it_elem_begin + i;
-                        it_elem->AddExplicitContribution(dummy_vector, RESIDUAL_VECTOR, FORCE_RESIDUAL, r_current_process_info);
-                    }
-                    */
-
-
-
-
 
                     if (BaseType::mRebuildLevel > 0)
                     { // TODO: Right now is computed in the Initialize() because is always zero, the option to set the RebuildLevel should be added in the constructor or in some place
