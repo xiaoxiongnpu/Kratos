@@ -55,6 +55,34 @@ void CalculateGeometryData(const GeometryType& rGeometry,
         rGaussWeights[g] = DetJ[g] * IntegrationPoints[g].Weight();
 }
 
+void CalculateConditionGeometryData(const GeometryType& rGeometry,
+                                    const GeometryData::IntegrationMethod& rIntegrationMethod,
+                                    Vector& rGaussWeights,
+                                    Matrix& rNContainer)
+{
+    const GeometryType::IntegrationPointsArrayType& integration_points =
+        rGeometry.IntegrationPoints(rIntegrationMethod);
+
+    const std::size_t number_of_integration_points = integration_points.size();
+    const int dimension = rGeometry.WorkingSpaceDimension();
+    const double domain_size = rGeometry.DomainSize();
+
+    if (rGaussWeights.size() != number_of_integration_points)
+    {
+        rGaussWeights.resize(number_of_integration_points, false);
+    }
+
+    rNContainer = rGeometry.ShapeFunctionsValues(rIntegrationMethod);
+
+    // CAUTION: "Jacobian" is 2.0*A for triangles but 0.5*A for lines
+    double det_J = (dimension == 2) ? 0.5 * domain_size : 2.0 * domain_size;
+
+    for (unsigned int g = 0; g < number_of_integration_points; g++)
+    {
+        rGaussWeights[g] = det_J * integration_points[g].Weight();
+    }
+}
+
 double EvaluateInPoint(const GeometryType& rGeometry,
                        const Variable<double>& rVariable,
                        const Vector& rShapeFunction,
@@ -240,53 +268,38 @@ double CalculateLogarithmicYPlusLimit(const double Kappa,
     return y_plus;
 }
 
-double CalculateWallHeight(const ConditionType& rCondition)
+double CalculateWallHeight(const ConditionType& rCondition, const array_1d<double, 3>& rNormal)
 {
-    array_1d<double, 3> normal = rCondition.GetValue(NORMAL);
-    normal /= norm_2(normal);
+    KRATOS_TRY
+
+    array_1d<double, 3> normal = rNormal / norm_2(rNormal);
 
     const ElementType& r_parent_element = rCondition.GetValue(NEIGHBOUR_ELEMENTS)[0];
 
     const GeometryType& r_parent_geometry = r_parent_element.GetGeometry();
     const GeometryType& r_condition_geometry = rCondition.GetGeometry();
 
-    Vector parent_gauss_weights;
-    Matrix parent_shape_functions;
-    GeometryData::ShapeFunctionsGradientsType parent_shape_function_derivatives;
-    CalculateGeometryData(r_parent_geometry, GeometryData::IntegrationMethod::GI_GAUSS_1,
-                          parent_gauss_weights, parent_shape_functions,
-                          parent_shape_function_derivatives);
-
-    Vector condition_gauss_weights;
-    Matrix condition_shape_functions;
-    GeometryData::ShapeFunctionsGradientsType condition_shape_function_derivatives;
-    CalculateGeometryData(r_condition_geometry, GeometryData::IntegrationMethod::GI_GAUSS_1,
-                          condition_gauss_weights, condition_shape_functions,
-                          condition_shape_function_derivatives);
-
-    auto calculate_cell_center =
-        [](const GeometryType& rGeometry,
-           const Vector& rGaussShapeFunctions) -> array_1d<double, 3> {
+    auto calculate_cell_center = [](const GeometryType& rGeometry) -> array_1d<double, 3> {
         const int number_of_nodes = rGeometry.PointsNumber();
         array_1d<double, 3> cell_center = ZeroVector(3);
         for (int i_node = 0; i_node < number_of_nodes; ++i_node)
         {
-            noalias(cell_center) = cell_center + rGeometry[i_node].Coordinates() *
-                                                     rGaussShapeFunctions[i_node];
+            noalias(cell_center) =
+                cell_center + rGeometry[i_node].Coordinates() *
+                                  (1.0 / static_cast<double>(number_of_nodes));
         }
 
         return cell_center;
     };
 
-    const Vector& gauss_parent_shape_functions = row(parent_shape_functions, 0);
-    const array_1d<double, 3>& parent_center =
-        calculate_cell_center(r_parent_geometry, gauss_parent_shape_functions);
+    const array_1d<double, 3>& parent_center = calculate_cell_center(r_parent_geometry);
 
-    const Vector& gauss_condition_shape_functions = row(condition_shape_functions, 0);
     const array_1d<double, 3>& condition_center =
-        calculate_cell_center(r_condition_geometry, gauss_condition_shape_functions);
+        calculate_cell_center(r_condition_geometry);
 
     return inner_prod(condition_center - parent_center, normal);
+
+    KRATOS_CATCH("");
 }
 
 array_1d<double, 3> CalculateWallVelocity(const ConditionType& rCondition)
@@ -383,6 +396,8 @@ void CalculateYPlusAndUtau(double& rYPlus,
 
 bool IsWall(const ConditionType& rCondition)
 {
+    KRATOS_TRY
+
     if (rCondition.Is(SLIP) && rCondition.Is(STRUCTURE))
     {
         return true;
@@ -401,6 +416,34 @@ bool IsWall(const ConditionType& rCondition)
     }
 
     return false;
+
+    KRATOS_CATCH("");
+}
+
+bool IsInlet(const ConditionType& rCondition)
+{
+    KRATOS_TRY
+
+    if (rCondition.Is(INLET))
+    {
+        return true;
+    }
+    else
+    {
+        if (rCondition.GetValue(PARENT_CONDITION_POINTER))
+        {
+            const ConditionType& r_parent_condition =
+                *(rCondition.GetValue(PARENT_CONDITION_POINTER));
+            if (r_parent_condition.Is(INLET))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+
+    KRATOS_CATCH("");
 }
 
 // template instantiations

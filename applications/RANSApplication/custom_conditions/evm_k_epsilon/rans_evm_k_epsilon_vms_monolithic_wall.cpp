@@ -108,12 +108,12 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::Initialize()
         const array_1d<double, 3>& rNormal = this->GetValue(NORMAL);
         KRATOS_ERROR_IF(norm_2(rNormal) == 0.0)
             << "NORMAL must be calculated before using this " << this->Info() << "\n";
+
+        KRATOS_ERROR_IF(this->GetValue(NEIGHBOUR_ELEMENTS).size() == 0)
+            << this->Info() << " cannot find parent element\n";
+
+        mWallHeight = RansCalculationUtilities::CalculateWallHeight(*this, rNormal);
     }
-
-    KRATOS_ERROR_IF(this->GetValue(NEIGHBOUR_ELEMENTS).size() == 0)
-        << this->Info() << " cannot find parent element\n";
-
-    this->GetValue(Y_WALL) = RansCalculationUtilities::CalculateWallHeight(*this);
 
     KRATOS_CATCH("");
 }
@@ -150,7 +150,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
         const double wall_cell_center_velocity_magnitude = norm_2(wall_cell_center_velocity);
 
         const double y_plus_limit = rCurrentProcessInfo[RANS_Y_PLUS_LIMIT];
-        double& y_plus = this->GetValue(RANS_Y_PLUS);
+        double y_plus = 0.0;
 
         if (wall_cell_center_velocity_magnitude > eps)
         {
@@ -159,13 +159,12 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             // calculate cell centered y_plus value
             const double kappa = rCurrentProcessInfo[WALL_VON_KARMAN];
             const double beta = rCurrentProcessInfo[WALL_SMOOTHNESS_BETA];
-            const double wall_height = this->GetValue(Y_WALL);
             const double nu = RansCalculationUtilities::EvaluateInParentCenter(
                 KINEMATIC_VISCOSITY, *this);
 
             double u_tau;
             RansCalculationUtilities::CalculateYPlusAndUtau(
-                y_plus, u_tau, wall_cell_center_velocity_magnitude, wall_height,
+                y_plus, u_tau, wall_cell_center_velocity_magnitude, mWallHeight,
                 nu, kappa, beta);
 
             GeometryType& r_geometry = this->GetGeometry();
@@ -199,8 +198,7 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             const std::function<double(double, double)> wall_tau_function =
                 ((y_plus >= y_plus_limit) ? log_region_functional : linear_region_functional);
 
-            double& condition_u_tau = this->GetValue(FRICTION_VELOCITY);
-            condition_u_tau = 0.0;
+            double condition_u_tau = 0.0;
 
             for (size_t g = 0; g < number_of_gauss_points; ++g)
             {
@@ -244,9 +242,10 @@ void RansEvmKEpsilonVmsMonolithicWall<TDim, TNumNodes>::ApplyWallLaw(
             }
 
             condition_u_tau /= static_cast<double>(number_of_gauss_points);
+            this->SetValue(FRICTION_VELOCITY, condition_u_tau);
         }
 
-        y_plus = std::max(y_plus, y_plus_limit);
+        this->SetValue(RANS_Y_PLUS, std::max(y_plus, y_plus_limit));
     }
 }
 

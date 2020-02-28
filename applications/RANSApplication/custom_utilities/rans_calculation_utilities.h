@@ -53,6 +53,11 @@ void CalculateGeometryData(const GeometryType& rGeometry,
                            Matrix& rNContainer,
                            GeometryType::ShapeFunctionsGradientsType& rDN_DX);
 
+void CalculateConditionGeometryData(const GeometryType& rGeometry,
+                                    const GeometryData::IntegrationMethod& rIntegrationMethod,
+                                    Vector& rGaussWeights,
+                                    Matrix& rNContainer);
+
 GeometryType::ShapeFunctionsGradientsType CalculateGeometryParameterDerivatives(
     const GeometryType& rGeometry, const GeometryData::IntegrationMethod& rIntegrationMethod);
 
@@ -99,7 +104,8 @@ double KRATOS_API(RANS_APPLICATION)
                                    const int MaxIterations = 20,
                                    const double Tolerance = 1e-6);
 
-double CalculateWallHeight(const ConditionType& rCondition);
+double CalculateWallHeight(const ConditionType& rCondition,
+                           const array_1d<double, 3>& rNormal);
 
 template <typename TDataType>
 TDataType EvaluateInParentCenter(const Variable<TDataType>& rVariable,
@@ -119,6 +125,8 @@ void CalculateYPlusAndUtau(double& rYPlus,
                            const double Tolerance = 1e-6);
 
 bool IsWall(const ConditionType& rCondition);
+
+bool IsInlet(const ConditionType& rCondition);
 
 } // namespace RansCalculationUtilities
 
