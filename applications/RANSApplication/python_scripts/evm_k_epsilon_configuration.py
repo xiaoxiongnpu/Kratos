@@ -97,11 +97,11 @@ class TurbulenceKEpsilonConfiguration(
         self.fluid_model_part.ProcessInfo[
             KratosRANS.RANS_STABILIZATION_DISCRETE_UPWIND_OPERATOR_COEFFICIENT] = 1.2
         self.fluid_model_part.ProcessInfo[
-            KratosRANS.RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT] = 1.2      
+            KratosRANS.RANS_STABILIZATION_DIAGONAL_POSITIVITY_PRESERVING_COEFFICIENT] = 1.2
         self.fluid_model_part.ProcessInfo[
             KratosRANS.RANS_Y_PLUS_LIMIT] = RansCalculationUtilities.CalculateLogarithmicYPlusLimit(self.fluid_model_part.ProcessInfo[
             KratosRANS.WALL_VON_KARMAN], self.fluid_model_part.ProcessInfo[
-            KratosRANS.WALL_SMOOTHNESS_BETA])                              
+            KratosRANS.WALL_SMOOTHNESS_BETA])
 
     def PrepareSolvingStrategy(self):
         scheme_settings = self.model_settings["scheme_settings"]
@@ -161,6 +161,8 @@ class TurbulenceKEpsilonConfiguration(
         Kratos.VariableUtils().AddDof(
             KratosRANS.TURBULENT_ENERGY_DISSIPATION_RATE,
             self.fluid_model_part)
+
+        super(TurbulenceKEpsilonConfiguration, self).AddDofs()
 
         Kratos.Logger.PrintInfo(self.__class__.__name__,
                                 "DOFs added successfully.")

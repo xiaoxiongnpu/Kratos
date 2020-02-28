@@ -5,6 +5,7 @@ from KratosMultiphysics import IsDistributedRun
 from KratosMultiphysics.kratos_utilities import CheckIfApplicationsAvailable
 from KratosMultiphysics.process_factory import KratosProcessFactory
 from KratosMultiphysics.RANSApplication.model_part_factory import CreateDuplicateModelPart
+from KratosMultiphysics.RANSApplication.incompressible_potential_flow_solver import IncompressiblePotentialFlowSolver
 
 if CheckIfApplicationsAvailable("FluidDynamicsApplication"):
     import KratosMultiphysics.FluidDynamicsApplication as KratosCFD
@@ -56,17 +57,24 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
         self.model_conditions_list = []
         self.model_parts_list = []
 
+        if (not self.settings["potential_flow_initialization"].IsEquivalentTo(Kratos.Parameters("{}"))):
+            self.potential_flow_solver = IncompressiblePotentialFlowSolver(self.model, self.settings["potential_flow_initialization"])
+
     def SetCommunicator(self, communicator):
         self.EpetraCommunicator = communicator
 
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.SetCommunicator(communicator)
+
     def GetDefaultSettings(self):
         return Kratos.Parameters(r'''{
-            "model_type"            : "",
+            "model_type"                         : "",
+            "potential_flow_initialization"      : {},
             "velocity_pressure_relaxation_factor": 0.2,
-            "model_settings"        : {},
-            "auxiliar_process_list"   : [],
-            "mesh_moving"             : false,
-            "echo_level"              : 0
+            "model_settings"                     : {},
+            "auxiliar_process_list"              : [],
+            "mesh_moving"                        : false,
+            "echo_level"                         : 0
         }''')
 
     def AddVariables(self):
@@ -82,10 +90,21 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
         self.fluid_model_part.AddNodalSolutionStepVariable(
             Kratos.RELAXED_ACCELERATION)
 
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.fluid_model_part = self.fluid_model_part
+            self.potential_flow_solver.AddVariables()
+
         Kratos.Logger.PrintInfo(self.__class__.__name__,
                                 "Successfully added solution step variables.")
 
+    def AddDofs(self):
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.AddDofs()
+
     def PrepareModelPart(self):
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.PrepareModelPart()
+
         self.domain_size = self.fluid_model_part.ProcessInfo[Kratos.
                                                              DOMAIN_SIZE]
 
@@ -228,6 +247,9 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
         return strategy
 
     def Initialize(self):
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.Initialize()
+
         self.PrepareSolvingStrategy()
 
         factory = KratosProcessFactory(self.model)
@@ -251,11 +273,17 @@ class TurbulenceEddyViscosityModelConfiguration(TurbulenceModelSolver):
         for process in self.auxiliar_process_list:
             process.Check()
 
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.Check()
+
         Kratos.Logger.PrintInfo(self.__class__.__name__, "Check successfull.")
 
     def InitializeSolutionStep(self):
         for process in self.auxiliar_process_list:
             process.ExecuteInitializeSolutionStep()
+
+        if (hasattr(self, "potential_flow_solver")):
+            self.potential_flow_solver.InitializeSolutionStep()
 
         self.GetTurbulenceSolvingProcess().ExecuteInitializeSolutionStep()
 
