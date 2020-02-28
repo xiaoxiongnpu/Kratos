@@ -58,6 +58,30 @@ void KRATOS_API(RANS_APPLICATION) SetNodalVariables(ModelPart::NodesContainerTyp
 void KRATOS_API(RANS_APPLICATION) CopyNodalSolutionStepVariablesList(ModelPart& rOriginModelPart,
                                                                      ModelPart& rDestinationModelPart);
 
+void KRATOS_API(RANS_APPLICATION) InitializeDuplicatedModelPart(ModelPart& rOriginModelPart,
+                                                                ModelPart& rDuplicatedModelPart);
+
+void KRATOS_API(RANS_APPLICATION) FixFlaggedDofs(ModelPart& rModelPart,
+                                                 const Variable<double>& rFixingVariable,
+                                                 const Flags& rFlag,
+                                                 const bool CheckValue = true);
+
+template <typename TDataType>
+void KRATOS_API(RANS_APPLICATION) CopyFlaggedVariableFromNonHistorical(ModelPart& rModelPart,
+                                                                       const Variable<TDataType>& rVariable,
+                                                                       const Flags& rFlag,
+                                                                       const bool CheckValue = true);
+
+template <typename TDataType>
+void KRATOS_API(RANS_APPLICATION) CopyFlaggedVariableToNonHistorical(ModelPart& rModelPart,
+                                                                     const Variable<TDataType>& rVariable,
+                                                                     const Flags& rFlag,
+                                                                     const bool CheckValue = true);
+
+void KRATOS_API(RANS_APPLICATION) CalculateMagnitudeSquareFor3DVariable(ModelPart& rModelPart,
+                                                                        const Variable<array_1d<double, 3>>& r3DVariable,
+                                                                        const Variable<double>& rOutputVariable);
+
 ///@}
 } // namespace RansVariableUtilities
 

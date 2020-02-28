@@ -21,6 +21,9 @@
 #include "includes/define.h"
 #include "utilities/openmp_utils.h"
 
+// Application incldues
+#include "rans_application_variables.h"
+
 // Include base h
 #include "rans_variable_utilities.h"
 
@@ -226,6 +229,133 @@ void CopyNodalSolutionStepVariablesList(ModelPart& rOriginModelPart, ModelPart& 
 
     KRATOS_CATCH("");
 }
+
+void InitializeDuplicatedModelPart(ModelPart& rOriginModelPart, ModelPart& rDuplicatedModelPart)
+{
+    ModelPart::ElementsContainerType& r_elements = rDuplicatedModelPart.Elements();
+    const int number_of_elements = r_elements.size();
+#pragma omp parallel for
+    for (int i_element = 0; i_element < number_of_elements; ++i_element)
+    {
+        ModelPart::ElementType& r_element = *(r_elements.begin() + i_element);
+        ModelPart::ElementType& r_parent_element =
+            rOriginModelPart.GetElement(r_element.Id());
+        r_element.SetValue(PARENT_ELEMENT_POINTER, &r_parent_element);
+    }
+    KRATOS_INFO("DuplicateModelPartInitializer")
+        << "Initialized " << rDuplicatedModelPart.Name()
+        << " element data from " << rOriginModelPart.Name() << ".\n";
+
+    ModelPart::ConditionsContainerType& r_conditions = rDuplicatedModelPart.Conditions();
+    const int number_of_conditions = r_conditions.size();
+#pragma omp parallel for
+    for (int i_condition = 0; i_condition < number_of_conditions; ++i_condition)
+    {
+        ModelPart::ConditionType& r_condition = *(r_conditions.begin() + i_condition);
+        ModelPart::ConditionType& r_parent_condition =
+            rOriginModelPart.GetCondition(r_condition.Id());
+        r_condition.SetValue(PARENT_CONDITION_POINTER, &r_parent_condition);
+    }
+
+    KRATOS_INFO("DuplicateModelPartInitializer")
+        << "Initialized " << rDuplicatedModelPart.Name()
+        << " condition data from " << rOriginModelPart.Name() << ".\n";
+}
+
+void FixFlaggedDofs(ModelPart& rModelPart,
+                    const Variable<double>& rFixingVariable,
+                    const Flags& rFlag,
+                    const bool CheckValue)
+{
+    KRATOS_TRY
+
+    const int number_of_nodes = rModelPart.NumberOfNodes();
+#pragma omp parallel for
+    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+    {
+        ModelPart::NodeType& r_node = *(rModelPart.NodesBegin() + i_node);
+        if (r_node.Is(rFlag) == CheckValue)
+        {
+            r_node.Fix(rFixingVariable);
+        }
+    }
+
+    KRATOS_CATCH("");
+}
+
+template <typename TDataType>
+void CopyFlaggedVariableFromNonHistorical(ModelPart& rModelPart,
+                                          const Variable<TDataType>& rVariable,
+                                          const Flags& rFlag,
+                                          const bool CheckValue)
+{
+    KRATOS_TRY
+
+    const int number_of_nodes = rModelPart.NumberOfNodes();
+#pragma omp parallel for
+    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+    {
+        ModelPart::NodeType& r_node = *(rModelPart.NodesBegin() + i_node);
+        if (r_node.Is(rFlag) == CheckValue)
+        {
+            r_node.FastGetSolutionStepValue(rVariable) = r_node.GetValue(rVariable);
+        }
+    }
+
+    KRATOS_CATCH("");
+}
+
+template <typename TDataType>
+void CopyFlaggedVariableToNonHistorical(ModelPart& rModelPart,
+                                        const Variable<TDataType>& rVariable,
+                                        const Flags& rFlag,
+                                        const bool CheckValue)
+{
+    KRATOS_TRY
+
+    const int number_of_nodes = rModelPart.NumberOfNodes();
+#pragma omp parallel for
+    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+    {
+        ModelPart::NodeType& r_node = *(rModelPart.NodesBegin() + i_node);
+        if (r_node.Is(rFlag) == CheckValue)
+        {
+            r_node.SetValue(rVariable, r_node.FastGetSolutionStepValue(rVariable));
+        }
+    }
+
+    KRATOS_CATCH("");
+}
+
+void CalculateMagnitudeSquareFor3DVariable(ModelPart& rModelPart,
+                                           const Variable<array_1d<double, 3>>& r3DVariable,
+                                           const Variable<double>& rOutputVariable)
+{
+    const int number_of_nodes = rModelPart.NumberOfNodes();
+#pragma omp parallel for
+    for (int i_node = 0; i_node < number_of_nodes; ++i_node)
+    {
+        ModelPart::NodeType& r_node = *(rModelPart.NodesBegin() + i_node);
+        const double magnitude = norm_2(r_node.FastGetSolutionStepValue(r3DVariable));
+        r_node.FastGetSolutionStepValue(rOutputVariable) = std::pow(magnitude, 2);
+    }
+}
+
+template void CopyFlaggedVariableFromNonHistorical<double>(ModelPart&,
+                                                           const Variable<double>&,
+                                                           const Flags&,
+                                                           const bool);
+template void CopyFlaggedVariableFromNonHistorical<array_1d<double, 3>>(
+    ModelPart&, const Variable<array_1d<double, 3>>&, const Flags&, const bool);
+
+template void CopyFlaggedVariableToNonHistorical<double>(ModelPart&,
+                                                         const Variable<double>&,
+                                                         const Flags&,
+                                                         const bool);
+template void CopyFlaggedVariableToNonHistorical<array_1d<double, 3>>(
+    ModelPart&, const Variable<array_1d<double, 3>>&, const Flags&, const bool);
+// template instantiations
+
 } // namespace RansVariableUtilities
 
 } /* namespace Kratos.*/
