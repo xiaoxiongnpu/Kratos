@@ -67,8 +67,7 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
         self._SetBodyForceAndPorosityField()
 
     def ExecuteFinalizeSolutionStep(self):
-        if self.compute_error:
-            self._ComputeErrors()
+        pass
 
     def _SetBodyForceAndPorosityField(self):
         current_time = self.model_part.ProcessInfo[KratosMultiphysics.TIME]
@@ -79,7 +78,7 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
 
         self.fluid_fraction_list = np.array([self.benchmark.alpha(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
         self.fluid_fraction_rate_list = np.array([self.benchmark.dalphat(current_time, x, y, z) for x, y, z in zip(self.x, self.y, self.z)])
-        
+
         iterator = 0
         for node in self.model_part.Nodes:
             #Set BodyForce field
@@ -88,37 +87,11 @@ class ApplyCasasSolutionBodyForceProcess(ApplyCustomBodyForceProcess):
             press_value = self.value_p[iterator]
             node.SetSolutionStepValue(self.variable, bodf_value)
             #Update BCs
-            if node.X == 1.0 and node.Y == 0.0:
-                node.SetSolutionStepValue(KratosMultiphysics.PRESSURE, press_value)
-                node.Fix(KratosMultiphysics.PRESSURE)
-            if np.sqrt((node.X-self.center_x)**2 + (node.Y-self.center_y)**2) - min(self.radius) < 1e-3 or - np.sqrt((node.X-self.center_x)**2 + (node.Y-self.center_y)**2) + max(self.radius) < 1e-3 or node.X == max(self.x) or node.Y == min(self.y) or node.X - node.Y < 1e-3:
-                node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_X, vel_value[0])
-                node.SetSolutionStepValue(KratosMultiphysics.VELOCITY_Y, vel_value[1])
-                node.Fix(KratosMultiphysics.VELOCITY_X)
-                node.Fix(KratosMultiphysics.VELOCITY_Y)
+            node.SetSolutionStepValue(KratosMultiphysics.SwimmingDEMApplication.EXACT_PRESSURE, press_value)
+            node.SetSolutionStepValue(KratosMultiphysics.SwimmingDEMApplication.EXACT_VELOCITY, vel_value)
             #Set Porosity field
             fluid_fraction = self.fluid_fraction_list[iterator]
             fluid_fraction_rate = self.fluid_fraction_rate_list[iterator]
             node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION, fluid_fraction)
             node.SetSolutionStepValue(KratosMultiphysics.FLUID_FRACTION_RATE, fluid_fraction_rate)
-            iterator += 1
-
-    def _ComputeErrors(self):
-        epsilon = 1e-16
-        #Compute the errors of the DOFs
-        iterator = 0
-        for node in self.model_part.Nodes:
-            #Compute velocity error
-            fem_vel = node.GetSolutionStepValue(KratosMultiphysics.VELOCITY)
-            exact_vel = Vector(list(self.value_v[iterator]))
-            fem_vel_modulus = (fem_vel[0]**2 + fem_vel[1]**2 )**0.5
-            exact_vel_modulus = (exact_vel[0]**2 + exact_vel[1]**2)**0.5
-            vel_error = abs(fem_vel_modulus - exact_vel_modulus) / abs(exact_vel_modulus + epsilon)
-            node.SetValue(KratosMultiphysics.NODAL_ERROR, vel_error)
-            node.SetSolutionStepValue(KratosMultiphysics.SwimmingDEMApplication.EXACT_VELOCITY, exact_vel)
-            #Compute pressure error
-            fem_press = node.GetSolutionStepValue(KratosMultiphysics.PRESSURE)
-            exact_press = self.value_p[iterator]
-            press_error = abs(fem_press - exact_press) / abs(exact_press + epsilon)
-            node.SetSolutionStepValue(KratosMultiphysics.SwimmingDEMApplication.EXACT_PRESSURE, exact_press)
             iterator += 1
