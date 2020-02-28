@@ -59,7 +59,7 @@ class MPMExplicitSolver(MPMSolver):
         isCentralDifference = False
         StressUpdateOption = 0
 
-        if(scheme_type == "forward_euler"):
+        if(scheme_type == "forward_euler" or scheme_type == "Forward_Euler"):
             stress_update = self.settings["stress_update"].GetString() #0 = USF, 1 = USL, 2 = MUSL
             if(stress_update == "USF" or stress_update == "usf"):
                 StressUpdateOption = 0
@@ -70,7 +70,7 @@ class MPMExplicitSolver(MPMSolver):
             else:
                 err_msg = "The requested stress update \"" + stress_update + "\" is not available!\n"
                 err_msg += "Available options are: \"USF\", \"USL\",\"MUSL\""
-        elif(scheme_type == "central_difference"):
+        elif(scheme_type == "central_difference" or scheme_type == "Central_Difference"):
             isCentralDifference = True
         else:
             err_msg = "The requested scheme type \"" + scheme_type + "\" is not available!\n"

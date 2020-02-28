@@ -898,7 +898,6 @@ void UpdatedLagrangianQuadrilateral::CalculateLocalSystem( std::vector< MatrixTy
 
     // Calculate elemental system
     CalculateElementalSystem( LocalSystem, rCurrentProcessInfo );
-
 }
 
 ////************************************************************************************
@@ -933,7 +932,7 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
     array_1d<double,3> nodal_momentum = ZeroVector(3);
     array_1d<double,3> nodal_inertia  = ZeroVector(3);
 
-    // Only retrieve previous nodal velocity if implicit
+    // TODO, We should never retrieve previous nodal values in MPM. The below should be mapping particle accelerations to the grid.
     if (!mIsExplicit)
     {
         for (unsigned int j = 0; j < number_of_nodes; j++)
@@ -962,6 +961,18 @@ void UpdatedLagrangianQuadrilateral::InitializeSolutionStep( ProcessInfo& rCurre
         {
             nodal_momentum[j] = Variables.N[i] * (MP_velocity[j] - aux_MP_velocity[j]) * MP_mass;
             nodal_inertia[j]  = Variables.N[i] * (MP_acceleration[j] - aux_MP_acceleration[j]) * MP_mass;
+        }
+
+        // Add in the predictor velocity increment for central difference explicit
+        // This is the 'previous grid acceleration', which should actually
+        // be the initial particle acceleration mapped to the grid.
+        if (mIsCentralDifference)
+        {
+            const double& delta_time = rCurrentProcessInfo[DELTA_TIME];
+            for (unsigned int j = 0; j < dimension; j++)
+            {
+                nodal_momentum[j] += 0.5* delta_time*(Variables.N[i]* MP_acceleration[j])*MP_mass;
+            }
         }
 
         r_geometry[i].SetLock();
@@ -1097,11 +1108,8 @@ void UpdatedLagrangianQuadrilateral::FinalizeExplicitSolutionStep(ProcessInfo& r
     {
         const double& delta_time = rCurrentProcessInfo[DELTA_TIME];
 
-        // Map grid to particle
-        bool isCentralDifference = rCurrentProcessInfo.Has(MIDDLE_VELOCITY);
-        isCentralDifference = false; // TODO add some better check here
-        
-        MPMExplicitUtilities::UpdateGaussPointExplicit(rGeom, delta_time,isCentralDifference,*this, mN);
+        // Map grid to particle       
+        MPMExplicitUtilities::UpdateGaussPointExplicit(rGeom, delta_time,mIsCentralDifference,*this, mN);
 
         // If we are doing MUSL, map updated particle velocities back to the grid
         if (rGeom[0].Has(MUSL_VELOCITY_FIELD_IS_COMPUTED))

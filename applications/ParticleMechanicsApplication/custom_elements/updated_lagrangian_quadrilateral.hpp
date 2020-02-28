@@ -532,9 +532,14 @@ protected:
     bool mIsExplicit = false;
 
     /**
-     * Integer for stress update option
+     * Boolean for stress update option
      */
     bool mIsUSFStressUpdate = false;
+
+    /**
+     * Boolean for central difference explicit time integration
+     */
+    bool mIsCentralDifference = false;
 
 
 

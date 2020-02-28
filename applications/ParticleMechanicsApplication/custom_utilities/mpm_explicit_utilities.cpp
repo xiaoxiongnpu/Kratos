@@ -71,47 +71,74 @@ namespace Kratos
     {
         KRATOS_TRY
 
-        // TODO add central difference option
-
         const unsigned int number_of_nodes = rGeom.PointsNumber();
         const unsigned int dimension = rGeom.WorkingSpaceDimension();
+        bool isUpdateMPPositionFromUpdatedMPVelocity = true;
+
+        // Update the MP Velocity
+        const array_1d<double, 3>& MP_PreviousVelocity = rElement.GetValue(MP_VELOCITY);
+        const array_1d<double, 3>& MP_PreviousAcceleration = rElement.GetValue(MP_ACCELERATION);
+        array_1d<double, 3> MP_Velocity = ZeroVector(3);
+
+        double alpha = 1.0;
+
+        if (isCentralDifference)
+        {
+            alpha = 0.5;
+            isUpdateMPPositionFromUpdatedMPVelocity = false;
+        }
+
+        // Advance the predictor velocity
+        for (unsigned int i = 0; i < dimension; i++)
+        {
+            MP_Velocity[i] = MP_PreviousVelocity[i] + (1.0-alpha) * rDeltaTime * MP_PreviousAcceleration[i];
+        }
+
 
         array_1d<double, 3> delta_xg = ZeroVector(3);
         array_1d<double, 3> MP_Acceleration = ZeroVector(3);
 
         for (unsigned int i = 0; i < number_of_nodes; i++)
         {
-            if (rN[i] > std::numeric_limits<double>::epsilon())
+            const double nodal_mass = rGeom[i].FastGetSolutionStepValue(NODAL_MASS);
+
+            if (nodal_mass > std::numeric_limits<double>::epsilon())
             {
-                const double nodal_mass = rGeom[i].FastGetSolutionStepValue(NODAL_MASS);
+                const array_1d<double, 3>& r_nodal_momenta = rGeom[i].FastGetSolutionStepValue(NODAL_MOMENTUM);
+                const array_1d<double, 3>& r_current_residual = rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL);
+                const array_1d<double, 3>& r_middle_velocity = rGeom[i].FastGetSolutionStepValue(VELOCITY);
 
-                if (nodal_mass > std::numeric_limits<double>::epsilon())
+                for (unsigned int j = 0; j < dimension; j++)
                 {
-                    const array_1d<double, 3>& r_nodal_momenta = rGeom[i].FastGetSolutionStepValue(NODAL_MOMENTUM);
-                    const array_1d<double, 3>& r_current_residual = rGeom[i].FastGetSolutionStepValue(FORCE_RESIDUAL);
-
-                    for (unsigned int j = 0; j < dimension; j++)
+                    MP_Acceleration[j] += rN[i] * r_current_residual[j] / nodal_mass;
+                    if (isCentralDifference)
                     {
-                        MP_Acceleration[j] += rN[i] * r_current_residual[j] / nodal_mass;
+                        delta_xg[j] += rDeltaTime * rN[i] * r_middle_velocity[j];
+                    }
+                    else if (!isUpdateMPPositionFromUpdatedMPVelocity)
+                    {
                         delta_xg[j] += rDeltaTime * rN[i] * r_nodal_momenta[j] / nodal_mass;
                     }
                 }
             }
         }
 
-        // Update the MP Velocity
-        const array_1d<double, 3>& MP_PreviousVelocity = rElement.GetValue(MP_VELOCITY);
-        array_1d<double, 3> MP_Velocity = ZeroVector(3);
+        // Update the MP Velocity corrector
         for (unsigned int j = 0; j < dimension; j++)
         {
-            MP_Velocity[j] = MP_PreviousVelocity[j] + rDeltaTime * MP_Acceleration[j];
-
+            MP_Velocity[j] += alpha * rDeltaTime * MP_Acceleration[j];
         }
         rElement.SetValue(MP_VELOCITY, MP_Velocity);
 
-
         // Update the MP Position
         const array_1d<double, 3>& xg = rElement.GetValue(MP_COORD);
+        if (isUpdateMPPositionFromUpdatedMPVelocity)
+        {
+            for (unsigned int j = 0; j < dimension; j++)
+            {
+                delta_xg[j] = rDeltaTime* MP_Velocity[j];
+            }
+        }
         const array_1d<double, 3>& new_xg = xg + delta_xg;
         rElement.SetValue(MP_COORD, new_xg);
 

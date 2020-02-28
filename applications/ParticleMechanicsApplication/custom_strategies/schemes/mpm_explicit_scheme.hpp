@@ -133,13 +133,20 @@ public:
         //mIsCentralDifference = isCentralDifference;
 
         std::cout << "\n\n =========================== USING MPM EXPLICIT ========================== \n\n" << std::endl;
-        if (!mIsCentralDifference)
+        if (mIsCentralDifference)
         {
-            std::cout << "\n\n =========================== FORWARD EULER ========================== \n\n" << std::endl;
+            std::cout << "\n\n =========================== CENTRAL DIFFERENCE ========================== \n\n" << std::endl;
         }
         else
         {
-            // TODO add errors
+            if (mStressUpdateOption < 3 && mStressUpdateOption > -1)
+            {
+                std::cout << "\n\n =========================== FORWARD EULER ========================== \n\n" << std::endl;
+            }
+            else
+            {
+                KRATOS_ERROR << "Invalid MPM explicit scheme constructed." << std::endl;
+            }
         }
     }
 
@@ -291,8 +298,12 @@ public:
         array_1d<double, 3>& r_nodal_momenta = itCurrentNode->FastGetSolutionStepValue(NODAL_MOMENTUM);
         array_1d<double, 3>& r_current_residual = itCurrentNode->FastGetSolutionStepValue(FORCE_RESIDUAL);
 
-        // Advance momenta
-        // TODO add central difference option
+        double alpha = 1.0;
+        if (mIsCentralDifference)
+        {
+            alpha = 0.5; // factor since we are only adding the corrector here
+        }
+
         for (IndexType j = 0; j < DomainSize; j++) {
             if (fix_displacements[j]) {
                 r_nodal_momenta[j] = 0.0;
@@ -300,12 +311,12 @@ public:
             }
             else
             {
-                r_nodal_momenta[j] += mTime.Delta * r_current_residual[j];
+                r_nodal_momenta[j] += alpha * mTime.Delta * r_current_residual[j];
             }
+
         } // for DomainSize
 
-
-        // We need to set updated grid velocity here if we are using the USL formulation
+        // We need to set updated grid velocity here if we are using the USL or USF formulation
         if (mStressUpdateOption == 1)
         {
             array_1d<double, 3>& r_current_velocity = itCurrentNode->FastGetSolutionStepValue(VELOCITY);
@@ -445,7 +456,7 @@ public:
         Scheme<TSparseSpace, TDenseSpace>::InitializeSolutionStep(r_model_part, A, Dx, b);
 
         // If we are updating stress first (USF), calculate nodal velocities from momenta and apply BCs
-        if (mStressUpdateOption == 0)
+        if (mStressUpdateOption == 0 || mIsCentralDifference)
         {
             const IndexType DisplacementPosition = mr_grid_model_part.NodesBegin()->GetDofPosition(DISPLACEMENT_X);
 
@@ -476,7 +487,6 @@ public:
                         {
                             nodal_velocity[j] = nodal_momentum[j] / nodal_mass;
                         }
-
                     }
                 }
             }
@@ -593,18 +603,23 @@ public:
     {
         KRATOS_TRY
 
-        ElementsArrayType& pElements = r_model_part.Elements();
-        ProcessInfo& CurrentProcessInfo = r_model_part.GetProcessInfo();
-
-        for (ElementsArrayType::iterator it = pElements.begin(); it != pElements.end(); ++it)
+        // This calculates the stresses before momenta update.
+        // Used for USF and Central Difference method
+        if (mStressUpdateOption == 0 || mIsCentralDifference)
         {
-            (it)->InitializeNonLinearIteration(CurrentProcessInfo);
-        }
+            ElementsArrayType& pElements = r_model_part.Elements();
+            ProcessInfo& CurrentProcessInfo = r_model_part.GetProcessInfo();
 
-        ConditionsArrayType& pConditions = r_model_part.Conditions();
-        for (ConditionsArrayType::iterator it = pConditions.begin(); it != pConditions.end(); ++it)
-        {
-            (it)->InitializeNonLinearIteration(CurrentProcessInfo);
+            for (ElementsArrayType::iterator it = pElements.begin(); it != pElements.end(); ++it)
+            {
+                (it)->InitializeNonLinearIteration(CurrentProcessInfo);
+            }
+
+            ConditionsArrayType& pConditions = r_model_part.Conditions();
+            for (ConditionsArrayType::iterator it = pConditions.begin(); it != pConditions.end(); ++it)
+            {
+                (it)->InitializeNonLinearIteration(CurrentProcessInfo);
+            }
         }
 
         KRATOS_CATCH("")
