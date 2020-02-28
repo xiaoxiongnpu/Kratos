@@ -90,6 +90,10 @@ def Factory(settings, Model):
         [
             "CheckVectorBoundsProcess",
             KratosRANS.RansCheckVectorBoundsProcess
+        ],
+        [
+            "KEpsilonDomainInitializationProcess",
+            KratosRANS.RansKEpsilonDomainInitializationProcess
         ]
     ]
 
